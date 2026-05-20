@@ -155,22 +155,28 @@ function RiskHeatmap() {
     risks.filter((r) => bucket(r.prob) === p && bucket(r.impact) === i).length;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="grid grid-cols-[110px_repeat(4,1fr)] gap-3">
-        {/* Y-axis label spans the rows */}
-        <div className="row-span-4 flex items-center justify-center">
-          <div className="-rotate-90 whitespace-nowrap text-sm text-muted-foreground">
-            Probability →
-          </div>
+    <div className="mx-auto flex max-w-3xl items-stretch gap-3">
+      {/* Y-axis title */}
+      <div className="flex items-center">
+        <div className="-rotate-90 whitespace-nowrap text-sm text-muted-foreground">
+          Probability →
         </div>
-        {/* Rows: 4 (top) → 1 (bottom) */}
-        {[4, 3, 2, 1].map((p, rowIdx) => (
-          <div key={p} className="contents">
-            <div /> {/* placeholder to align under the rotated label cell after first row */}
-            <div className="-ml-[110px] flex items-center pr-3 text-right text-sm leading-tight text-foreground/80">
-              <span className="ml-auto block">{probLabels[rowIdx]}</span>
-            </div>
-            {[1, 2, 3, 4].map((i) => {
+      </div>
+
+      {/* Probability labels column */}
+      <div className="flex flex-col justify-between py-1">
+        {probLabels.map((l) => (
+          <div key={l} className="flex flex-1 items-center pr-2 text-right text-sm leading-tight text-foreground/80">
+            <span className="ml-auto block w-24">{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Grid + X-axis labels */}
+      <div className="flex-1">
+        <div className="grid grid-cols-4 gap-3">
+          {[4, 3, 2, 1].map((p) =>
+            [1, 2, 3, 4].map((i) => {
               const count = countAt(p, i);
               const tone = toneFor(p, i, count > 0);
               return (
@@ -181,21 +187,15 @@ function RiskHeatmap() {
                   {count > 0 ? count : ""}
                 </div>
               );
-            })}
-          </div>
-        ))}
-
-        {/* X-axis labels */}
-        <div />
-        <div />
-        {impactLabels.map((l) => (
-          <div key={l} className="text-center text-sm text-muted-foreground">{l}</div>
-        ))}
-
-        {/* X-axis title */}
-        <div />
-        <div />
-        <div className="col-span-4 mt-2 text-center text-sm text-muted-foreground">Impact →</div>
+            }),
+          )}
+        </div>
+        <div className="mt-3 grid grid-cols-4 gap-3">
+          {impactLabels.map((l) => (
+            <div key={l} className="text-center text-sm text-muted-foreground">{l}</div>
+          ))}
+        </div>
+        <div className="mt-3 text-center text-sm text-muted-foreground">Impact →</div>
       </div>
     </div>
   );
