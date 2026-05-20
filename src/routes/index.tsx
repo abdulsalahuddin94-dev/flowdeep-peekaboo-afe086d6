@@ -262,7 +262,79 @@ function TeamMemberView() {
   );
 }
 
-function DonutChart() {
+function PortfolioHealthChart() {
+  const data = [
+    { label: "On Track", v: 14, c: "var(--rag-green)" },
+    { label: "At Risk", v: 5, c: "var(--rag-amber)" },
+    { label: "Critical", v: 3, c: "var(--rag-red)" },
+  ];
+  const total = data.reduce((s, x) => s + x.v, 0);
+  // mini sparkline trend (last 8 weeks of "on track" share)
+  const trend = [70, 68, 72, 65, 60, 64, 66, 64];
+  const max = Math.max(...trend);
+  const min = Math.min(...trend);
+  const points = trend
+    .map((v, i) => {
+      const x = (i / (trend.length - 1)) * 100;
+      const y = 100 - ((v - min) / (max - min || 1)) * 100;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <div className="space-y-3">
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-secondary/40">
+        {data.map((d) => (
+          <div key={d.label} style={{ width: `${(d.v / total) * 100}%`, background: d.c }} />
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-[11px]">
+        {data.map((d) => (
+          <div key={d.label} className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: d.c }} />
+            <span className="text-muted-foreground">{d.label}</span>
+            <span className="ml-auto num-mono text-foreground">{d.v}</span>
+          </div>
+        ))}
+      </div>
+      <div>
+        <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
+          <span>On-track trend · 8w</span>
+          <span className="text-rag-amber">▼ 6%</span>
+        </div>
+        <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="h-8 w-full">
+          <defs>
+            <linearGradient id="phFill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polygon points={`0,28 ${points
+            .split(" ")
+            .map((p) => {
+              const [x, y] = p.split(",");
+              return `${x},${(Number(y) / 100) * 28}`;
+            })
+            .join(" ")} 100,28`} fill="url(#phFill)" />
+          <polyline
+            points={points
+              .split(" ")
+              .map((p) => {
+                const [x, y] = p.split(",");
+                return `${x},${(Number(y) / 100) * 28}`;
+              })
+              .join(" ")}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="1.2"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+
   const segments = [
     { v: 14, c: "#10B981" }, { v: 5, c: "#F59E0B" }, { v: 3, c: "#EF4444" }, { v: 2, c: "#3B82F6" }, { v: 1, c: "#64748B" },
   ];
