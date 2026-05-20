@@ -620,10 +620,180 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
           </Table>
         </TabsContent>
 
-        <TabsContent value="subs" className="mt-5 glass-card p-5 text-sm text-muted-foreground">Subcontracted packages plan — civil works, integration testing, training rollout.</TabsContent>
-        <TabsContent value="trips" className="mt-5 glass-card p-5 text-sm text-muted-foreground">Business trips: 4 planned. Site visits (Jun, Aug), training (Jul), go-live support (Sep).</TabsContent>
-        <TabsContent value="fin" className="mt-5 glass-card p-5 text-sm text-muted-foreground">CAPEX $2.4M / OPEX $0.8M. Quarterly milestone-linked revenue recognition.</TabsContent>
-        <TabsContent value="tender" className="mt-5 glass-card p-5 text-sm text-muted-foreground">Tender packages: Hardware (RFP-013), Integration partner (RFP-014).</TabsContent>
+        <TabsContent value="subs" className="mt-5 space-y-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            {[
+              { l: "Total Packages", v: "6" },
+              { l: "Awarded", v: "3", c: "text-rag-green" },
+              { l: "In Tender", v: "2", c: "text-rag-amber" },
+              { l: "Total Value", v: "$1.84M" },
+            ].map((k) => (
+              <div key={k.l} className="glass-card p-4">
+                <div className="label-eyebrow">{k.l}</div>
+                <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="glass-card overflow-hidden">
+            <Table>
+              <TableHeader><TableRow><TableHead>Package</TableHead><TableHead>Scope</TableHead><TableHead>Vendor</TableHead><TableHead>Value</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+              <TableBody>{[
+                { p: "SUB-001", s: "Civil works & site prep", v: "Acme Construction", val: "$420K", per: "Jun–Jul", st: "green", stl: "Awarded" },
+                { p: "SUB-002", s: "Integration testing", v: "TestLabs Co.", val: "$180K", per: "Jul–Aug", st: "green", stl: "Awarded" },
+                { p: "SUB-003", s: "Training rollout (40 staff)", v: "LearnSphere", val: "$95K", per: "Aug", st: "green", stl: "Awarded" },
+                { p: "SUB-004", s: "Network cabling", v: "—", val: "$220K", per: "Jun", st: "amber", stl: "In tender" },
+                { p: "SUB-005", s: "Security audit & pen-test", v: "—", val: "$140K", per: "Sep", st: "amber", stl: "In tender" },
+                { p: "SUB-006", s: "Go-live support (8 wks)", v: "—", val: "$785K", per: "Sep–Oct", st: "blue", stl: "Planned" },
+              ].map((r) => (
+                <TableRow key={r.p}>
+                  <TableCell className="font-medium text-foreground">{r.p}</TableCell>
+                  <TableCell>{r.s}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.v}</TableCell>
+                  <TableCell className="num-mono">{r.val}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.per}</TableCell>
+                  <TableCell><RagBadge rag={r.st as any} label={r.stl} /></TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="trips" className="mt-5 space-y-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            {[
+              { l: "Trips Planned", v: "4" },
+              { l: "Travelers", v: "9" },
+              { l: "Total Budget", v: "$24.5K" },
+              { l: "Spent", v: "$8.2K", c: "text-rag-green" },
+            ].map((k) => (
+              <div key={k.l} className="glass-card p-4">
+                <div className="label-eyebrow">{k.l}</div>
+                <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="glass-card overflow-hidden">
+            <Table>
+              <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Purpose</TableHead><TableHead>Destination</TableHead><TableHead>Dates</TableHead><TableHead>Travelers</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+              <TableBody>{[
+                { id: "T-01", p: "Site survey", d: "Dubai, UAE", dt: "Jun 12 – Jun 15", t: "Sara, Mei", c: "$5.2K", s: "green", sl: "Completed" },
+                { id: "T-02", p: "Vendor workshop", d: "Munich, DE", dt: "Jul 08 – Jul 11", t: "K. Bauer", c: "$3.0K", s: "green", sl: "Completed" },
+                { id: "T-03", p: "User training", d: "Riyadh, KSA", dt: "Aug 18 – Aug 22", t: "H. Tanaka, Priya, +2", c: "$9.8K", s: "amber", sl: "Booked" },
+                { id: "T-04", p: "Go-live support", d: "Doha, QA", dt: "Sep 14 – Sep 28", t: "John, Mei, +2", c: "$6.5K", s: "blue", sl: "Planned" },
+              ].map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-foreground">{r.id}</TableCell>
+                  <TableCell>{r.p}</TableCell>
+                  <TableCell>{r.d}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.dt}</TableCell>
+                  <TableCell className="text-xs">{r.t}</TableCell>
+                  <TableCell className="num-mono">{r.c}</TableCell>
+                  <TableCell><RagBadge rag={r.s as any} label={r.sl} /></TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="fin" className="mt-5 space-y-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            {[
+              { l: "Total CAPEX", v: "$2.40M" },
+              { l: "Total OPEX", v: "$0.80M" },
+              { l: "Committed", v: "$1.12M", c: "text-rag-amber" },
+              { l: "Remaining", v: "$2.08M", c: "text-rag-green" },
+            ].map((k) => (
+              <div key={k.l} className="glass-card p-4">
+                <div className="label-eyebrow">{k.l}</div>
+                <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-4 md:grid-cols-[1fr_360px]">
+            <div className="glass-card p-5">
+              <div className="label-eyebrow mb-3">Cost categories</div>
+              <div className="space-y-3">
+                {[
+                  { c: "Labour", b: 1.20, a: 0.84, color: "bg-rag-green" },
+                  { c: "Hardware", b: 0.90, a: 0.62, color: "bg-rag-blue" },
+                  { c: "Software licenses", b: 0.40, a: 0.31, color: "bg-accent" },
+                  { c: "Business trips", b: 0.10, a: 0.07, color: "bg-rag-amber" },
+                  { c: "Contingency", b: 0.60, a: 0.26, color: "bg-muted-foreground" },
+                ].map((r) => {
+                  const pct = Math.round((r.a / r.b) * 100);
+                  return (
+                    <div key={r.c}>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span className="text-foreground">{r.c}</span>
+                        <span className="num-mono text-xs text-muted-foreground">${r.a.toFixed(2)}M / ${r.b.toFixed(2)}M</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/50">
+                        <div className={`h-full ${r.color}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="glass-card p-5">
+              <div className="label-eyebrow mb-3">Quarterly cash plan</div>
+              <ul className="space-y-3 text-sm">
+                {[
+                  { q: "Q1 2026", v: "$0.45M", s: "green", sl: "Released" },
+                  { q: "Q2 2026", v: "$1.05M", s: "green", sl: "Released" },
+                  { q: "Q3 2026", v: "$1.20M", s: "amber", sl: "Pending" },
+                  { q: "Q4 2026", v: "$0.50M", s: "blue", sl: "Planned" },
+                ].map((q) => (
+                  <li key={q.q} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                    <div>
+                      <div className="text-foreground">{q.q}</div>
+                      <div className="num-mono text-xs text-muted-foreground">{q.v}</div>
+                    </div>
+                    <RagBadge rag={q.s as any} label={q.sl} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tender" className="mt-5 space-y-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            {[
+              { l: "Active RFPs", v: "3", c: "text-rag-amber" },
+              { l: "Bids Received", v: "11" },
+              { l: "Awarded", v: "2", c: "text-rag-green" },
+              { l: "Total Value", v: "$1.62M" },
+            ].map((k) => (
+              <div key={k.l} className="glass-card p-4">
+                <div className="label-eyebrow">{k.l}</div>
+                <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="glass-card overflow-hidden">
+            <Table>
+              <TableHeader><TableRow><TableHead>RFP</TableHead><TableHead>Package</TableHead><TableHead>Issued</TableHead><TableHead>Closes</TableHead><TableHead>Bids</TableHead><TableHead>Est. Value</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+              <TableBody>{[
+                { id: "RFP-013", p: "Hardware procurement", i: "Apr 18", c: "May 24", b: 5, v: "$420K", s: "green", sl: "Awarded" },
+                { id: "RFP-014", p: "Integration partner", i: "May 02", c: "Jun 06", b: 4, v: "$680K", s: "amber", sl: "Evaluating" },
+                { id: "RFP-015", p: "Cybersecurity audit", i: "May 15", c: "Jun 14", b: 2, v: "$140K", s: "amber", sl: "Open" },
+                { id: "RFP-016", p: "Training services", i: "Jun 01", c: "Jun 28", b: 0, v: "$95K", s: "blue", sl: "Draft" },
+                { id: "RFP-017", p: "Managed support (1y)", i: "—", c: "Jul 12", b: 0, v: "$285K", s: "blue", sl: "Planned" },
+              ].map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-foreground">{r.id}</TableCell>
+                  <TableCell>{r.p}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.i}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.c}</TableCell>
+                  <TableCell className="num-mono">{r.b}</TableCell>
+                  <TableCell className="num-mono">{r.v}</TableCell>
+                  <TableCell><RagBadge rag={r.s as any} label={r.sl} /></TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );
