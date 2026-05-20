@@ -77,25 +77,9 @@ function RisksPage() {
           </Table>
         </TabsContent>
 
-        <TabsContent value="heatmap" className="mt-5 glass-card p-6">
-          <div className="label-eyebrow mb-4">Probability × Impact</div>
-          <div className="mx-auto max-w-2xl">
-            <div className="grid grid-cols-[40px_repeat(5,1fr)] gap-1">
-              <div />
-              {[1, 2, 3, 4, 5].map((i) => <div key={i} className="text-center text-xs text-muted-foreground">I{i}</div>)}
-              {[5, 4, 3, 2, 1].map((p) => (
-                <>
-                  <div key={`p${p}`} className="self-center text-xs text-muted-foreground">P{p}</div>
-                  {[1, 2, 3, 4, 5].map((i) => {
-                    const score = p * i;
-                    const count = risks.filter((r) => r.prob === p && r.impact === i).length;
-                    const bg = score >= 15 ? "bg-rag-red/30" : score >= 9 ? "bg-rag-amber/30" : score >= 4 ? "bg-rag-blue/20" : "bg-rag-green/20";
-                    return <div key={`${p}-${i}`} className={`flex h-14 items-center justify-center rounded ${bg} border border-border text-sm font-medium text-foreground`}>{count > 0 ? count : "·"}</div>;
-                  })}
-                </>
-              ))}
-            </div>
-          </div>
+        <TabsContent value="heatmap" className="mt-5 glass-card p-8">
+          <div className="label-eyebrow mb-6">Probability × Impact</div>
+          <RiskHeatmap />
         </TabsContent>
 
         <TabsContent value="issues" className="mt-5 glass-card overflow-hidden">
