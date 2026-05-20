@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Check, X as XIcon, MoreVertical, Plus } from "lucide-react";
+import { NewBusinessCaseFlow } from "@/components/NewBusinessCaseFlow";
 
 export const Route = createFileRoute("/pipeline")({
   component: PipelinePage,
