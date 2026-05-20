@@ -75,37 +75,8 @@ function ProjectDetail() {
           ))}
         </TabsList>
 
-        <TabsContent value="Overview" className="mt-5 space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="glass-card p-5 md:col-span-2">
-              <div className="label-eyebrow mb-2">Executive summary</div>
-              <p className="text-sm leading-relaxed text-foreground">
-                {project.name} is in {project.stage.toLowerCase()} phase. Currently {project.progress}% complete with {project.ragNote?.toLowerCase()}.
-                The next critical milestone is UAT Sign-off due {project.endDate}. Vendor coordination remains the largest source of schedule risk.
-              </p>
-              <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
-                <Stat label="Sponsor" value="V. Mansour" />
-                <Stat label="Steering committee" value="Bi-weekly" />
-                <Stat label="Methodology" value="Hybrid Agile" />
-              </div>
-            </div>
-            <div className="glass-card p-5">
-              <div className="label-eyebrow mb-3">Team</div>
-              <ul className="space-y-2 text-sm">
-                {[
-                  { n: project.pm, r: "Project Manager" },
-                  { n: "M. Cole", r: "Sponsor" },
-                  { n: "K. Bauer", r: "Technical Lead" },
-                  { n: "H. Tanaka", r: "Procurement" },
-                ].map((t) => (
-                  <li key={t.n} className="flex items-center gap-2">
-                    <Avatar className="h-7 w-7"><AvatarFallback className="bg-accent-dim text-[10px] text-accent">{t.n.split(" ").map((s: string) => s[0]).join("")}</AvatarFallback></Avatar>
-                    <div><div className="text-foreground">{t.n}</div><div className="text-xs text-muted-foreground">{t.r}</div></div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+        <TabsContent value="Overview" className="mt-5">
+          <OverviewTab project={project} />
         </TabsContent>
 
         <TabsContent value="Planning" className="mt-5">
@@ -397,4 +368,144 @@ function ProjectDetail() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return <div><div className="label-eyebrow">{label}</div><div className="text-foreground">{value}</div></div>;
+}
+
+function OverviewTab({ project }: { project: typeof projects[number] }) {
+  const ragMap = {
+    green: { label: "On Track", text: "text-rag-green", bg: "bg-rag-green/15", ring: "ring-rag-green/40" },
+    amber: { label: "At Risk", text: "text-rag-amber", bg: "bg-rag-amber/15", ring: "ring-rag-amber/40" },
+    red: { label: "Critical", text: "text-rag-red", bg: "bg-rag-red/15", ring: "ring-rag-red/40" },
+    blue: { label: "Not Started", text: "text-rag-blue", bg: "bg-rag-blue/15", ring: "ring-rag-blue/40" },
+    grey: { label: "On Hold", text: "text-muted-foreground", bg: "bg-muted/20", ring: "ring-muted/40" },
+  } as const;
+  const r = ragMap[project.rag];
+  const spentPct = Math.round((project.budgetUsed / project.budgetTotal) * 100);
+  const remaining = (project.budgetTotal - project.budgetUsed).toFixed(1);
+
+  const stages = [
+    { n: 1, name: "Initiation", done: true },
+    { n: 2, name: "Planning", done: true },
+    { n: 3, name: "Execution", done: true },
+    { n: 4, name: "Monitoring", done: false },
+    { n: 5, name: "Closure", done: false },
+  ];
+
+  const milestones = [
+    { name: "Requirements Sign-off", date: "2026-05-15", rag: "green" as const },
+    { name: "Design Review", date: "2026-05-22", rag: "green" as const },
+    { name: "UAT Completion", date: "2026-06-01", rag: "amber" as const },
+  ];
+
+  const activity = [
+    { title: "Status updated to At Risk", who: project.pm, when: "2h ago" },
+    { title: "Milestone completed", who: "Sara Mohamed", when: "5h ago" },
+    { title: "Budget revised", who: "Finance Team", when: "1d ago" },
+  ];
+
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      <div className="space-y-4">
+        <div className="glass-card p-5">
+          <div className="label-eyebrow mb-4">Project Health</div>
+          <div className="flex items-start gap-3">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${r.bg} ring-2 ${r.ring}`}>
+              <span className={`text-lg ${r.text}`}>✓</span>
+            </div>
+            <div>
+              <div className={`text-base font-medium ${r.text}`}>{r.label}</div>
+              <div className="text-xs text-muted-foreground">Last updated: 2 hours ago</div>
+            </div>
+          </div>
+          <div className="mt-5 space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Progress:</span>
+              <span className="num-mono font-medium text-foreground">{project.progress}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Start Date:</span>
+              <span className="num-mono font-medium text-foreground">{(project as any).startDate ?? "2026-01-10"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">End Date:</span>
+              <span className="num-mono font-medium text-foreground">{project.endDate}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card p-5">
+          <div className="label-eyebrow mb-4">Stage Gates</div>
+          <ul className="space-y-3">
+            {stages.map((s) => (
+              <li key={s.n} className="flex items-center gap-3">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${s.done ? "bg-accent text-accent-foreground" : "border border-border bg-secondary/40 text-muted-foreground"}`}>
+                  {s.done ? <span className="text-sm">✓</span> : <span className="num-mono text-xs">{s.n}</span>}
+                </div>
+                <span className={`text-sm ${s.done ? "text-foreground" : "text-muted-foreground"}`}>{s.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="glass-card p-5">
+          <div className="label-eyebrow mb-4">Next Milestones</div>
+          <ul className="space-y-3">
+            {milestones.map((m) => (
+              <li key={m.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${m.rag === "green" ? "bg-rag-green" : "bg-rag-amber"}`} />
+                  <span className="text-sm font-medium text-foreground">{m.name}</span>
+                </div>
+                <span className="num-mono text-xs text-muted-foreground">{m.date}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="glass-card p-5">
+          <div className="label-eyebrow mb-4">Budget Status</div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Spent</span>
+            <span className="num-mono font-medium text-foreground">${project.budgetUsed.toFixed(1)}M / ${project.budgetTotal.toFixed(1)}M</span>
+          </div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary/50">
+            <div className="h-full rounded-full bg-rag-green" style={{ width: `${spentPct}%` }} />
+          </div>
+          <div className="mt-3 text-xs text-muted-foreground">Remaining: ${remaining}M</div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="glass-card p-5">
+          <div className="label-eyebrow mb-4">Open RAID Items</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-rag-amber/30 bg-rag-amber/10 p-5 text-center">
+              <div className="num-mono text-3xl font-medium text-rag-amber">{project.risks}</div>
+              <div className="mt-1 text-xs text-muted-foreground">Risks</div>
+            </div>
+            <div className="rounded-lg border border-rag-red/30 bg-rag-red/10 p-5 text-center">
+              <div className="num-mono text-3xl font-medium text-rag-red">{project.issues}</div>
+              <div className="mt-1 text-xs text-muted-foreground">Issues</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card p-5">
+          <div className="label-eyebrow mb-4">Recent Activity</div>
+          <ul className="space-y-3">
+            {activity.map((a) => (
+              <li key={a.title} className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">{a.title}</div>
+                  <div className="text-xs text-accent">{a.who}</div>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">{a.when}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
 }
