@@ -23,6 +23,7 @@ const STAGES = ["Submitted", "Under Review", "Approved", "Deferred", "Rejected",
 function PipelinePage() {
   const [reject, setReject] = useState<string | null>(null);
   const [approve, setApprove] = useState<string | null>(null);
+  const [newCase, setNewCase] = useState(false);
 
   return (
     <div>
