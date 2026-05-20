@@ -99,7 +99,7 @@ function ProjectDetail() {
                   { n: "H. Tanaka", r: "Procurement" },
                 ].map((t) => (
                   <li key={t.n} className="flex items-center gap-2">
-                    <Avatar className="h-7 w-7"><AvatarFallback className="bg-accent-dim text-[10px] text-accent">{t.n.split(" ").map((s) => s[0]).join("")}</AvatarFallback></Avatar>
+                    <Avatar className="h-7 w-7"><AvatarFallback className="bg-accent-dim text-[10px] text-accent">{t.n.split(" ").map((s: string) => s[0]).join("")}</AvatarFallback></Avatar>
                     <div><div className="text-foreground">{t.n}</div><div className="text-xs text-muted-foreground">{t.r}</div></div>
                   </li>
                 ))}
