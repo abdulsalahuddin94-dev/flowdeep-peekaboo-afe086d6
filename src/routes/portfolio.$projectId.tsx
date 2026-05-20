@@ -153,54 +153,99 @@ function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="Schedule" className="mt-5">
-          <div className="glass-card p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="label-eyebrow">Gantt — current phase</div>
-              <div className="text-xs text-muted-foreground">Jan – Dec 2026</div>
+          <div className="glass-card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="label-eyebrow">Gantt — week of October 3</div>
+                <div className="mt-1 text-xs text-muted-foreground">Drag tasks to reschedule · Click a bar to open</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm">‹ Prev</Button>
+                <Button variant="outline" size="sm">Today</Button>
+                <Button variant="outline" size="sm">Next ›</Button>
+              </div>
             </div>
             <div className="overflow-x-auto">
               {(() => {
-                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                const rows = [
-                  { t: "Discovery", s: 0, l: 2, c: "#10B981", start: "Jan 06", end: "Feb 28" },
-                  { t: "Design",    s: 1, l: 3, c: "#51CAAD", start: "Feb 10", end: "Apr 30" },
-                  { t: "Build P1",  s: 3, l: 4, c: "#3B82F6", start: "Apr 01", end: "Jul 31" },
-                  { t: "UAT",       s: 6, l: 2, c: "#F59E0B", start: "Jul 15", end: "Aug 30" },
-                  { t: "Go-live",   s: 8, l: 1, c: "#10B981", start: "Sep 02", end: "Sep 14" },
+                const days = [
+                  { d: 3, w: "Monday" },
+                  { d: 4, w: "Tuesday" },
+                  { d: 5, w: "Wednesday", today: true },
+                  { d: 6, w: "Thursday" },
+                  { d: 7, w: "Friday" },
+                  { d: 8, w: "Saturday" },
+                  { d: 9, w: "Sunday" },
                 ];
+                const palette = {
+                  blue:   { bg: "bg-blue-500/15",    bd: "border-blue-500/30",    tx: "text-blue-300",    av: "bg-blue-500/30 text-blue-100" },
+                  green:  { bg: "bg-emerald-500/15", bd: "border-emerald-500/30", tx: "text-emerald-300", av: "bg-emerald-500/30 text-emerald-100" },
+                  peach:  { bg: "bg-orange-500/15",  bd: "border-orange-500/30",  tx: "text-orange-200",  av: "bg-orange-500/30 text-orange-100" },
+                  pink:   { bg: "bg-pink-500/15",    bd: "border-pink-500/30",    tx: "text-pink-200",    av: "bg-pink-500/30 text-pink-100" },
+                  violet: { bg: "bg-violet-500/15",  bd: "border-violet-500/30",  tx: "text-violet-200",  av: "bg-violet-500/30 text-violet-100" },
+                  amber:  { bg: "bg-amber-500/15",   bd: "border-amber-500/30",   tx: "text-amber-200",   av: "bg-amber-500/30 text-amber-100" },
+                } as const;
+                type Color = keyof typeof palette;
+                const rows: { lane: string; task?: { s: number; l: number; label: string; who: string; color: Color; check?: boolean } }[] = [
+                  { lane: "Project management",   task: { s: 0, l: 2, label: "Assign project tasks",             who: project.pm,  color: "blue" } },
+                  { lane: "UI design for mobile", task: { s: 1, l: 2, label: "Create design for mobile splash",  who: "Sara Kim",  color: "green", check: true } },
+                  { lane: "UI design for web",    task: { s: 2, l: 2, label: "Mockup for web app",               who: "Mei Chen",  color: "peach" } },
+                  { lane: "Design system review", task: { s: 4, l: 2, label: "Update design system",             who: "Priya Iyer",color: "violet" } },
+                  { lane: "HTML development",     task: { s: 1, l: 5, label: "Start HTML & CSS development",     who: "K. Bauer",  color: "peach" } },
+                  { lane: "CMS integration",      task: { s: 5, l: 2, label: "Integrate with Webflow",           who: "Diego O.",  color: "pink" } },
+                  { lane: "Quality review" },
+                  { lane: "Product launch" },
+                  { lane: "Marketing campaign",   task: { s: 1, l: 3, label: "New marketing strategy",           who: "H. Tanaka", color: "blue" } },
+                  { lane: "SEO improvements",     task: { s: 4, l: 3, label: "Start SEO optimization",           who: "L. Park",   color: "peach" } },
+                ];
+                const COLS = "grid-cols-[200px_repeat(7,minmax(110px,1fr))]";
                 return (
-                  <>
-                    <div className="mb-2 grid grid-cols-[160px_repeat(12,minmax(40px,1fr))_120px] gap-px text-[10px] uppercase tracking-wider text-muted-foreground">
-                      <div>Phase</div>
-                      {months.map((m) => <div key={m} className="border-l border-border/40 pl-1">{m}</div>)}
-                      <div className="pl-2">Dates</div>
+                  <div className="min-w-[1000px]">
+                    {/* Header */}
+                    <div className={`grid ${COLS} border-b border-border`}>
+                      <div />
+                      {days.map((d) => (
+                        <div key={d.d} className={`px-3 py-3 text-center ${d.today ? "bg-accent-dim/40 rounded-t-md" : ""}`}>
+                          <div className={`text-xs ${d.today ? "text-accent font-medium" : "text-muted-foreground"}`}>October, {d.d}</div>
+                          <div className={`mt-0.5 text-sm font-medium ${d.today ? "text-accent" : "text-foreground"}`}>{d.w}</div>
+                        </div>
+                      ))}
                     </div>
-                    {rows.map((row) => (
-                      <div key={row.t} className="mb-1 grid grid-cols-[160px_repeat(12,minmax(40px,1fr))_120px] items-center gap-px text-xs">
-                        <div className="text-foreground">{row.t}</div>
-                        {Array.from({ length: 12 }).map((_, c) => (
-                          <div key={c} className="relative h-6 border-l border-border/40">
-                            {c >= row.s && c < row.s + row.l && (
-                              <div className="absolute inset-y-1 left-0 right-0 rounded-sm" style={{ background: row.c, opacity: 0.85 }}>
-                                {c === row.s && (
-                                  <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-medium text-white/95 num-mono">{row.start}</span>
-                                )}
-                                {c === row.s + row.l - 1 && (
-                                  <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-medium text-white/95 num-mono">{row.end}</span>
-                                )}
-                              </div>
-                            )}
+                    {/* Rows */}
+                    {rows.map((r, idx) => (
+                      <div key={r.lane} className={`grid ${COLS} border-b border-border/60`} style={{ minHeight: 72 }}>
+                        <div className="flex items-center px-3 py-4 text-sm text-foreground">{r.lane}</div>
+                        {days.map((d, di) => (
+                          <div key={d.d} className={`relative border-l border-border/40 ${d.today ? "bg-accent-dim/20" : ""}`}>
+                            {r.task && di === r.task.s && (() => {
+                              const p = palette[r.task!.color];
+                              const initials = r.task!.who.split(" ").map((s) => s[0]).join("").slice(0, 2);
+                              return (
+                                <div
+                                  className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-full border ${p.bg} ${p.bd} px-2 py-1.5 shadow-sm`}
+                                  style={{ left: 6, width: `calc(${r.task!.l} * 100% - 12px)`, zIndex: 2 }}
+                                >
+                                  {r.task!.check ? (
+                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/80 text-[11px] text-white">✓</div>
+                                  ) : (
+                                    <Avatar className="h-6 w-6 shrink-0">
+                                      <AvatarFallback className={`text-[10px] ${p.av}`}>{initials}</AvatarFallback>
+                                    </Avatar>
+                                  )}
+                                  <span className={`truncate text-xs font-medium ${p.tx}`}>{r.task!.label}</span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         ))}
-                        <div className="pl-2 text-[10px] text-muted-foreground num-mono">{row.start} → {row.end}</div>
                       </div>
                     ))}
-                  </>
+                  </div>
                 );
               })()}
             </div>
           </div>
         </TabsContent>
+
 
         <TabsContent value="Team & Allocation" className="mt-5 glass-card overflow-hidden">
           <Table>
