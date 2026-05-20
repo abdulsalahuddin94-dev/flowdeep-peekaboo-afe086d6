@@ -334,7 +334,7 @@ function PortfolioHealthChart() {
   );
 }
 
-
+function DonutChart() {
   const segments = [
     { v: 14, c: "#10B981" }, { v: 5, c: "#F59E0B" }, { v: 3, c: "#EF4444" }, { v: 2, c: "#3B82F6" }, { v: 1, c: "#64748B" },
   ];
