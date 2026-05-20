@@ -130,6 +130,8 @@ function PipelinePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NewBusinessCaseFlow open={newCase} onOpenChange={setNewCase} />
     </div>
   );
 }
