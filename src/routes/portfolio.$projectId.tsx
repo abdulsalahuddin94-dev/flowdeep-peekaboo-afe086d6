@@ -80,47 +80,7 @@ function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="Planning" className="mt-5">
-          <Tabs defaultValue="init" orientation="horizontal">
-            <TabsList className="bg-secondary/30">
-              {["init", "ms", "manpower", "subs", "trips", "fin", "tender"].map((k, i) => (
-                <TabsTrigger key={k} value={k} className="text-xs">
-                  {["Initiation", "Milestones & Deps", "Manpower", "Subcontracted", "Trips Plan", "Financial Planning", "Tender Packages"][i]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <TabsContent value="init" className="mt-3 glass-card p-5 text-sm">
-              <div className="label-eyebrow mb-2">Initiation</div>
-              <p className="text-muted-foreground">Project charter signed. Kick-off held 2026-04-12. PMO baseline locked at v3.</p>
-            </TabsContent>
-            <TabsContent value="ms" className="mt-3 glass-card overflow-hidden">
-              <Table>
-                <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
-                <TableBody>{[
-                  { n: "Discovery complete", d: "May 02", o: "Sara", s: "green", dep: "—" },
-                  { n: "Build phase 1", d: "Jun 30", o: "Mei", s: "amber", dep: "Discovery" },
-                  { n: "UAT Sign-off", d: project.endDate, o: project.pm, s: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
-                  { n: "Go-live", d: "Sep 14", o: project.pm, s: "blue", dep: "UAT" },
-                ].map((m) => (
-                  <TableRow key={m.n}><TableCell className="font-medium text-foreground">{m.n}</TableCell><TableCell>{m.d}</TableCell><TableCell>{m.o}</TableCell><TableCell><RagBadge rag={m.s as any} /></TableCell><TableCell className="text-xs text-muted-foreground">{m.dep}</TableCell></TableRow>
-                ))}</TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="manpower" className="mt-3 glass-card p-5 text-sm">
-              <div className="label-eyebrow mb-3">Manpower requirements</div>
-              <Table>
-                <TableHeader><TableRow><TableHead>Role</TableHead><TableHead>FTE</TableHead><TableHead>Skill level</TableHead><TableHead>Period</TableHead><TableHead>Sourcing</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  <TableRow><TableCell>Solution Architect</TableCell><TableCell>1.0</TableCell><TableCell>Senior</TableCell><TableCell>Jun–Sep</TableCell><TableCell>Internal</TableCell></TableRow>
-                  <TableRow><TableCell>QA Engineer</TableCell><TableCell>2.0</TableCell><TableCell>Mid</TableCell><TableCell>Jul–Sep</TableCell><TableCell>Internal + Subcontract</TableCell></TableRow>
-                  <TableRow><TableCell>Integration Dev</TableCell><TableCell>1.5</TableCell><TableCell>Mid</TableCell><TableCell>Jun–Aug</TableCell><TableCell>Internal</TableCell></TableRow>
-                </TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="subs" className="mt-3 glass-card p-5 text-sm text-muted-foreground">Subcontracted packages plan — civil works, integration testing, training rollout.</TabsContent>
-            <TabsContent value="trips" className="mt-3 glass-card p-5 text-sm text-muted-foreground">Business trips: 4 planned. Site visits (Jun, Aug), training (Jul), go-live support (Sep).</TabsContent>
-            <TabsContent value="fin" className="mt-3 glass-card p-5 text-sm text-muted-foreground">CAPEX $2.4M / OPEX $0.8M. Quarterly milestone-linked revenue recognition.</TabsContent>
-            <TabsContent value="tender" className="mt-3 glass-card p-5 text-sm text-muted-foreground">Tender packages: Hardware (RFP-013), Integration partner (RFP-014).</TabsContent>
-          </Tabs>
+          <PlanningTab project={project} />
         </TabsContent>
 
         <TabsContent value="Schedule" className="mt-5">
@@ -506,6 +466,179 @@ function OverviewTab({ project }: { project: typeof projects[number] }) {
           </ul>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PlanningTab({ project }: { project: typeof projects[number] }) {
+  const checklist = [
+    { label: "Objectives & scope defined", done: true },
+    { label: "Milestone schedule created", done: true },
+    { label: "Manpower requirements submitted", done: true },
+    { label: "Subcontracted packages identified", done: false },
+    { label: "Business trips planned", done: false },
+    { label: "Budget plan approved", done: false },
+    { label: "Charter approved", done: false },
+  ];
+  const doneCount = checklist.filter((c) => c.done).length;
+  const pct = Math.round((doneCount / checklist.length) * 100);
+
+  const subTabs = [
+    { v: "init", l: "Initiation & Planning" },
+    { v: "ms", l: "Milestones & Dependencies" },
+    { v: "manpower", l: "Manpower Requirements" },
+    { v: "subs", l: "Subcontracted Packages" },
+    { v: "trips", l: "Business Trips Plan" },
+    { v: "fin", l: "Financial Planning" },
+    { v: "tender", l: "Tender Packages" },
+  ];
+
+  const stages = [
+    { n: 1, name: "Initiation", state: "done" },
+    { n: 2, name: "Planning", state: "active" },
+    { n: 3, name: "Execution", state: "todo" },
+    { n: 4, name: "Monitoring", state: "todo" },
+    { n: 5, name: "Closure", state: "todo" },
+  ] as const;
+
+  return (
+    <div className="space-y-5">
+      {/* Progress card */}
+      <div className="glass-card p-5">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-foreground">
+            Planning Progress: {doneCount} / {checklist.length} complete
+          </div>
+          <div className="text-sm text-accent">{pct}% complete</div>
+        </div>
+        <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
+          {checklist.map((c) => (
+            <div key={c.label} className="flex items-center gap-2.5">
+              {c.done ? (
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-accent text-[11px] text-accent-foreground">✓</div>
+              ) : (
+                <div className="h-5 w-5 shrink-0 rounded border border-border bg-secondary/40" />
+              )}
+              <span className={`text-sm ${c.done ? "text-foreground" : "text-muted-foreground"}`}>{c.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Sub-tabs */}
+      <Tabs defaultValue="init">
+        <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
+          {subTabs.map((t) => (
+            <TabsTrigger
+              key={t.v}
+              value={t.v}
+              className="rounded-none border-b-2 border-transparent bg-transparent px-4 py-2.5 text-xs text-muted-foreground data-[state=active]:border-accent data-[state=active]:bg-transparent data-[state=active]:text-accent data-[state=active]:shadow-none"
+            >
+              {t.l}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="init" className="mt-5">
+          <div className="grid gap-4 md:grid-cols-[1fr_320px]">
+            <div className="glass-card p-5">
+              <div className="text-sm font-medium text-foreground">Project Summary</div>
+              <div className="mt-4 space-y-4">
+                <PlanningField
+                  label="Objectives (SMART)"
+                  value={`Migrate all legacy infrastructure to cloud-based services, reducing operational costs by 30% and improving system uptime to 99.9% by Q4 2026.`}
+                />
+                <PlanningField
+                  label="Scope"
+                  multiline
+                  value={`- Migration of 50+ servers to AWS cloud infrastructure\n- Implementation of automated backup and disaster recovery\n- Staff training on new cloud-based systems\n- Security and compliance certification`}
+                />
+                <PlanningField
+                  label="Out-of-Scope"
+                  multiline
+                  value={`- Legacy application rewrites (Phase 2)\n- On-premise infrastructure disposal`}
+                />
+              </div>
+            </div>
+
+            <div className="glass-card p-5">
+              <div className="label-eyebrow">Stage Gate Overview</div>
+              <ul className="mt-4 space-y-3">
+                {stages.map((s) => {
+                  const isDone = s.state === "done";
+                  const isActive = s.state === "active";
+                  return (
+                    <li key={s.n} className="flex items-center gap-3">
+                      <div
+                        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${
+                          isDone
+                            ? "bg-accent text-accent-foreground"
+                            : isActive
+                            ? "bg-accent text-accent-foreground ring-2 ring-accent/40"
+                            : "border border-border bg-secondary/40 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="num-mono">{s.n}</span>
+                      </div>
+                      <span className={`text-sm ${isDone || isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                        {s.name}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <button className="mt-5 w-full rounded-md border border-accent/40 bg-accent-dim/40 py-2 text-sm text-accent hover:bg-accent-dim/60">
+                View Stage Gates →
+              </button>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ms" className="mt-5 glass-card overflow-hidden">
+          <Table>
+            <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+            <TableBody>{[
+              { n: "Discovery complete", d: "May 02", o: "Sara", s: "green", dep: "—" },
+              { n: "Build phase 1", d: "Jun 30", o: "Mei", s: "amber", dep: "Discovery" },
+              { n: "UAT Sign-off", d: project.endDate, o: project.pm, s: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
+              { n: "Go-live", d: "Sep 14", o: project.pm, s: "blue", dep: "UAT" },
+            ].map((m) => (
+              <TableRow key={m.n}><TableCell className="font-medium text-foreground">{m.n}</TableCell><TableCell>{m.d}</TableCell><TableCell>{m.o}</TableCell><TableCell><RagBadge rag={m.s as any} /></TableCell><TableCell className="text-xs text-muted-foreground">{m.dep}</TableCell></TableRow>
+            ))}</TableBody>
+          </Table>
+        </TabsContent>
+
+        <TabsContent value="manpower" className="mt-5 glass-card p-5 text-sm">
+          <div className="label-eyebrow mb-3">Manpower requirements</div>
+          <Table>
+            <TableHeader><TableRow><TableHead>Role</TableHead><TableHead>FTE</TableHead><TableHead>Skill level</TableHead><TableHead>Period</TableHead><TableHead>Sourcing</TableHead></TableRow></TableHeader>
+            <TableBody>
+              <TableRow><TableCell>Solution Architect</TableCell><TableCell>1.0</TableCell><TableCell>Senior</TableCell><TableCell>Jun–Sep</TableCell><TableCell>Internal</TableCell></TableRow>
+              <TableRow><TableCell>QA Engineer</TableCell><TableCell>2.0</TableCell><TableCell>Mid</TableCell><TableCell>Jul–Sep</TableCell><TableCell>Internal + Subcontract</TableCell></TableRow>
+              <TableRow><TableCell>Integration Dev</TableCell><TableCell>1.5</TableCell><TableCell>Mid</TableCell><TableCell>Jun–Aug</TableCell><TableCell>Internal</TableCell></TableRow>
+            </TableBody>
+          </Table>
+        </TabsContent>
+
+        <TabsContent value="subs" className="mt-5 glass-card p-5 text-sm text-muted-foreground">Subcontracted packages plan — civil works, integration testing, training rollout.</TabsContent>
+        <TabsContent value="trips" className="mt-5 glass-card p-5 text-sm text-muted-foreground">Business trips: 4 planned. Site visits (Jun, Aug), training (Jul), go-live support (Sep).</TabsContent>
+        <TabsContent value="fin" className="mt-5 glass-card p-5 text-sm text-muted-foreground">CAPEX $2.4M / OPEX $0.8M. Quarterly milestone-linked revenue recognition.</TabsContent>
+        <TabsContent value="tender" className="mt-5 glass-card p-5 text-sm text-muted-foreground">Tender packages: Hardware (RFP-013), Integration partner (RFP-014).</TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function PlanningField({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
+  const rows = multiline ? Math.max(3, value.split("\n").length) : 2;
+  return (
+    <div>
+      <div className="mb-1.5 text-xs text-muted-foreground">{label}</div>
+      <textarea
+        defaultValue={value}
+        rows={rows}
+        className="w-full resize-none rounded-md border border-border bg-background/40 p-3 text-sm text-foreground focus:border-accent focus:outline-none"
+      />
     </div>
   );
 }
