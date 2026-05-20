@@ -185,9 +185,11 @@ function AssignDialog({ resource }: { resource: typeof resources[number] }) {
 
         <div className="grid gap-3">
           <div>
-            <Label>Project</Label>
-            <Select onValueChange={setProjectId}>
-              <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+            <Label>Project <span className="text-rag-red">*</span></Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger className={!projectId ? "border-rag-amber/60" : undefined}>
+                <SelectValue placeholder="Select project…" />
+              </SelectTrigger>
               <SelectContent>
                 {projects.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
@@ -199,6 +201,9 @@ function AssignDialog({ resource }: { resource: typeof resources[number] }) {
                 ))}
               </SelectContent>
             </Select>
+            {!projectId && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Pick a project to enable assignment.</p>
+            )}
           </div>
 
           <div>
@@ -235,7 +240,11 @@ function AssignDialog({ resource }: { resource: typeof resources[number] }) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSave}>
+          <Button
+            disabled={!projectId}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-50 disabled:pointer-events-none"
+            onClick={handleSave}
+          >
             Confirm assignment
           </Button>
         </DialogFooter>
