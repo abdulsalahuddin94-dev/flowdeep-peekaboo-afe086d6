@@ -75,37 +75,8 @@ function ProjectDetail() {
           ))}
         </TabsList>
 
-        <TabsContent value="Overview" className="mt-5 space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="glass-card p-5 md:col-span-2">
-              <div className="label-eyebrow mb-2">Executive summary</div>
-              <p className="text-sm leading-relaxed text-foreground">
-                {project.name} is in {project.stage.toLowerCase()} phase. Currently {project.progress}% complete with {project.ragNote?.toLowerCase()}.
-                The next critical milestone is UAT Sign-off due {project.endDate}. Vendor coordination remains the largest source of schedule risk.
-              </p>
-              <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
-                <Stat label="Sponsor" value="V. Mansour" />
-                <Stat label="Steering committee" value="Bi-weekly" />
-                <Stat label="Methodology" value="Hybrid Agile" />
-              </div>
-            </div>
-            <div className="glass-card p-5">
-              <div className="label-eyebrow mb-3">Team</div>
-              <ul className="space-y-2 text-sm">
-                {[
-                  { n: project.pm, r: "Project Manager" },
-                  { n: "M. Cole", r: "Sponsor" },
-                  { n: "K. Bauer", r: "Technical Lead" },
-                  { n: "H. Tanaka", r: "Procurement" },
-                ].map((t) => (
-                  <li key={t.n} className="flex items-center gap-2">
-                    <Avatar className="h-7 w-7"><AvatarFallback className="bg-accent-dim text-[10px] text-accent">{t.n.split(" ").map((s: string) => s[0]).join("")}</AvatarFallback></Avatar>
-                    <div><div className="text-foreground">{t.n}</div><div className="text-xs text-muted-foreground">{t.r}</div></div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+        <TabsContent value="Overview" className="mt-5">
+          <OverviewTab project={project} />
         </TabsContent>
 
         <TabsContent value="Planning" className="mt-5">
