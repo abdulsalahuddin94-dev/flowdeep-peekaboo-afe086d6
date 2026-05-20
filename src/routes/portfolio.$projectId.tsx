@@ -154,24 +154,50 @@ function ProjectDetail() {
 
         <TabsContent value="Schedule" className="mt-5">
           <div className="glass-card p-4">
-            <div className="label-eyebrow mb-3">Gantt — current phase</div>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="label-eyebrow">Gantt — current phase</div>
+              <div className="text-xs text-muted-foreground">Jan – Dec 2026</div>
+            </div>
             <div className="overflow-x-auto">
-              {[
-                { t: "Discovery", s: 0, l: 2, c: "#10B981" },
-                { t: "Design", s: 1, l: 3, c: "#51CAAD" },
-                { t: "Build P1", s: 3, l: 4, c: "#3B82F6" },
-                { t: "UAT", s: 6, l: 2, c: "#F59E0B" },
-                { t: "Go-live", s: 8, l: 1, c: "#10B981" },
-              ].map((row) => (
-                <div key={row.t} className="mb-1 grid grid-cols-[160px_repeat(12,minmax(40px,1fr))] items-center gap-px text-xs">
-                  <div className="text-foreground">{row.t}</div>
-                  {Array.from({ length: 12 }).map((_, c) => (
-                    <div key={c} className="h-5 border-l border-border/40">
-                      {c >= row.s && c < row.s + row.l && <div className="h-full rounded-sm" style={{ background: row.c, opacity: 0.8 }} />}
+              {(() => {
+                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                const rows = [
+                  { t: "Discovery", s: 0, l: 2, c: "#10B981", start: "Jan 06", end: "Feb 28" },
+                  { t: "Design",    s: 1, l: 3, c: "#51CAAD", start: "Feb 10", end: "Apr 30" },
+                  { t: "Build P1",  s: 3, l: 4, c: "#3B82F6", start: "Apr 01", end: "Jul 31" },
+                  { t: "UAT",       s: 6, l: 2, c: "#F59E0B", start: "Jul 15", end: "Aug 30" },
+                  { t: "Go-live",   s: 8, l: 1, c: "#10B981", start: "Sep 02", end: "Sep 14" },
+                ];
+                return (
+                  <>
+                    <div className="mb-2 grid grid-cols-[160px_repeat(12,minmax(40px,1fr))_120px] gap-px text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <div>Phase</div>
+                      {months.map((m) => <div key={m} className="border-l border-border/40 pl-1">{m}</div>)}
+                      <div className="pl-2">Dates</div>
                     </div>
-                  ))}
-                </div>
-              ))}
+                    {rows.map((row) => (
+                      <div key={row.t} className="mb-1 grid grid-cols-[160px_repeat(12,minmax(40px,1fr))_120px] items-center gap-px text-xs">
+                        <div className="text-foreground">{row.t}</div>
+                        {Array.from({ length: 12 }).map((_, c) => (
+                          <div key={c} className="relative h-6 border-l border-border/40">
+                            {c >= row.s && c < row.s + row.l && (
+                              <div className="absolute inset-y-1 left-0 right-0 rounded-sm" style={{ background: row.c, opacity: 0.85 }}>
+                                {c === row.s && (
+                                  <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-medium text-white/95 num-mono">{row.start}</span>
+                                )}
+                                {c === row.s + row.l - 1 && (
+                                  <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-medium text-white/95 num-mono">{row.end}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        <div className="pl-2 text-[10px] text-muted-foreground num-mono">{row.start} → {row.end}</div>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </TabsContent>
