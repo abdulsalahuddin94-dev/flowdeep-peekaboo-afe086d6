@@ -15,12 +15,12 @@ import { Route as RisksRouteImport } from './routes/risks'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProcurementRouteImport } from './routes/procurement'
-import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as OrganizationRouteImport } from './routes/organization'
 import { Route as FinancialsRouteImport } from './routes/financials'
 import { Route as ClientsVendorsRouteImport } from './routes/clients-vendors'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortfolioIndexRouteImport } from './routes/portfolio.index'
 import { Route as PortfolioProjectIdRouteImport } from './routes/portfolio.$projectId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -53,11 +53,6 @@ const ProcurementRoute = ProcurementRouteImport.update({
   path: '/procurement',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PortfolioRoute = PortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PipelineRoute = PipelineRouteImport.update({
   id: '/pipeline',
   path: '/pipeline',
@@ -83,10 +78,15 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortfolioIndexRoute = PortfolioIndexRouteImport.update({
+  id: '/portfolio/',
+  path: '/portfolio/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortfolioProjectIdRoute = PortfolioProjectIdRouteImport.update({
-  id: '/$projectId',
-  path: '/$projectId',
-  getParentRoute: () => PortfolioRoute,
+  id: '/portfolio/$projectId',
+  path: '/portfolio/$projectId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -95,7 +95,6 @@ export interface FileRoutesByFullPath {
   '/financials': typeof FinancialsRoute
   '/organization': typeof OrganizationRoute
   '/pipeline': typeof PipelineRoute
-  '/portfolio': typeof PortfolioRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/resources': typeof ResourcesRoute
@@ -103,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/roles': typeof RolesRoute
   '/settings': typeof SettingsRoute
   '/portfolio/$projectId': typeof PortfolioProjectIdRoute
+  '/portfolio/': typeof PortfolioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,7 +110,6 @@ export interface FileRoutesByTo {
   '/financials': typeof FinancialsRoute
   '/organization': typeof OrganizationRoute
   '/pipeline': typeof PipelineRoute
-  '/portfolio': typeof PortfolioRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/resources': typeof ResourcesRoute
@@ -118,6 +117,7 @@ export interface FileRoutesByTo {
   '/roles': typeof RolesRoute
   '/settings': typeof SettingsRoute
   '/portfolio/$projectId': typeof PortfolioProjectIdRoute
+  '/portfolio': typeof PortfolioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -126,7 +126,6 @@ export interface FileRoutesById {
   '/financials': typeof FinancialsRoute
   '/organization': typeof OrganizationRoute
   '/pipeline': typeof PipelineRoute
-  '/portfolio': typeof PortfolioRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/reports': typeof ReportsRoute
   '/resources': typeof ResourcesRoute
@@ -134,6 +133,7 @@ export interface FileRoutesById {
   '/roles': typeof RolesRoute
   '/settings': typeof SettingsRoute
   '/portfolio/$projectId': typeof PortfolioProjectIdRoute
+  '/portfolio/': typeof PortfolioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -143,7 +143,6 @@ export interface FileRouteTypes {
     | '/financials'
     | '/organization'
     | '/pipeline'
-    | '/portfolio'
     | '/procurement'
     | '/reports'
     | '/resources'
@@ -151,6 +150,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/settings'
     | '/portfolio/$projectId'
+    | '/portfolio/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -158,7 +158,6 @@ export interface FileRouteTypes {
     | '/financials'
     | '/organization'
     | '/pipeline'
-    | '/portfolio'
     | '/procurement'
     | '/reports'
     | '/resources'
@@ -166,6 +165,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/settings'
     | '/portfolio/$projectId'
+    | '/portfolio'
   id:
     | '__root__'
     | '/'
@@ -173,7 +173,6 @@ export interface FileRouteTypes {
     | '/financials'
     | '/organization'
     | '/pipeline'
-    | '/portfolio'
     | '/procurement'
     | '/reports'
     | '/resources'
@@ -181,6 +180,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/settings'
     | '/portfolio/$projectId'
+    | '/portfolio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -189,13 +189,14 @@ export interface RootRouteChildren {
   FinancialsRoute: typeof FinancialsRoute
   OrganizationRoute: typeof OrganizationRoute
   PipelineRoute: typeof PipelineRoute
-  PortfolioRoute: typeof PortfolioRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
   ReportsRoute: typeof ReportsRoute
   ResourcesRoute: typeof ResourcesRoute
   RisksRoute: typeof RisksRoute
   RolesRoute: typeof RolesRoute
   SettingsRoute: typeof SettingsRoute
+  PortfolioProjectIdRoute: typeof PortfolioProjectIdRoute
+  PortfolioIndexRoute: typeof PortfolioIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -242,13 +243,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProcurementRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portfolio': {
-      id: '/portfolio'
-      path: '/portfolio'
-      fullPath: '/portfolio'
-      preLoaderRoute: typeof PortfolioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/pipeline': {
       id: '/pipeline'
       path: '/pipeline'
@@ -284,27 +278,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portfolio/': {
+      id: '/portfolio/'
+      path: '/portfolio'
+      fullPath: '/portfolio/'
+      preLoaderRoute: typeof PortfolioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portfolio/$projectId': {
       id: '/portfolio/$projectId'
-      path: '/$projectId'
+      path: '/portfolio/$projectId'
       fullPath: '/portfolio/$projectId'
       preLoaderRoute: typeof PortfolioProjectIdRouteImport
-      parentRoute: typeof PortfolioRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface PortfolioRouteChildren {
-  PortfolioProjectIdRoute: typeof PortfolioProjectIdRoute
-}
-
-const PortfolioRouteChildren: PortfolioRouteChildren = {
-  PortfolioProjectIdRoute: PortfolioProjectIdRoute,
-}
-
-const PortfolioRouteWithChildren = PortfolioRoute._addFileChildren(
-  PortfolioRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -312,14 +301,25 @@ const rootRouteChildren: RootRouteChildren = {
   FinancialsRoute: FinancialsRoute,
   OrganizationRoute: OrganizationRoute,
   PipelineRoute: PipelineRoute,
-  PortfolioRoute: PortfolioRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
   ReportsRoute: ReportsRoute,
   ResourcesRoute: ResourcesRoute,
   RisksRoute: RisksRoute,
   RolesRoute: RolesRoute,
   SettingsRoute: SettingsRoute,
+  PortfolioProjectIdRoute: PortfolioProjectIdRoute,
+  PortfolioIndexRoute: PortfolioIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
