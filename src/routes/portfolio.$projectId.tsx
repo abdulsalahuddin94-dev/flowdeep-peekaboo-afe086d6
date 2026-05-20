@@ -108,103 +108,19 @@ function ProjectDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="Planning" className="mt-5 space-y-4">
-          {(() => {
-            const checklist = [
-              { l: "Objectives & scope defined",        d: true },
-              { l: "Milestone schedule created",        d: true },
-              { l: "Manpower requirements submitted",   d: true },
-              { l: "Subcontracted packages identified", d: false },
-              { l: "Business trips planned",            d: false },
-              { l: "Budget plan approved",              d: false },
-              { l: "Charter approved",                  d: false },
-            ];
-            const done = checklist.filter((c) => c.d).length;
-            const pct = Math.round((done / checklist.length) * 100);
-            return (
-              <div className="glass-card p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="text-sm font-medium text-foreground">Planning Progress: {done} / {checklist.length} complete</div>
-                  <div className="text-xs text-accent num-mono">{pct}% complete</div>
-                </div>
-                <Progress value={pct} className="mb-4 h-1.5" />
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                  {checklist.map((c) => (
-                    <label key={c.l} className="flex items-center gap-2 text-sm">
-                      <span className={`flex h-5 w-5 items-center justify-center rounded-md border ${c.d ? "border-accent bg-accent text-accent-foreground" : "border-border bg-secondary/40"}`}>
-                        {c.d && <span className="text-[11px]">✓</span>}
-                      </span>
-                      <span className={c.d ? "text-foreground" : "text-muted-foreground"}>{c.l}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
+        <TabsContent value="Planning" className="mt-5">
           <Tabs defaultValue="init" orientation="horizontal">
             <TabsList className="bg-secondary/30">
               {["init", "ms", "manpower", "subs", "trips", "fin", "tender"].map((k, i) => (
                 <TabsTrigger key={k} value={k} className="text-xs">
-                  {["Initiation & Planning", "Milestones & Dependencies", "Manpower Requirements", "Subcontracted Packages", "Business Trips Plan", "Financial Planning", "Tender Packages"][i]}
+                  {["Initiation", "Milestones & Deps", "Manpower", "Subcontracted", "Trips Plan", "Financial Planning", "Tender Packages"][i]}
                 </TabsTrigger>
               ))}
             </TabsList>
-            <TabsContent value="init" className="mt-3">
-              <div className="grid gap-4 md:grid-cols-[1fr_280px]">
-                <div className="glass-card p-5">
-                  <div className="mb-4 text-sm font-medium text-foreground">Project Summary</div>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="label-eyebrow mb-1.5">Objectives (SMART)</div>
-                      <div className="rounded-md border border-border bg-secondary/30 p-3 text-sm text-foreground">
-                        Migrate all legacy infrastructure to cloud-based services, reducing operational costs by 30% and improving system uptime to 99.9% by Q4 2026.
-                      </div>
-                    </div>
-                    <div>
-                      <div className="label-eyebrow mb-1.5">Scope</div>
-                      <div className="rounded-md border border-border bg-secondary/30 p-3 text-sm text-foreground whitespace-pre-line">
-{`- Migration of 50+ servers to AWS cloud infrastructure
-- Implementation of automated backup and disaster recovery
-- Staff training on new cloud-based systems
-- Security and compliance certification`}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="label-eyebrow mb-1.5">Out-of-Scope</div>
-                      <div className="rounded-md border border-border bg-secondary/30 p-3 text-sm text-foreground whitespace-pre-line">
-{`- Legacy application rewrites (Phase 2)
-- On-premise infrastructure disposal`}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 pt-2">
-                      <Stat label="Charter status" value="Signed v3" />
-                      <Stat label="Kick-off date" value="2026-04-12" />
-                      <Stat label="Baseline" value="Locked" />
-                    </div>
-                  </div>
-                </div>
-                <div className="glass-card p-5">
-                  <div className="label-eyebrow mb-4">Stage Gate Overview</div>
-                  <ul className="space-y-3 text-sm">
-                    {[
-                      { n: 1, l: "Initiation", active: true,  done: true  },
-                      { n: 2, l: "Planning",   active: true,  done: false },
-                      { n: 3, l: "Execution",  active: false, done: false },
-                      { n: 4, l: "Monitoring", active: false, done: false },
-                      { n: 5, l: "Closure",    active: false, done: false },
-                    ].map((g) => (
-                      <li key={g.n} className="flex items-center gap-3">
-                        <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${g.active ? "bg-accent text-accent-foreground" : "border border-border bg-secondary/40 text-muted-foreground"}`}>{g.n}</span>
-                        <span className={g.active ? "text-foreground" : "text-muted-foreground"}>{g.l}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button variant="outline" size="sm" className="mt-5 w-full">View Stage Gates →</Button>
-                </div>
-              </div>
+            <TabsContent value="init" className="mt-3 glass-card p-5 text-sm">
+              <div className="label-eyebrow mb-2">Initiation</div>
+              <p className="text-muted-foreground">Project charter signed. Kick-off held 2026-04-12. PMO baseline locked at v3.</p>
             </TabsContent>
-
             <TabsContent value="ms" className="mt-3 glass-card overflow-hidden">
               <Table>
                 <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
