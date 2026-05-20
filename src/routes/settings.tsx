@@ -1,0 +1,119 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { PageHeader } from "@/components/PageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/settings")({
+  component: SettingsPage,
+  head: () => ({ meta: [{ title: "Settings — Nexus PMO" }, { name: "description", content: "Workspace, profile, notifications, integrations and security settings." }] }),
+});
+
+function SettingsPage() {
+  return (
+    <div>
+      <PageHeader title="Settings" subtitle="Workspace, profile, notifications, integrations & security" />
+      <Tabs defaultValue="workspace">
+        <TabsList className="bg-secondary/40">
+          <TabsTrigger value="workspace">Workspace</TabsTrigger>
+          <TabsTrigger value="profile">My Profile</TabsTrigger>
+          <TabsTrigger value="notif">Notifications</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="workspace" className="mt-5 glass-card p-6 space-y-4 max-w-2xl">
+          <div><Label>Organization name</Label><Input defaultValue="Acme Holdings" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Fiscal year start</Label>
+              <Select defaultValue="jan"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="jan">January</SelectItem><SelectItem value="apr">April</SelectItem><SelectItem value="jul">July</SelectItem><SelectItem value="oct">October</SelectItem></SelectContent></Select>
+            </div>
+            <div><Label>Default currency</Label>
+              <Select defaultValue="usd"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="usd">USD</SelectItem><SelectItem value="eur">EUR</SelectItem><SelectItem value="aed">AED</SelectItem><SelectItem value="sar">SAR</SelectItem></SelectContent></Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>RAG amber threshold (%)</Label><Input type="number" defaultValue={3} /></div>
+            <div><Label>RAG red threshold (%)</Label><Input type="number" defaultValue={5} /></div>
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-4">
+            <div><Label>Right-to-left (Arabic)</Label><p className="text-xs text-muted-foreground">Toggle RTL layout for Arabic users.</p></div>
+            <Switch />
+          </div>
+          <div className="flex justify-end"><Button className="bg-accent text-accent-foreground" onClick={() => toast.success("Settings saved")}>Save changes</Button></div>
+        </TabsContent>
+
+        <TabsContent value="profile" className="mt-5 glass-card p-6 space-y-4 max-w-2xl">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Full name</Label><Input defaultValue="Aisha Khoury" /></div>
+            <div><Label>Email</Label><Input defaultValue="aisha@acme.com" /></div>
+          </div>
+          <div><Label>Time zone</Label>
+            <Select defaultValue="dxb"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="dxb">Dubai (UTC+4)</SelectItem><SelectItem value="lon">London</SelectItem><SelectItem value="nyc">New York</SelectItem></SelectContent></Select>
+          </div>
+          <div><Label>Data density</Label>
+            <Select defaultValue="dense"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sparse">Executive (sparse)</SelectItem><SelectItem value="dense">Operator (dense)</SelectItem></SelectContent></Select>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="notif" className="mt-5 glass-card p-6 space-y-4 max-w-2xl">
+          {[
+            "Critical risk created on my projects",
+            "Status report overdue",
+            "Business case awaiting my approval",
+            "Budget variance > 5%",
+            "Resource over-allocation alert",
+            "Weekly portfolio digest",
+          ].map((label) => (
+            <div key={label} className="flex items-center justify-between border-b border-border pb-3">
+              <span className="text-sm text-foreground">{label}</span>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">In-app <Switch defaultChecked /></span>
+                <span className="flex items-center gap-1.5">Email <Switch defaultChecked /></span>
+                <span className="flex items-center gap-1.5">SMS <Switch /></span>
+              </div>
+            </div>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="integrations" className="mt-5 grid gap-3 md:grid-cols-2">
+          {[
+            { n: "Salesforce", s: "Connected", d: "Bid sync · 12 opps mirrored", c: "rag-green" },
+            { n: "SAP S/4HANA", s: "Connected", d: "PO sync every 5 min", c: "rag-green" },
+            { n: "Microsoft Teams", s: "Connected", d: "Notifications channel #pmo-alerts", c: "rag-green" },
+            { n: "Jira", s: "Not connected", d: "Sync task progress per project", c: "rag-grey" },
+            { n: "DocuSign", s: "Connected", d: "Contract e-sign", c: "rag-green" },
+            { n: "Power BI", s: "Connected", d: "Embed dashboards", c: "rag-green" },
+          ].map((i) => (
+            <div key={i.n} className="glass-card flex items-center justify-between p-4">
+              <div>
+                <div className="font-medium text-foreground">{i.n}</div>
+                <div className="text-xs text-muted-foreground">{i.d}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`inline-block h-2 w-2 rounded-full bg-${i.c}`} />
+                <span className="text-xs text-muted-foreground">{i.s}</span>
+                <Button size="sm" variant="outline">{i.s === "Connected" ? "Manage" : "Connect"}</Button>
+              </div>
+            </div>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-5 glass-card p-6 space-y-4 max-w-2xl">
+          <div className="flex items-center justify-between border-b border-border pb-3"><div><div className="text-sm text-foreground">Two-factor authentication</div><div className="text-xs text-muted-foreground">Require TOTP on every login</div></div><Switch defaultChecked /></div>
+          <div className="flex items-center justify-between border-b border-border pb-3"><div><div className="text-sm text-foreground">SSO (Azure AD)</div><div className="text-xs text-muted-foreground">Enterprise SSO with role mapping</div></div><Switch defaultChecked /></div>
+          <div className="flex items-center justify-between border-b border-border pb-3"><div><div className="text-sm text-foreground">Session timeout</div><div className="text-xs text-muted-foreground">Auto-logout after inactivity</div></div>
+            <Select defaultValue="30"><SelectTrigger className="w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="15">15 min</SelectItem><SelectItem value="30">30 min</SelectItem><SelectItem value="60">1 hour</SelectItem></SelectContent></Select>
+          </div>
+          <div><Label>Audit log retention</Label>
+            <Select defaultValue="7y"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1y">1 year</SelectItem><SelectItem value="3y">3 years</SelectItem><SelectItem value="7y">7 years</SelectItem></SelectContent></Select>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

@@ -9,13 +9,68 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RolesRouteImport } from './routes/roles'
+import { Route as RisksRouteImport } from './routes/risks'
+import { Route as ResourcesRouteImport } from './routes/resources'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ProcurementRouteImport } from './routes/procurement'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as OrganizationRouteImport } from './routes/organization'
+import { Route as FinancialsRouteImport } from './routes/financials'
 import { Route as ClientsVendorsRouteImport } from './routes/clients-vendors'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortfolioProjectIdRouteImport } from './routes/portfolio.$projectId'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RolesRoute = RolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RisksRoute = RisksRouteImport.update({
+  id: '/risks',
+  path: '/risks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesRoute = ResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProcurementRoute = ProcurementRouteImport.update({
+  id: '/procurement',
+  path: '/procurement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrganizationRoute = OrganizationRouteImport.update({
   id: '/organization',
   path: '/organization',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinancialsRoute = FinancialsRouteImport.update({
+  id: '/financials',
+  path: '/financials',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsVendorsRoute = ClientsVendorsRouteImport.update({
@@ -28,44 +83,191 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortfolioProjectIdRoute = PortfolioProjectIdRouteImport.update({
+  id: '/$projectId',
+  path: '/$projectId',
+  getParentRoute: () => PortfolioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients-vendors': typeof ClientsVendorsRoute
+  '/financials': typeof FinancialsRoute
   '/organization': typeof OrganizationRoute
+  '/pipeline': typeof PipelineRoute
+  '/portfolio': typeof PortfolioRouteWithChildren
+  '/procurement': typeof ProcurementRoute
+  '/reports': typeof ReportsRoute
+  '/resources': typeof ResourcesRoute
+  '/risks': typeof RisksRoute
+  '/roles': typeof RolesRoute
+  '/settings': typeof SettingsRoute
+  '/portfolio/$projectId': typeof PortfolioProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients-vendors': typeof ClientsVendorsRoute
+  '/financials': typeof FinancialsRoute
   '/organization': typeof OrganizationRoute
+  '/pipeline': typeof PipelineRoute
+  '/portfolio': typeof PortfolioRouteWithChildren
+  '/procurement': typeof ProcurementRoute
+  '/reports': typeof ReportsRoute
+  '/resources': typeof ResourcesRoute
+  '/risks': typeof RisksRoute
+  '/roles': typeof RolesRoute
+  '/settings': typeof SettingsRoute
+  '/portfolio/$projectId': typeof PortfolioProjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/clients-vendors': typeof ClientsVendorsRoute
+  '/financials': typeof FinancialsRoute
   '/organization': typeof OrganizationRoute
+  '/pipeline': typeof PipelineRoute
+  '/portfolio': typeof PortfolioRouteWithChildren
+  '/procurement': typeof ProcurementRoute
+  '/reports': typeof ReportsRoute
+  '/resources': typeof ResourcesRoute
+  '/risks': typeof RisksRoute
+  '/roles': typeof RolesRoute
+  '/settings': typeof SettingsRoute
+  '/portfolio/$projectId': typeof PortfolioProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/clients-vendors' | '/organization'
+  fullPaths:
+    | '/'
+    | '/clients-vendors'
+    | '/financials'
+    | '/organization'
+    | '/pipeline'
+    | '/portfolio'
+    | '/procurement'
+    | '/reports'
+    | '/resources'
+    | '/risks'
+    | '/roles'
+    | '/settings'
+    | '/portfolio/$projectId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clients-vendors' | '/organization'
-  id: '__root__' | '/' | '/clients-vendors' | '/organization'
+  to:
+    | '/'
+    | '/clients-vendors'
+    | '/financials'
+    | '/organization'
+    | '/pipeline'
+    | '/portfolio'
+    | '/procurement'
+    | '/reports'
+    | '/resources'
+    | '/risks'
+    | '/roles'
+    | '/settings'
+    | '/portfolio/$projectId'
+  id:
+    | '__root__'
+    | '/'
+    | '/clients-vendors'
+    | '/financials'
+    | '/organization'
+    | '/pipeline'
+    | '/portfolio'
+    | '/procurement'
+    | '/reports'
+    | '/resources'
+    | '/risks'
+    | '/roles'
+    | '/settings'
+    | '/portfolio/$projectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientsVendorsRoute: typeof ClientsVendorsRoute
+  FinancialsRoute: typeof FinancialsRoute
   OrganizationRoute: typeof OrganizationRoute
+  PipelineRoute: typeof PipelineRoute
+  PortfolioRoute: typeof PortfolioRouteWithChildren
+  ProcurementRoute: typeof ProcurementRoute
+  ReportsRoute: typeof ReportsRoute
+  ResourcesRoute: typeof ResourcesRoute
+  RisksRoute: typeof RisksRoute
+  RolesRoute: typeof RolesRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roles': {
+      id: '/roles'
+      path: '/roles'
+      fullPath: '/roles'
+      preLoaderRoute: typeof RolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risks': {
+      id: '/risks'
+      path: '/risks'
+      fullPath: '/risks'
+      preLoaderRoute: typeof RisksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources': {
+      id: '/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof ResourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/procurement': {
+      id: '/procurement'
+      path: '/procurement'
+      fullPath: '/procurement'
+      preLoaderRoute: typeof ProcurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organization': {
       id: '/organization'
       path: '/organization'
       fullPath: '/organization'
       preLoaderRoute: typeof OrganizationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financials': {
+      id: '/financials'
+      path: '/financials'
+      fullPath: '/financials'
+      preLoaderRoute: typeof FinancialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients-vendors': {
@@ -82,13 +284,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portfolio/$projectId': {
+      id: '/portfolio/$projectId'
+      path: '/$projectId'
+      fullPath: '/portfolio/$projectId'
+      preLoaderRoute: typeof PortfolioProjectIdRouteImport
+      parentRoute: typeof PortfolioRoute
+    }
   }
 }
+
+interface PortfolioRouteChildren {
+  PortfolioProjectIdRoute: typeof PortfolioProjectIdRoute
+}
+
+const PortfolioRouteChildren: PortfolioRouteChildren = {
+  PortfolioProjectIdRoute: PortfolioProjectIdRoute,
+}
+
+const PortfolioRouteWithChildren = PortfolioRoute._addFileChildren(
+  PortfolioRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsVendorsRoute: ClientsVendorsRoute,
+  FinancialsRoute: FinancialsRoute,
   OrganizationRoute: OrganizationRoute,
+  PipelineRoute: PipelineRoute,
+  PortfolioRoute: PortfolioRouteWithChildren,
+  ProcurementRoute: ProcurementRoute,
+  ReportsRoute: ReportsRoute,
+  ResourcesRoute: ResourcesRoute,
+  RisksRoute: RisksRoute,
+  RolesRoute: RolesRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
