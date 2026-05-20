@@ -124,6 +124,83 @@ function RisksPage() {
   );
 }
 
+function RiskHeatmap() {
+  // 4x4 grid mapped from mock data's 1–5 scale.
+  const probLabels = ["Almost Certain", "Very Likely", "Possible", "Unlikely"]; // top → bottom (4..1)
+  const impactLabels = ["Minor", "Moderate", "Major", "Severe"]; // left → right (1..4)
+
+  // Each cell gets a soft pastel tone; cells with risks get a stronger fill.
+  // tones indexed by score (prob 1..4 × impact 1..4 → 1..16)
+  const toneFor = (p: number, i: number, hasItems: boolean) => {
+    const s = p * i;
+    // empty cell — soft pastel
+    if (!hasItems) {
+      if (s <= 3) return "bg-[oklch(0.92_0.07_140)]";       // pale green
+      if (s <= 6) return "bg-[oklch(0.93_0.08_120)]";       // pale lime
+      if (s <= 9) return "bg-[oklch(0.94_0.06_85)]";        // pale cream
+      if (s <= 12) return "bg-[oklch(0.93_0.07_55)]";       // pale peach
+      return "bg-[oklch(0.92_0.08_30)]";                    // pale pink
+    }
+    // filled cell — vivid pastel
+    if (s <= 3) return "bg-[oklch(0.78_0.18_140)]";         // green
+    if (s <= 6) return "bg-[oklch(0.78_0.18_120)]";         // lime
+    if (s <= 9) return "bg-[oklch(0.72_0.16_95)]";          // olive/yellow
+    if (s <= 12) return "bg-[oklch(0.68_0.18_55)]";         // orange
+    return "bg-[oklch(0.65_0.20_30)]";                      // red-orange
+  };
+
+  // Bucket the 1–5 mock scale into the 4-band scale: 1→1, 2→2, 3→3, 4–5→4.
+  const bucket = (n: number) => (n >= 4 ? 4 : n);
+  const countAt = (p: number, i: number) =>
+    risks.filter((r) => bucket(r.prob) === p && bucket(r.impact) === i).length;
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <div className="grid grid-cols-[110px_repeat(4,1fr)] gap-3">
+        {/* Y-axis label spans the rows */}
+        <div className="row-span-4 flex items-center justify-center">
+          <div className="-rotate-90 whitespace-nowrap text-sm text-muted-foreground">
+            Probability →
+          </div>
+        </div>
+        {/* Rows: 4 (top) → 1 (bottom) */}
+        {[4, 3, 2, 1].map((p, rowIdx) => (
+          <div key={p} className="contents">
+            <div /> {/* placeholder to align under the rotated label cell after first row */}
+            <div className="-ml-[110px] flex items-center pr-3 text-right text-sm leading-tight text-foreground/80">
+              <span className="ml-auto block">{probLabels[rowIdx]}</span>
+            </div>
+            {[1, 2, 3, 4].map((i) => {
+              const count = countAt(p, i);
+              const tone = toneFor(p, i, count > 0);
+              return (
+                <div
+                  key={`${p}-${i}`}
+                  className={`flex aspect-square items-center justify-center rounded-2xl text-2xl font-semibold text-foreground/80 shadow-sm ${tone}`}
+                >
+                  {count > 0 ? count : ""}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
+        {/* X-axis labels */}
+        <div />
+        <div />
+        {impactLabels.map((l) => (
+          <div key={l} className="text-center text-sm text-muted-foreground">{l}</div>
+        ))}
+
+        {/* X-axis title */}
+        <div />
+        <div />
+        <div className="col-span-4 mt-2 text-center text-sm text-muted-foreground">Impact →</div>
+      </div>
+    </div>
+  );
+}
+
 function Stat({ l, v, c, pulse }: { l: string; v: number | string; c?: string; pulse?: boolean }) {
   return (
     <div className="glass-card p-4">
