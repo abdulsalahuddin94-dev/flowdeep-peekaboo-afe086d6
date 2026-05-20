@@ -80,47 +80,7 @@ function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="Planning" className="mt-5">
-          <Tabs defaultValue="init" orientation="horizontal">
-            <TabsList className="bg-secondary/30">
-              {["init", "ms", "manpower", "subs", "trips", "fin", "tender"].map((k, i) => (
-                <TabsTrigger key={k} value={k} className="text-xs">
-                  {["Initiation", "Milestones & Deps", "Manpower", "Subcontracted", "Trips Plan", "Financial Planning", "Tender Packages"][i]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <TabsContent value="init" className="mt-3 glass-card p-5 text-sm">
-              <div className="label-eyebrow mb-2">Initiation</div>
-              <p className="text-muted-foreground">Project charter signed. Kick-off held 2026-04-12. PMO baseline locked at v3.</p>
-            </TabsContent>
-            <TabsContent value="ms" className="mt-3 glass-card overflow-hidden">
-              <Table>
-                <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
-                <TableBody>{[
-                  { n: "Discovery complete", d: "May 02", o: "Sara", s: "green", dep: "—" },
-                  { n: "Build phase 1", d: "Jun 30", o: "Mei", s: "amber", dep: "Discovery" },
-                  { n: "UAT Sign-off", d: project.endDate, o: project.pm, s: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
-                  { n: "Go-live", d: "Sep 14", o: project.pm, s: "blue", dep: "UAT" },
-                ].map((m) => (
-                  <TableRow key={m.n}><TableCell className="font-medium text-foreground">{m.n}</TableCell><TableCell>{m.d}</TableCell><TableCell>{m.o}</TableCell><TableCell><RagBadge rag={m.s as any} /></TableCell><TableCell className="text-xs text-muted-foreground">{m.dep}</TableCell></TableRow>
-                ))}</TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="manpower" className="mt-3 glass-card p-5 text-sm">
-              <div className="label-eyebrow mb-3">Manpower requirements</div>
-              <Table>
-                <TableHeader><TableRow><TableHead>Role</TableHead><TableHead>FTE</TableHead><TableHead>Skill level</TableHead><TableHead>Period</TableHead><TableHead>Sourcing</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  <TableRow><TableCell>Solution Architect</TableCell><TableCell>1.0</TableCell><TableCell>Senior</TableCell><TableCell>Jun–Sep</TableCell><TableCell>Internal</TableCell></TableRow>
-                  <TableRow><TableCell>QA Engineer</TableCell><TableCell>2.0</TableCell><TableCell>Mid</TableCell><TableCell>Jul–Sep</TableCell><TableCell>Internal + Subcontract</TableCell></TableRow>
-                  <TableRow><TableCell>Integration Dev</TableCell><TableCell>1.5</TableCell><TableCell>Mid</TableCell><TableCell>Jun–Aug</TableCell><TableCell>Internal</TableCell></TableRow>
-                </TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="subs" className="mt-3 glass-card p-5 text-sm text-muted-foreground">Subcontracted packages plan — civil works, integration testing, training rollout.</TabsContent>
-            <TabsContent value="trips" className="mt-3 glass-card p-5 text-sm text-muted-foreground">Business trips: 4 planned. Site visits (Jun, Aug), training (Jul), go-live support (Sep).</TabsContent>
-            <TabsContent value="fin" className="mt-3 glass-card p-5 text-sm text-muted-foreground">CAPEX $2.4M / OPEX $0.8M. Quarterly milestone-linked revenue recognition.</TabsContent>
-            <TabsContent value="tender" className="mt-3 glass-card p-5 text-sm text-muted-foreground">Tender packages: Hardware (RFP-013), Integration partner (RFP-014).</TabsContent>
-          </Tabs>
+          <PlanningTab project={project} />
         </TabsContent>
 
         <TabsContent value="Schedule" className="mt-5">
