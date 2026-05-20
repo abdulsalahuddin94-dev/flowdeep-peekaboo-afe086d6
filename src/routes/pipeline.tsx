@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { pipelineItems } from "@/lib/mock-data";
 import { toast } from "sonner";
-import { Check, X as XIcon, Plus, GripVertical, ArrowRight } from "lucide-react";
+import { Check, X as XIcon, Plus, GripVertical } from "lucide-react";
 import { NewBusinessCaseFlow } from "@/components/NewBusinessCaseFlow";
 
 export const Route = createFileRoute("/pipeline")({
@@ -21,7 +21,6 @@ export const Route = createFileRoute("/pipeline")({
 const STAGES = ["Submitted", "Under Review", "Revision Requested", "Approved", "Deferred", "Rejected"] as const;
 type Stage = typeof STAGES[number];
 
-// Defines which stages a card is allowed to move into from its current stage
 const VALID_TRANSITIONS: Record<Stage, Stage[]> = {
   "Submitted":          ["Under Review", "Deferred", "Rejected"],
   "Under Review":       ["Approved", "Revision Requested", "Rejected", "Deferred"],
@@ -36,7 +35,7 @@ const STAGE_STYLE: Record<Stage, string> = {
   "Under Review":       "border-rag-amber/30 bg-rag-amber/5",
   "Revision Requested": "border-role-exec/30 bg-role-exec/5",
   "Approved":           "border-rag-green/30 bg-rag-green/5",
-  "Deferred":           "border-muted/30 bg-muted/5",
+  "Deferred":           "border-border bg-secondary/10",
   "Rejected":           "border-rag-red/30 bg-rag-red/5",
 };
 
@@ -49,23 +48,88 @@ function PipelinePage() {
   const [items, setItems] = useState<Item[]>(
     pipelineItems.map((p) => ({ ...p, stage: p.stage as Stage }))
   );
+
+  // ── Pointer-drag state ───────────────────────────────────────────────────────
   const [dragging, setDragging] = useState<string | null>(null);
+  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
   const [dragOver, setDragOver] = useState<Stage | null>(null);
+  const columnRefs = useRef<Partial<Record<Stage, HTMLDivElement | null>>>({});
 
-  // Pending moves that require dialog confirmation before committing
+  // ── Dialog state ─────────────────────────────────────────────────────────────
   const [pendingApprove, setPendingApprove] = useState<string | null>(null);
-  const [pendingReject, setPendingReject] = useState<string | null>(null);
-  const [approveNote, setApproveNote] = useState("");
+  const [pendingReject,  setPendingReject]  = useState<string | null>(null);
+  const [approveNote,  setApproveNote]  = useState("");
   const [rejectReason, setRejectReason] = useState("");
-
-  // Queue Approve / Reject buttons (non-drag path)
   const [queueApprove, setQueueApprove] = useState<string | null>(null);
-  const [queueReject, setQueueReject] = useState<string | null>(null);
-
+  const [queueReject,  setQueueReject]  = useState<string | null>(null);
   const [newCase, setNewCase] = useState(false);
 
   const draggingItem = items.find((i) => i.id === dragging) ?? null;
   const validTargets: Stage[] = draggingItem ? VALID_TRANSITIONS[draggingItem.stage] : [];
+
+  // ── Hit-test: find which stage column the pointer is over ────────────────────
+  const stageAtPoint = useCallback((x: number, y: number): Stage | null => {
+    for (const stage of STAGES) {
+      const el = columnRefs.current[stage];
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return stage;
+    }
+    return null;
+  }, []);
+
+  // ── Document-level pointer listeners (active only while dragging) ────────────
+  useEffect(() => {
+    if (!dragging) return;
+
+    function onMove(e: PointerEvent) {
+      setGhostPos({ x: e.clientX, y: e.clientY });
+      setDragOver(stageAtPoint(e.clientX, e.clientY));
+    }
+
+    function onUp(e: PointerEvent) {
+      const target = stageAtPoint(e.clientX, e.clientY);
+      if (target) attemptDrop(target);
+      setDragging(null);
+      setDragOver(null);
+    }
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    return () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging, draggingItem, stageAtPoint]);
+
+  // ── Drag validation + commit ─────────────────────────────────────────────────
+  function attemptDrop(targetStage: Stage) {
+    if (!draggingItem) return;
+    if (draggingItem.stage === targetStage) return;
+
+    if (!validTargets.includes(targetStage)) {
+      const allowed = VALID_TRANSITIONS[draggingItem.stage];
+      toast.error(`Cannot move to "${targetStage}"`, {
+        description: allowed.length
+          ? `Allowed next stages: ${allowed.join(", ")}`
+          : `"${draggingItem.stage}" is a terminal stage — cards cannot be moved out`,
+      });
+      return;
+    }
+
+    if (targetStage === "Approved" && draggingItem.score < 71) {
+      toast.error("Score too low to approve", {
+        description: `${draggingItem.title} scored ${draggingItem.score}/100 — minimum required is 71.`,
+      });
+      return;
+    }
+
+    if (targetStage === "Approved") { setPendingApprove(draggingItem.id); return; }
+    if (targetStage === "Rejected") { setPendingReject(draggingItem.id);  return; }
+
+    commitMove(draggingItem.id, targetStage);
+  }
 
   function commitMove(id: string, to: Stage) {
     const item = items.find((i) => i.id === id);
@@ -73,110 +137,28 @@ function PipelinePage() {
     toast.success(`${item?.title ?? id} → ${to}`);
   }
 
-  // ── Drag handlers ────────────────────────────────────────────────────────────
-
-  function handleDragStart(e: React.DragEvent, id: string) {
-    const item = items.find((i) => i.id === id)!;
-    if (VALID_TRANSITIONS[item.stage].length === 0) {
-      e.preventDefault();
-      toast.error(`${item.stage} is a terminal stage — cards cannot be moved out`);
-      return;
-    }
-    e.dataTransfer.effectAllowed = "move";
-    setDragging(id);
-  }
-
-  function handleDragEnd() {
-    setDragging(null);
-    setDragOver(null);
-  }
-
-  function handleDragOver(e: React.DragEvent, stage: Stage) {
-    e.preventDefault();
-    const isValid = draggingItem && validTargets.includes(stage) && draggingItem.stage !== stage;
-    e.dataTransfer.dropEffect = isValid ? "move" : "none";
-    setDragOver(stage);
-  }
-
-  function handleDragLeave(e: React.DragEvent) {
-    // Only clear if leaving the column entirely (not entering a child)
-    if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
-      setDragOver(null);
-    }
-  }
-
-  function handleDrop(e: React.DragEvent, targetStage: Stage) {
-    e.preventDefault();
-    setDragOver(null);
-    if (!dragging || !draggingItem) return;
-    if (draggingItem.stage === targetStage) { setDragging(null); return; }
-
-    // Validate transition
-    if (!validTargets.includes(targetStage)) {
-      const allowed = VALID_TRANSITIONS[draggingItem.stage];
-      toast.error(`Cannot move to "${targetStage}"`, {
-        description: allowed.length
-          ? `Allowed next stages: ${allowed.join(", ")}`
-          : `"${draggingItem.stage}" is a terminal stage`,
-      });
-      setDragging(null);
-      return;
-    }
-
-    // Score guard for Approve
-    if (targetStage === "Approved" && draggingItem.score < 71) {
-      toast.error(`Score too low to approve`, {
-        description: `${draggingItem.title} scored ${draggingItem.score}/100. Minimum required: 71.`,
-      });
-      setDragging(null);
-      return;
-    }
-
-    // Moves that need dialog confirmation
-    if (targetStage === "Approved") {
-      setPendingApprove(dragging);
-      setDragging(null);
-      return;
-    }
-    if (targetStage === "Rejected") {
-      setPendingReject(dragging);
-      setDragging(null);
-      return;
-    }
-
-    commitMove(dragging, targetStage);
-    setDragging(null);
-  }
-
-  // ── Confirm handlers ─────────────────────────────────────────────────────────
-
   function confirmApprove(id: string) {
     commitMove(id, "Approved");
-    setPendingApprove(null);
-    setQueueApprove(null);
-    setApproveNote("");
+    setPendingApprove(null); setQueueApprove(null); setApproveNote("");
   }
 
   function confirmReject(id: string) {
     if (!rejectReason.trim()) { toast.error("Please enter a rejection reason"); return; }
     commitMove(id, "Rejected");
-    setPendingReject(null);
-    setQueueReject(null);
-    setRejectReason("");
+    setPendingReject(null); setQueueReject(null); setRejectReason("");
   }
 
-  // ── Column style helpers ──────────────────────────────────────────────────────
-
+  // ── Column style ─────────────────────────────────────────────────────────────
   function colClass(stage: Stage) {
     const base = "rounded-lg border p-3 transition-all duration-150";
-    const isActive = dragOver === stage;
-    const isValid = validTargets.includes(stage);
-    const isDimmed = dragging && !isValid && stage !== draggingItem?.stage;
+    const isActive  = dragOver === stage;
+    const isValid   = validTargets.includes(stage);
+    const isDimmed  = !!dragging && !isValid && stage !== draggingItem?.stage;
 
-    if (isActive && isValid)  return `${base} border-accent bg-accent-dim/30 ring-1 ring-accent/50 scale-[1.01]`;
+    if (isActive && isValid)  return `${base} border-accent bg-accent-dim/30 ring-2 ring-accent/50`;
     if (isActive && !isValid) return `${base} border-rag-red/50 bg-rag-red/10`;
     if (isDimmed)             return `${base} ${STAGE_STYLE[stage]} opacity-40`;
-    if (dragging && isValid)  return `${base} ${STAGE_STYLE[stage]} border-accent/40`;
+    if (dragging && isValid)  return `${base} ${STAGE_STYLE[stage]} border-accent/40 ring-1 ring-accent/20`;
     return `${base} ${STAGE_STYLE[stage]}`;
   }
 
@@ -187,16 +169,28 @@ function PipelinePage() {
     <div>
       <PageHeader
         title="Pipeline"
-        subtitle="Pre-approval funnel — drag cards between stages or use queue actions"
+        subtitle="Pre-approval funnel — drag cards between stages to advance them"
         actions={<Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setNewCase(true)}><Plus className="mr-1 h-4 w-4" />New Business Case</Button>}
       />
 
-      {dragging && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-accent/30 bg-accent-dim/30 px-3 py-2 text-xs text-accent">
-          <GripVertical className="h-3.5 w-3.5" />
-          <span>Dragging <strong>{draggingItem?.title}</strong></span>
-          <ArrowRight className="h-3 w-3 mx-1" />
-          <span>Valid targets: <strong>{validTargets.join(" · ") || "none (terminal stage)"}</strong></span>
+      {/* Active drag banner */}
+      {dragging && draggingItem && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-accent/30 bg-accent-dim/30 px-3 py-2 text-xs text-accent select-none">
+          <GripVertical className="h-3.5 w-3.5 shrink-0" />
+          <span className="font-medium truncate">{draggingItem.title}</span>
+          <span className="text-muted-foreground shrink-0">
+            → {validTargets.length ? validTargets.join(" · ") : "no valid targets (terminal stage)"}
+          </span>
+        </div>
+      )}
+
+      {/* Floating ghost label that follows cursor */}
+      {dragging && draggingItem && (
+        <div
+          className="fixed z-50 pointer-events-none max-w-[180px] truncate rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground shadow-lg"
+          style={{ left: ghostPos.x + 14, top: ghostPos.y - 12 }}
+        >
+          {draggingItem.title}
         </div>
       )}
 
@@ -211,14 +205,12 @@ function PipelinePage() {
           <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-6">
             {STAGES.map((stage) => {
               const stageItems = items.filter((i) => i.stage === stage);
-              const isDropTarget = dragOver === stage && draggingItem && validTargets.includes(stage);
+              const isValidTarget = !!dragging && validTargets.includes(stage);
               return (
                 <div
                   key={stage}
+                  ref={(el) => { columnRefs.current[stage] = el; }}
                   className={colClass(stage)}
-                  onDragOver={(e) => handleDragOver(e, stage)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, stage)}
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <span className="label-eyebrow">{stage}</span>
@@ -227,35 +219,40 @@ function PipelinePage() {
                     </Badge>
                   </div>
 
-                  <div className="space-y-2 min-h-[60px]">
-                    {isDropTarget && stageItems.length === 0 && (
-                      <div className="flex h-14 items-center justify-center rounded-md border border-dashed border-accent/50 text-[11px] text-accent">
+                  <div className="space-y-2 min-h-[56px]">
+                    {/* Empty column drop zone */}
+                    {isValidTarget && stageItems.length === 0 && (
+                      <div className={`flex h-14 items-center justify-center rounded-md border border-dashed text-[11px] ${dragOver === stage ? "border-accent text-accent" : "border-accent/40 text-accent/60"}`}>
                         Drop here
                       </div>
                     )}
 
                     {stageItems.map((b) => {
-                      const isBeingDragged = dragging === b.id;
                       const isTerminal = VALID_TRANSITIONS[b.stage].length === 0;
+                      const isBeingDragged = dragging === b.id;
                       return (
                         <div
                           key={b.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, b.id)}
-                          onDragEnd={handleDragEnd}
-                          className={`glass-card p-3 text-xs transition-all duration-150 select-none
-                            ${isTerminal ? "cursor-not-allowed opacity-70" : "cursor-grab active:cursor-grabbing hover:border-accent/30"}
-                            ${isBeingDragged ? "opacity-30 scale-95 ring-1 ring-accent/40" : ""}
+                          className={`glass-card p-3 text-xs select-none transition-all duration-150
+                            ${isTerminal ? "cursor-default" : "cursor-grab"}
+                            ${isBeingDragged ? "opacity-30 scale-95 ring-1 ring-accent/50" : ""}
                           `}
+                          onPointerDown={(e) => {
+                            if (isTerminal) {
+                              toast.error(`"${b.stage}" is a terminal stage — cards cannot be moved`);
+                              return;
+                            }
+                            e.preventDefault();
+                            setDragging(b.id);
+                            setGhostPos({ x: e.clientX, y: e.clientY });
+                          }}
                         >
                           <div className="flex items-center justify-between">
                             <span className="num-mono text-muted-foreground">{b.id}</span>
-                            <div className="flex items-center gap-1">
-                              {isTerminal
-                                ? <span className="text-[9px] text-muted-foreground/60">locked</span>
-                                : <GripVertical className="h-3 w-3 text-muted-foreground/50" />
-                              }
-                            </div>
+                            {isTerminal
+                              ? <span className="text-[9px] text-muted-foreground/50">locked</span>
+                              : <GripVertical className="h-3 w-3 text-muted-foreground/40" />
+                            }
                           </div>
                           <div className="mt-1 text-sm font-medium text-foreground leading-snug">{b.title}</div>
                           <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
@@ -278,8 +275,9 @@ function PipelinePage() {
                       );
                     })}
 
-                    {isDropTarget && stageItems.length > 0 && (
-                      <div className="flex h-8 items-center justify-center rounded-md border border-dashed border-accent/50 text-[11px] text-accent">
+                    {/* Bottom drop indicator when column has cards */}
+                    {isValidTarget && stageItems.length > 0 && (
+                      <div className={`flex h-8 items-center justify-center rounded-md border border-dashed text-[11px] ${dragOver === stage ? "border-accent text-accent" : "border-accent/30 text-accent/50"}`}>
                         Drop here
                       </div>
                     )}
@@ -289,24 +287,18 @@ function PipelinePage() {
             })}
           </div>
 
-          {/* Legend */}
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
-            <span className="font-medium text-foreground">Transitions:</span>
-            {Object.entries(VALID_TRANSITIONS).map(([from, tos]) => (
-              tos.length > 0 && (
-                <span key={from} className="flex items-center gap-1">
-                  <span className="text-foreground">{from}</span>
-                  <ArrowRight className="h-2.5 w-2.5" />
-                  <span>{tos.join(", ")}</span>
-                </span>
-              )
-            ))}
-            <span className="ml-2 text-[10px]">· Score ≥ 71 required to Approve</span>
+          {/* Validation legend */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground">
+            <span className="font-medium text-foreground/70">Stage rules:</span>
+            <span>Submitted → Under Review · Deferred · Rejected</span>
+            <span>Under Review → Approved (score ≥ 71) · Revision · Rejected · Deferred</span>
+            <span>Revision → Submitted · Under Review</span>
+            <span className="text-rag-red/70">Approved / Rejected = terminal (locked)</span>
           </div>
         </TabsContent>
 
         <TabsContent value="commercial" className="mt-5 glass-card p-6 text-sm text-muted-foreground">
-          Commercial bids board — 4 active bids in pursuit, 2 in proposal, 1 awaiting decision. (Mirrors capital flow with client-bid stage gates.)
+          Commercial bids board — 4 active bids in pursuit, 2 in proposal, 1 awaiting decision.
         </TabsContent>
 
         <TabsContent value="queue" className="mt-5">
@@ -330,9 +322,9 @@ function PipelinePage() {
                   }`}>Score {p.score}</span>
                   <Button
                     size="sm"
-                    className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    className="bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-40"
                     disabled={p.score < 71}
-                    title={p.score < 71 ? `Score too low (${p.score}/100 — min 71)` : undefined}
+                    title={p.score < 71 ? `Score ${p.score}/100 — minimum 71 required` : undefined}
                     onClick={() => setQueueApprove(p.id)}
                   >
                     <Check className="mr-1 h-3 w-3" />Approve
@@ -350,14 +342,11 @@ function PipelinePage() {
       {/* Approval dialog */}
       <Dialog open={!!approveTarget} onOpenChange={(o) => { if (!o) { setPendingApprove(null); setQueueApprove(null); setApproveNote(""); } }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Approve business case</DialogTitle>
-          </DialogHeader>
-          <div className="rounded-md border border-rag-green/20 bg-rag-green/5 p-3 text-sm text-foreground">
-            <strong>{items.find((i) => i.id === approveTarget)?.title}</strong>
+          <DialogHeader><DialogTitle>Approve business case</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-rag-green/20 bg-rag-green/5 p-3 text-sm">
+            <div className="font-medium text-foreground">{items.find((i) => i.id === approveTarget)?.title}</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              Score: {items.find((i) => i.id === approveTarget)?.score}/100 ·{" "}
-              ROI: {items.find((i) => i.id === approveTarget)?.roi}
+              Score {items.find((i) => i.id === approveTarget)?.score}/100 · ROI {items.find((i) => i.id === approveTarget)?.roi}
             </div>
           </div>
           <p className="text-sm text-muted-foreground">Approving will move this case to the active Portfolio and notify the proposed PM.</p>
@@ -377,14 +366,10 @@ function PipelinePage() {
       {/* Rejection dialog */}
       <Dialog open={!!rejectTarget} onOpenChange={(o) => { if (!o) { setPendingReject(null); setQueueReject(null); setRejectReason(""); } }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject business case</DialogTitle>
-          </DialogHeader>
-          <div className="rounded-md border border-rag-red/20 bg-rag-red/5 p-3 text-sm text-foreground">
-            <strong>{items.find((i) => i.id === rejectTarget)?.title}</strong>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              Score: {items.find((i) => i.id === rejectTarget)?.score}/100
-            </div>
+          <DialogHeader><DialogTitle>Reject business case</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-rag-red/20 bg-rag-red/5 p-3 text-sm">
+            <div className="font-medium text-foreground">{items.find((i) => i.id === rejectTarget)?.title}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">Score {items.find((i) => i.id === rejectTarget)?.score}/100</div>
           </div>
           <div className="space-y-2">
             <Label>Reason <span className="text-rag-red">*</span></Label>
