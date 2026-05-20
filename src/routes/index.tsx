@@ -119,7 +119,9 @@ function ExecutiveView() {
 function DirectorView() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <KpiCard label="Portfolio Health" value="22" sub="14 green · 5 amber · 3 red" accent="teal" />
+      <KpiCard label="Portfolio Health" value="22" sub="14 green · 5 amber · 3 red" accent="teal">
+        <PortfolioHealthChart />
+      </KpiCard>
       <ApprovalQueueCard />
       <EscalationsCard />
       <MilestoneCalendar />
