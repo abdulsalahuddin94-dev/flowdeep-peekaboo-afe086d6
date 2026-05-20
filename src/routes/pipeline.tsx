@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Check, X as XIcon, MoreVertical, Plus } from "lucide-react";
+import { NewBusinessCaseFlow } from "@/components/NewBusinessCaseFlow";
 
 export const Route = createFileRoute("/pipeline")({
   component: PipelinePage,
@@ -22,13 +23,14 @@ const STAGES = ["Submitted", "Under Review", "Approved", "Deferred", "Rejected",
 function PipelinePage() {
   const [reject, setReject] = useState<string | null>(null);
   const [approve, setApprove] = useState<string | null>(null);
+  const [newCase, setNewCase] = useState(false);
 
   return (
     <div>
       <PageHeader
         title="Pipeline"
         subtitle="Pre-approval funnel — 6 items awaiting DoA sign-off"
-        actions={<Button className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />New Business Case</Button>}
+        actions={<Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setNewCase(true)}><Plus className="mr-1 h-4 w-4" />New Business Case</Button>}
       />
 
       <Tabs defaultValue="capital">
@@ -128,6 +130,8 @@ function PipelinePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NewBusinessCaseFlow open={newCase} onOpenChange={setNewCase} />
     </div>
   );
 }
