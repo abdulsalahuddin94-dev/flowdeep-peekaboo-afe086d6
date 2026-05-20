@@ -77,25 +77,9 @@ function RisksPage() {
           </Table>
         </TabsContent>
 
-        <TabsContent value="heatmap" className="mt-5 glass-card p-6">
-          <div className="label-eyebrow mb-4">Probability × Impact</div>
-          <div className="mx-auto max-w-2xl">
-            <div className="grid grid-cols-[40px_repeat(5,1fr)] gap-1">
-              <div />
-              {[1, 2, 3, 4, 5].map((i) => <div key={i} className="text-center text-xs text-muted-foreground">I{i}</div>)}
-              {[5, 4, 3, 2, 1].map((p) => (
-                <>
-                  <div key={`p${p}`} className="self-center text-xs text-muted-foreground">P{p}</div>
-                  {[1, 2, 3, 4, 5].map((i) => {
-                    const score = p * i;
-                    const count = risks.filter((r) => r.prob === p && r.impact === i).length;
-                    const bg = score >= 15 ? "bg-rag-red/30" : score >= 9 ? "bg-rag-amber/30" : score >= 4 ? "bg-rag-blue/20" : "bg-rag-green/20";
-                    return <div key={`${p}-${i}`} className={`flex h-14 items-center justify-center rounded ${bg} border border-border text-sm font-medium text-foreground`}>{count > 0 ? count : "·"}</div>;
-                  })}
-                </>
-              ))}
-            </div>
-          </div>
+        <TabsContent value="heatmap" className="mt-5 glass-card p-8">
+          <div className="label-eyebrow mb-6">Probability × Impact</div>
+          <RiskHeatmap />
         </TabsContent>
 
         <TabsContent value="issues" className="mt-5 glass-card overflow-hidden">
@@ -136,6 +120,83 @@ function RisksPage() {
           )}
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+function RiskHeatmap() {
+  // 4x4 grid mapped from mock data's 1–5 scale.
+  const probLabels = ["Almost Certain", "Very Likely", "Possible", "Unlikely"]; // top → bottom (4..1)
+  const impactLabels = ["Minor", "Moderate", "Major", "Severe"]; // left → right (1..4)
+
+  // Each cell gets a soft pastel tone; cells with risks get a stronger fill.
+  // tones indexed by score (prob 1..4 × impact 1..4 → 1..16)
+  const toneFor = (p: number, i: number, hasItems: boolean) => {
+    const s = p * i;
+    // empty cell — soft pastel
+    if (!hasItems) {
+      if (s <= 3) return "bg-[oklch(0.92_0.07_140)]";       // pale green
+      if (s <= 6) return "bg-[oklch(0.93_0.08_120)]";       // pale lime
+      if (s <= 9) return "bg-[oklch(0.94_0.06_85)]";        // pale cream
+      if (s <= 12) return "bg-[oklch(0.93_0.07_55)]";       // pale peach
+      return "bg-[oklch(0.92_0.08_30)]";                    // pale pink
+    }
+    // filled cell — vivid pastel
+    if (s <= 3) return "bg-[oklch(0.78_0.18_140)]";         // green
+    if (s <= 6) return "bg-[oklch(0.78_0.18_120)]";         // lime
+    if (s <= 9) return "bg-[oklch(0.72_0.16_95)]";          // olive/yellow
+    if (s <= 12) return "bg-[oklch(0.68_0.18_55)]";         // orange
+    return "bg-[oklch(0.65_0.20_30)]";                      // red-orange
+  };
+
+  // Bucket the 1–5 mock scale into the 4-band scale: 1→1, 2→2, 3→3, 4–5→4.
+  const bucket = (n: number) => (n >= 4 ? 4 : n);
+  const countAt = (p: number, i: number) =>
+    risks.filter((r) => bucket(r.prob) === p && bucket(r.impact) === i).length;
+
+  return (
+    <div className="mx-auto flex max-w-3xl items-stretch gap-3">
+      {/* Y-axis title */}
+      <div className="flex items-center">
+        <div className="-rotate-90 whitespace-nowrap text-sm text-muted-foreground">
+          Probability →
+        </div>
+      </div>
+
+      {/* Probability labels column */}
+      <div className="flex flex-col justify-between py-1">
+        {probLabels.map((l) => (
+          <div key={l} className="flex flex-1 items-center pr-2 text-right text-sm leading-tight text-foreground/80">
+            <span className="ml-auto block w-24">{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Grid + X-axis labels */}
+      <div className="flex-1">
+        <div className="grid grid-cols-4 gap-3">
+          {[4, 3, 2, 1].map((p) =>
+            [1, 2, 3, 4].map((i) => {
+              const count = countAt(p, i);
+              const tone = toneFor(p, i, count > 0);
+              return (
+                <div
+                  key={`${p}-${i}`}
+                  className={`flex aspect-square items-center justify-center rounded-2xl text-2xl font-semibold text-foreground/80 shadow-sm ${tone}`}
+                >
+                  {count > 0 ? count : ""}
+                </div>
+              );
+            }),
+          )}
+        </div>
+        <div className="mt-3 grid grid-cols-4 gap-3">
+          {impactLabels.map((l) => (
+            <div key={l} className="text-center text-sm text-muted-foreground">{l}</div>
+          ))}
+        </div>
+        <div className="mt-3 text-center text-sm text-muted-foreground">Impact →</div>
+      </div>
     </div>
   );
 }
