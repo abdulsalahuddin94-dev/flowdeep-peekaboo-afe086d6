@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { resources, projects } from "@/lib/mock-data";
-import { Upload, Plus, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { resources, projects, departments } from "@/lib/mock-data";
+import { Upload, Plus, CheckCircle2, XCircle, Clock, AlertTriangle, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/resources")({
@@ -61,10 +61,17 @@ const PRIORITY_STYLE: Record<Priority, string> = {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
+type PoolResource = typeof resources[number];
+
 function ResourcesPage() {
+  const [pool, setPool] = useState<PoolResource[]>(resources.map((r) => ({ ...r })));
   const [requests, setRequests] = useState<ResourceRequest[]>(SEED_REQUESTS);
 
   const pendingCount = requests.filter((r) => r.status === "Pending").length;
+
+  function addToPool(entry: PoolResource) {
+    setPool((prev) => [...prev, entry]);
+  }
 
   function fulfillRequest(id: string, assignedTo: string, alloc: number) {
     setRequests((prev) =>
@@ -92,7 +99,7 @@ function ResourcesPage() {
         actions={
           <>
             <Button variant="outline" size="sm"><Upload className="mr-1 h-4 w-4" />Import Excel</Button>
-            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Resource</Button>
+            <AddResourceDialog onAdd={addToPool} />
           </>
         }
       />
@@ -100,7 +107,7 @@ function ResourcesPage() {
       {/* KPI strip */}
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
         {[
-          { l: "Headcount",       v: "164" },
+          { l: "Headcount",       v: String(pool.length) },
           { l: "Avg utilization", v: "78%",  c: "text-rag-green" },
           { l: "Over-allocated",  v: "3",    c: "text-rag-red" },
           { l: "Bench",           v: "12" },
@@ -133,6 +140,7 @@ function ResourcesPage() {
         <TabsContent value="requests" className="mt-5 space-y-3">
           <RequestsTab
             requests={requests}
+            pool={pool}
             onFulfill={fulfillRequest}
             onDecline={declineRequest}
           />
@@ -148,7 +156,7 @@ function ResourcesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resources.map((r) => (
+              {pool.map((r) => (
                 <TableRow key={r.name}>
                   <TableCell className="font-medium text-foreground">
                     <div className="flex items-center gap-2">
@@ -182,7 +190,7 @@ function ResourcesPage() {
 
         {/* ── Heatmap tab ───────────────────────────────────────────────────── */}
         <TabsContent value="heatmap" className="mt-5 glass-card p-5">
-          <Heatmap />
+          <Heatmap pool={pool} />
         </TabsContent>
 
         {/* ── Manpower planning tab ─────────────────────────────────────────── */}
@@ -248,10 +256,12 @@ function ResourcesPage() {
 
 function RequestsTab({
   requests,
+  pool,
   onFulfill,
   onDecline,
 }: {
   requests: ResourceRequest[];
+  pool: PoolResource[];
   onFulfill: (id: string, assignedTo: string, alloc: number) => void;
   onDecline: (id: string, reason: string) => void;
 }) {
@@ -270,7 +280,7 @@ function RequestsTab({
           </div>
           <div className="space-y-2">
             {pending.map((req) => (
-              <RequestCard key={req.id} req={req} onFulfill={onFulfill} onDecline={onDecline} />
+              <RequestCard key={req.id} req={req} pool={pool} onFulfill={onFulfill} onDecline={onDecline} />
             ))}
           </div>
         </div>
@@ -285,7 +295,7 @@ function RequestsTab({
           </div>
           <div className="space-y-2">
             {fulfilled.map((req) => (
-              <RequestCard key={req.id} req={req} onFulfill={onFulfill} onDecline={onDecline} />
+              <RequestCard key={req.id} req={req} pool={pool} onFulfill={onFulfill} onDecline={onDecline} />
             ))}
           </div>
         </div>
@@ -300,7 +310,7 @@ function RequestsTab({
           </div>
           <div className="space-y-2">
             {declined.map((req) => (
-              <RequestCard key={req.id} req={req} onFulfill={onFulfill} onDecline={onDecline} />
+              <RequestCard key={req.id} req={req} pool={pool} onFulfill={onFulfill} onDecline={onDecline} />
             ))}
           </div>
         </div>
@@ -319,10 +329,12 @@ function RequestsTab({
 
 function RequestCard({
   req,
+  pool,
   onFulfill,
   onDecline,
 }: {
   req: ResourceRequest;
+  pool: PoolResource[];
   onFulfill: (id: string, assignedTo: string, alloc: number) => void;
   onDecline: (id: string, reason: string) => void;
 }) {
@@ -387,7 +399,7 @@ function RequestCard({
           </div>
           {req.status === "Pending" && (
             <div className="flex gap-2">
-              <FulfillDialog req={req} onFulfill={onFulfill} />
+              <FulfillDialog req={req} pool={pool} onFulfill={onFulfill} />
               <DeclineDialog req={req} onDecline={onDecline} />
             </div>
           )}
@@ -401,16 +413,18 @@ function RequestCard({
 
 function FulfillDialog({
   req,
+  pool,
   onFulfill,
 }: {
   req: ResourceRequest;
+  pool: PoolResource[];
   onFulfill: (id: string, assignedTo: string, alloc: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [personName, setPersonName] = useState("");
   const [alloc, setAlloc] = useState(50);
 
-  const selectedPerson = resources.find((r) => r.name === personName);
+  const selectedPerson = pool.find((r) => r.name === personName);
   const projected = selectedPerson ? Math.min(selectedPerson.util + alloc, 200) : null;
   const projColor = projected == null ? "" : projected > 100 ? "text-rag-red" : projected > 80 ? "text-rag-amber" : "text-rag-green";
 
@@ -449,7 +463,7 @@ function FulfillDialog({
             <Select onValueChange={setPersonName}>
               <SelectTrigger><SelectValue placeholder="Select from resource pool…" /></SelectTrigger>
               <SelectContent>
-                {resources.map((r) => (
+                {pool.map((r) => (
                   <SelectItem key={r.name} value={r.name}>
                     <span className="flex items-center gap-2">
                       <span>{r.name}</span>
@@ -573,9 +587,126 @@ function DeclineDialog({
   );
 }
 
+// ── Add Resource dialog ───────────────────────────────────────────────────────
+
+function AddResourceDialog({ onAdd }: { onAdd: (r: PoolResource) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName]       = useState("");
+  const [role, setRole]       = useState("");
+  const [dept, setDept]       = useState("");
+  const [capacity, setCapacity] = useState("40");
+  const [email, setEmail]     = useState("");
+
+  function handleSave() {
+    if (!name.trim() || !role.trim() || !dept) {
+      toast.error("Name, role, and department are required");
+      return;
+    }
+    onAdd({
+      name:     name.trim(),
+      role:     role.trim(),
+      dept,
+      util:     0,
+      capacity: Number(capacity) || 40,
+      projects: [],
+    });
+    toast.success(`${name.trim()} added to resource pool`, {
+      description: `${role.trim()} · ${dept} · ${capacity}h / week`,
+    });
+    setOpen(false);
+    setName(""); setRole(""); setDept(""); setCapacity("40"); setEmail("");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+          <Plus className="mr-1 h-4 w-4" />Add Resource
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add resource to pool</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="col-span-2">
+              <Label>Full name <span className="text-rag-red">*</span></Label>
+              <Input
+                placeholder="e.g. Alex Morgan"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label>Job title / Role <span className="text-rag-red">*</span></Label>
+              <Input
+                placeholder="e.g. Cloud Architect"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Department <span className="text-rag-red">*</span></Label>
+              <Select onValueChange={setDept}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  {departments.map((d) => (
+                    <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Capacity (hrs / week)</Label>
+              <Input
+                type="number"
+                min={4} max={60} step={4}
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label>Email (optional)</Label>
+              <Input
+                type="email"
+                placeholder="alex.morgan@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Preview badge */}
+          {name && role && dept && (
+            <div className="flex items-center gap-3 rounded-md border border-accent/20 bg-accent-dim/20 p-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-dim text-sm font-medium text-accent">
+                {name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div className="text-sm font-medium text-foreground">{name}</div>
+                <div className="text-xs text-muted-foreground">{role} · {dept} · {capacity}h/wk · 0% utilized</div>
+              </div>
+              <UserCheck className="ml-auto h-4 w-4 text-accent" />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSave}>
+            <Plus className="mr-1 h-3.5 w-3.5" />Add to pool
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Direct-assign dialog (from People tab) ────────────────────────────────────
 
-function AssignDialog({ resource }: { resource: typeof resources[number] }) {
+function AssignDialog({ resource }: { resource: PoolResource }) {
   const [open, setOpen] = useState(false);
   const [projectId, setProjectId] = useState("");
   const [role, setRole] = useState(resource.role);
@@ -675,7 +806,7 @@ function AssignDialog({ resource }: { resource: typeof resources[number] }) {
 
 // ── Utilization heatmap ───────────────────────────────────────────────────────
 
-function Heatmap() {
+function Heatmap({ pool }: { pool: PoolResource[] }) {
   return (
     <>
       <div className="label-eyebrow mb-3">Team utilization · next 8 weeks</div>
@@ -685,7 +816,7 @@ function Heatmap() {
         ))}
       </div>
       <div className="space-y-1">
-        {resources.map((r, idx) => (
+        {pool.map((r, idx) => (
           <div key={r.name} className="flex items-center gap-2">
             <div className="w-32 truncate text-xs text-muted-foreground">{r.name}</div>
             <div className="flex flex-1 gap-1">
