@@ -30,7 +30,7 @@ function PipelinePage() {
       <PageHeader
         title="Pipeline"
         subtitle="Pre-approval funnel — 6 items awaiting DoA sign-off"
-        actions={<Button className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />New Business Case</Button>}
+        actions={<Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setNewCase(true)}><Plus className="mr-1 h-4 w-4" />New Business Case</Button>}
       />
 
       <Tabs defaultValue="capital">
