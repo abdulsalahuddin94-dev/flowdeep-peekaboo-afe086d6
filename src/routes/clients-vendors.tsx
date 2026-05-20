@@ -87,7 +87,7 @@ function VendorsTab() {
             {list.map((v) => (
               <TableRow key={v.name}>
                 <TableCell className="font-medium text-foreground">{v.name}</TableCell>
-                <TableCell><Badge variant="outline" className={v.type === "Vendor" ? "border-role-director/40 bg-role-director/10 text-role-director" : "border-role-resource/40 bg-role-resource/10 text-role-resource"}>{v.type}</Badge></TableCell>
+                <TableCell><Badge variant="outline" className={v.type === "Vendor" ? "border-rag-blue/40 bg-rag-blue/10 text-rag-blue" : "border-role-exec/40 bg-role-exec/10 text-role-exec"}>{v.type}</Badge></TableCell>
                 <TableCell className="text-muted-foreground">{v.category}</TableCell>
                 <TableCell className="text-right num-mono">{v.contracts}</TableCell>
                 <TableCell className="text-right num-mono">${v.spend.toFixed(1)}M</TableCell>

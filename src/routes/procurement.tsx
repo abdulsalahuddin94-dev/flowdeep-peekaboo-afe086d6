@@ -88,21 +88,72 @@ function ProcurementPage() {
           </Table>
         </TabsContent>
 
-        <TabsContent value="erp" className="mt-5 glass-card p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="label-eyebrow">ERP integration</div>
-              <div className="mt-1 text-foreground">SAP S/4HANA · Last sync 3 min ago · 142 PO records pushed today</div>
+        <TabsContent value="erp" className="mt-5 space-y-4">
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="label-eyebrow">ERP integration</div>
+                <div className="mt-1 text-foreground">SAP S/4HANA · Last sync 3 min ago · 142 PO records pushed today</div>
+              </div>
+              <Button variant="outline" size="sm"><RefreshCw className="mr-1 h-4 w-4" />Sync now</Button>
             </div>
-            <Button variant="outline" size="sm"><RefreshCw className="mr-1 h-4 w-4" />Sync now</Button>
+            <div className="mt-5 grid gap-3 md:grid-cols-4">
+              {[
+                { l: "POs synced today", v: "142" }, { l: "GR confirmations", v: "98" },
+                { l: "Invoices matched", v: "61" }, { l: "Sync errors", v: "3", c: "text-rag-red" },
+              ].map((k) => (
+                <div key={k.l} className="rounded-md border border-border bg-background/30 p-3">
+                  <div className="label-eyebrow">{k.l}</div>
+                  <div className={`mt-1 text-xl font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            {[
-              { l: "POs synced today", v: "142" }, { l: "GR confirmations", v: "98" },
-              { l: "Invoices matched", v: "61" }, { l: "Sync errors", v: "0", c: "text-rag-green" },
-            ].map((k) => (
-              <div key={k.l} className="rounded-md border border-border bg-background/30 p-3"><div className="label-eyebrow">{k.l}</div><div className={`mt-1 text-xl font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div></div>
-            ))}
+
+          {/* Out-of-sync reconciliation */}
+          <div className="glass-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <div className="label-eyebrow">Out-of-sync records — reconciliation required</div>
+              <Badge variant="outline" className="border-rag-red/40 bg-rag-red/10 text-rag-red">3 items</Badge>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Record</TableHead>
+                  <TableHead>Field</TableHead>
+                  <TableHead>Nexus value</TableHead>
+                  <TableHead>ERP value</TableHead>
+                  <TableHead>Sync status</TableHead>
+                  <TableHead className="w-32" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { id: "CT-2026-035", field: "Contract value", nexus: "$18.00M", erp: "$17.85M", s: "red" },
+                  { id: "PO-2026-109", field: "GR quantity",    nexus: "420 units", erp: "410 units", s: "red" },
+                  { id: "INV-2026-054", field: "Invoice amount", nexus: "$1.60M", erp: "$1.58M", s: "amber" },
+                ].map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium text-foreground num-mono text-xs">{r.id}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.field}</TableCell>
+                    <TableCell className="num-mono text-accent">{r.nexus}</TableCell>
+                    <TableCell className="num-mono text-rag-amber">{r.erp}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center gap-1.5 text-xs ${r.s === "red" ? "text-rag-red" : "text-rag-amber"}`}>
+                        <span className={`h-2 w-2 rounded-full ${r.s === "red" ? "bg-rag-red" : "bg-rag-amber"}`} />
+                        {r.s === "red" ? "Out of sync" : "Minor delta"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1.5">
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2">Use Nexus</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2">Use ERP</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
 

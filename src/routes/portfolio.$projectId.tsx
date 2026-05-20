@@ -178,18 +178,134 @@ function ProjectDetail() {
         </TabsContent>
 
 
-        <TabsContent value="Team & Allocation" className="mt-5 glass-card overflow-hidden">
-          <Table>
-            <TableHeader><TableRow><TableHead>Member</TableHead><TableHead>Role</TableHead><TableHead>Allocation %</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              { n: project.pm, r: "PM", a: 80, p: "Apr–Sep", s: "green" },
-              { n: "Mei Chen", r: "Security Lead", a: 40, p: "May–Aug", s: "green" },
-              { n: "Priya Iyer", r: "Tech Lead", a: 100, p: "Jun–Sep", s: "amber" },
-              { n: "Diego Ortiz", r: "BI Engineer", a: 30, p: "Jul–Aug", s: "blue" },
-            ].map((m) => (
-              <TableRow key={m.n}><TableCell className="font-medium">{m.n}</TableCell><TableCell>{m.r}</TableCell><TableCell><div className="flex items-center gap-2"><Progress value={m.a} className="h-1.5 w-32" /><span className="num-mono text-xs">{m.a}%</span></div></TableCell><TableCell>{m.p}</TableCell><TableCell><RagBadge rag={m.s as any} /></TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="Team & Allocation" className="mt-5">
+          <Tabs defaultValue="team-members">
+            <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
+              {[
+                { v: "manpower-plan", l: "Manpower Planning" },
+                { v: "team-members", l: "Team Members" },
+                { v: "alloc-overview", l: "Allocation Overview" },
+              ].map((t) => (
+                <TabsTrigger
+                  key={t.v}
+                  value={t.v}
+                  className="rounded-none border-b-2 border-transparent bg-transparent px-4 py-2.5 text-xs text-muted-foreground data-[state=active]:border-accent data-[state=active]:bg-transparent data-[state=active]:text-accent data-[state=active]:shadow-none"
+                >
+                  {t.l}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value="manpower-plan" className="mt-4 space-y-4">
+              <div className="grid gap-3 md:grid-cols-4">
+                {[
+                  { l: "Roles requested", v: "5" },
+                  { l: "Confirmed", v: "4", c: "text-rag-green" },
+                  { l: "Pending", v: "1", c: "text-rag-amber" },
+                  { l: "Total FTE", v: "5.5" },
+                ].map((k) => (
+                  <div key={k.l} className="glass-card p-4">
+                    <div className="label-eyebrow">{k.l}</div>
+                    <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="glass-card overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Role</TableHead><TableHead>FTE</TableHead><TableHead>Skill level</TableHead>
+                      <TableHead>Period</TableHead><TableHead>Sourcing</TableHead><TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { r: "Solution Architect", f: 1.0, sk: "Senior", p: "Jun–Sep", src: "Internal", s: "green", sl: "Confirmed" },
+                      { r: "QA Engineer",        f: 2.0, sk: "Mid",    p: "Jul–Sep", src: "Internal",  s: "green", sl: "Confirmed" },
+                      { r: "Integration Dev",    f: 1.5, sk: "Mid",    p: "Jun–Aug", src: "Internal",  s: "green", sl: "Confirmed" },
+                      { r: "Security Reviewer",  f: 0.5, sk: "Senior", p: "Aug",     src: "Subcontract", s: "green", sl: "Confirmed" },
+                      { r: "Change Manager",     f: 0.5, sk: "Mid",    p: "Sep",     src: "Internal",  s: "amber", sl: "Pending" },
+                    ].map((m) => (
+                      <TableRow key={m.r}>
+                        <TableCell className="font-medium text-foreground">{m.r}</TableCell>
+                        <TableCell className="num-mono">{m.f}</TableCell>
+                        <TableCell>{m.sk}</TableCell>
+                        <TableCell>{m.p}</TableCell>
+                        <TableCell className="text-muted-foreground">{m.src}</TableCell>
+                        <TableCell><RagBadge rag={m.s as any} label={m.sl} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="team-members" className="mt-4 glass-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead><TableHead>Role</TableHead>
+                    <TableHead>Allocation %</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { n: project.pm, r: "PM", a: 80, p: "Apr–Sep", s: "green" },
+                    { n: "Mei Chen", r: "Security Lead", a: 40, p: "May–Aug", s: "green" },
+                    { n: "Priya Iyer", r: "Tech Lead", a: 100, p: "Jun–Sep", s: "amber" },
+                    { n: "Diego Ortiz", r: "BI Engineer", a: 30, p: "Jul–Aug", s: "blue" },
+                  ].map((m) => (
+                    <TableRow key={m.n}>
+                      <TableCell className="font-medium">{m.n}</TableCell>
+                      <TableCell>{m.r}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Progress value={m.a} className="h-1.5 w-32" />
+                          <span className="num-mono text-xs">{m.a}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{m.p}</TableCell>
+                      <TableCell><RagBadge rag={m.s as any} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="alloc-overview" className="mt-4 glass-card p-5">
+              <div className="label-eyebrow mb-4">Team capacity vs. allocation — this project</div>
+              <div className="space-y-4">
+                {[
+                  { n: project.pm,   r: "PM",           alloc: 80,  cap: 100, over: false },
+                  { n: "Mei Chen",   r: "Security Lead", alloc: 40,  cap: 100, over: false },
+                  { n: "Priya Iyer", r: "Tech Lead",     alloc: 100, cap: 100, over: false },
+                  { n: "Diego Ortiz",r: "BI Engineer",   alloc: 30,  cap: 100, over: false },
+                ].map((m) => (
+                  <div key={m.n}>
+                    <div className="mb-1.5 flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground">{m.n}</span>
+                      <span className="text-xs text-muted-foreground">{m.r}</span>
+                      <span className={`num-mono text-xs ml-auto ${m.alloc >= 100 ? "text-rag-amber" : "text-foreground"}`}>{m.alloc}% allocated</span>
+                    </div>
+                    <div className="relative h-4 w-full overflow-hidden rounded-full bg-secondary/50">
+                      <div
+                        className={`h-full rounded-full transition-all ${m.alloc >= 100 ? "bg-rag-amber" : "bg-accent"}`}
+                        style={{ width: `${Math.min(m.alloc, 100)}%` }}
+                      />
+                      {m.alloc > 100 && (
+                        <div className="absolute right-0 top-0 h-full w-1 rounded-r-full bg-rag-red" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 flex gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-accent" />Normal</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-rag-amber" />At capacity</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-rag-red" />Over-allocated</span>
+              </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="Financials" className="mt-5">
@@ -754,6 +870,43 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
                 ))}
               </ul>
             </div>
+          </div>
+
+          {/* Revenue Plan */}
+          <div className="glass-card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="label-eyebrow">Revenue plan — linked to milestones</div>
+              <div className="num-mono text-xs text-muted-foreground">Total planned: $3.20M</div>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Milestone</TableHead>
+                  <TableHead>Revenue event</TableHead>
+                  <TableHead className="text-right">Planned ($M)</TableHead>
+                  <TableHead>Expected date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actual ($M)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { ms: "Discovery complete",   evt: "Advance payment (30%)", plan: 0.96, date: "May 02", s: "green",  sl: "Received",   act: 0.96 },
+                  { ms: "Build phase 1",        evt: "Progress invoice (20%)", plan: 0.64, date: "Jun 30", s: "amber",  sl: "Pending",    act: null },
+                  { ms: "UAT Sign-off",         evt: "Progress invoice (25%)", plan: 0.80, date: project.endDate, s: "blue",   sl: "Planned",    act: null },
+                  { ms: "Go-live",              evt: "Final payment (25%)",    plan: 0.80, date: "Sep 14", s: "blue",   sl: "Planned",    act: null },
+                ].map((r) => (
+                  <TableRow key={r.ms}>
+                    <TableCell className="font-medium text-foreground">{r.ms}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.evt}</TableCell>
+                    <TableCell className="num-mono text-right">${r.plan.toFixed(2)}M</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.date}</TableCell>
+                    <TableCell><RagBadge rag={r.s as any} label={r.sl} /></TableCell>
+                    <TableCell className="num-mono text-right">{r.act != null ? `$${r.act.toFixed(2)}M` : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
 
