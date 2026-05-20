@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { resources } from "@/lib/mock-data";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { resources, projects } from "@/lib/mock-data";
 import { Upload, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/resources")({
   component: ResourcesPage,
@@ -70,7 +77,7 @@ function ResourcesPage() {
                   </div>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{r.projects.join(", ")}</TableCell>
-                <TableCell><Button size="sm" variant="outline">Assign</Button></TableCell>
+                <TableCell><AssignDialog resource={r} /></TableCell>
               </TableRow>
             ))}</TableBody>
           </Table>
@@ -123,6 +130,117 @@ function ResourcesPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function AssignDialog({ resource }: { resource: typeof resources[number] }) {
+  const [open, setOpen] = useState(false);
+  const [projectId, setProjectId] = useState("");
+  const [role, setRole] = useState(resource.role);
+  const [alloc, setAlloc] = useState(50);
+  const [from, setFrom] = useState("");
+  const [until, setUntil] = useState("");
+
+  const currentLoad = resource.util;
+  const projectedLoad = Math.min(currentLoad + alloc, 200);
+  const projectedColor = projectedLoad > 100 ? "text-rag-red" : projectedLoad > 80 ? "text-rag-amber" : "text-rag-green";
+
+  function handleSave() {
+    if (!projectId) { toast.error("Please select a project"); return; }
+    const proj = projects.find((p) => p.id === projectId);
+    toast.success(`${resource.name} assigned to ${proj?.name ?? projectId} at ${alloc}%`);
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">Assign</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Assign {resource.name} to Project</DialogTitle>
+        </DialogHeader>
+
+        {/* Utilization preview */}
+        <div className="rounded-md border border-border bg-secondary/30 p-3">
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Current utilization</span>
+            <span className={`num-mono font-medium ${currentLoad > 100 ? "text-rag-red" : currentLoad > 80 ? "text-rag-amber" : "text-rag-green"}`}>{currentLoad}%</span>
+          </div>
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">After this assignment</span>
+            <span className={`num-mono font-medium ${projectedColor}`}>{projectedLoad}%</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-background/50">
+            <div className="h-full rounded-full bg-accent/30 transition-all" style={{ width: `${Math.min(currentLoad, 100)}%` }} />
+          </div>
+          <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-background/50">
+            <div className={`h-full rounded-full transition-all ${projectedLoad > 100 ? "bg-rag-red" : projectedLoad > 80 ? "bg-rag-amber" : "bg-accent"}`} style={{ width: `${Math.min(projectedLoad, 100)}%` }} />
+          </div>
+          {projectedLoad > 100 && (
+            <p className="mt-1.5 text-[11px] text-rag-red">⚠ This assignment will over-allocate {resource.name}</p>
+          )}
+        </div>
+
+        <div className="grid gap-3">
+          <div>
+            <Label>Project</Label>
+            <Select onValueChange={setProjectId}>
+              <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+              <SelectContent>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <span className="flex items-center gap-2">
+                      {p.name}
+                      <Badge variant="outline" className="ml-1 border-border bg-secondary/40 text-[10px]">{p.stage}</Badge>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Role on this project</Label>
+            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Solution Architect" />
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <Label>Allocation</Label>
+              <span className={`num-mono text-sm font-medium ${projectedColor}`}>{alloc}%</span>
+            </div>
+            <input
+              type="range" min={10} max={100} step={5} value={alloc}
+              onChange={(e) => setAlloc(Number(e.target.value))}
+              className="w-full cursor-pointer accent-teal-400"
+            />
+            <div className="mt-0.5 flex justify-between text-[10px] text-muted-foreground">
+              <span>10%</span><span>50%</span><span>100%</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>From</Label>
+              <Input type="month" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div>
+              <Label>Until</Label>
+              <Input type="month" value={until} onChange={(e) => setUntil(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSave}>
+            Confirm assignment
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RagBadge } from "@/components/RagBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,8 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronLeft, FileText, MessageSquare, Paperclip, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus } from "lucide-react";
 import { projects } from "@/lib/mock-data";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/portfolio/$projectId")({
   component: ProjectDetail,
@@ -724,16 +730,39 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
           </Table>
         </TabsContent>
 
-        <TabsContent value="manpower" className="mt-5 glass-card p-5 text-sm">
-          <div className="label-eyebrow mb-3">Manpower requirements</div>
-          <Table>
-            <TableHeader><TableRow><TableHead>Role</TableHead><TableHead>FTE</TableHead><TableHead>Skill level</TableHead><TableHead>Period</TableHead><TableHead>Sourcing</TableHead></TableRow></TableHeader>
-            <TableBody>
-              <TableRow><TableCell>Solution Architect</TableCell><TableCell>1.0</TableCell><TableCell>Senior</TableCell><TableCell>Jun–Sep</TableCell><TableCell>Internal</TableCell></TableRow>
-              <TableRow><TableCell>QA Engineer</TableCell><TableCell>2.0</TableCell><TableCell>Mid</TableCell><TableCell>Jul–Sep</TableCell><TableCell>Internal + Subcontract</TableCell></TableRow>
-              <TableRow><TableCell>Integration Dev</TableCell><TableCell>1.5</TableCell><TableCell>Mid</TableCell><TableCell>Jun–Aug</TableCell><TableCell>Internal</TableCell></TableRow>
-            </TableBody>
-          </Table>
+        <TabsContent value="manpower" className="mt-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="label-eyebrow">Manpower requirements</div>
+            <RequestResourcesDialog projectName={project.name} />
+          </div>
+          <div className="glass-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Role</TableHead><TableHead>FTE</TableHead><TableHead>Skill level</TableHead>
+                  <TableHead>Period</TableHead><TableHead>Sourcing</TableHead><TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { r: "Solution Architect", f: 1.0, sk: "Senior", p: "Jun–Sep", src: "Internal",            s: "green", sl: "Confirmed" },
+                  { r: "QA Engineer",        f: 2.0, sk: "Mid",    p: "Jul–Sep", src: "Internal + Subcontract", s: "green", sl: "Confirmed" },
+                  { r: "Integration Dev",    f: 1.5, sk: "Mid",    p: "Jun–Aug", src: "Internal",            s: "green", sl: "Confirmed" },
+                  { r: "Security Reviewer",  f: 0.5, sk: "Senior", p: "Aug",     src: "Subcontract",         s: "green", sl: "Confirmed" },
+                  { r: "Change Manager",     f: 0.5, sk: "Mid",    p: "Sep",     src: "Internal",            s: "amber", sl: "Pending" },
+                ].map((m) => (
+                  <TableRow key={m.r}>
+                    <TableCell className="font-medium text-foreground">{m.r}</TableCell>
+                    <TableCell className="num-mono">{m.f}</TableCell>
+                    <TableCell>{m.sk}</TableCell>
+                    <TableCell>{m.p}</TableCell>
+                    <TableCell className="text-muted-foreground">{m.src}</TableCell>
+                    <TableCell><RagBadge rag={m.s as any} label={m.sl} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         <TabsContent value="subs" className="mt-5 space-y-4">
@@ -949,6 +978,114 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function RequestResourcesDialog({ projectName }: { projectName: string }) {
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState("");
+  const [skill, setSkill] = useState("");
+  const [fte, setFte] = useState("1.0");
+  const [from, setFrom] = useState("");
+  const [until, setUntil] = useState("");
+  const [priority, setPriority] = useState("");
+  const [notes, setNotes] = useState("");
+
+  function handleSubmit() {
+    if (!role || !skill || !priority) { toast.error("Please fill in role, skill level, and priority"); return; }
+    toast.success(`Resource request submitted to Resource Manager`, {
+      description: `${fte} FTE ${skill} ${role} for ${projectName}`,
+    });
+    setOpen(false);
+    setRole(""); setSkill(""); setFte("1.0"); setFrom(""); setUntil(""); setPriority(""); setNotes("");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+          <UserPlus className="mr-1.5 h-3.5 w-3.5" />Request Resources
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Request Resources</DialogTitle>
+        </DialogHeader>
+
+        <div className="rounded-md border border-accent/20 bg-accent-dim/30 px-3 py-2 text-xs text-accent">
+          Project: <span className="font-medium">{projectName}</span>
+          <span className="ml-2 text-muted-foreground">· Request will be sent to the Resource Manager</span>
+        </div>
+
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="col-span-2">
+              <Label>Role needed</Label>
+              <Input
+                placeholder="e.g. Solution Architect"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Skill level</Label>
+              <Select onValueChange={setSkill}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Junior">Junior</SelectItem>
+                  <SelectItem value="Mid">Mid</SelectItem>
+                  <SelectItem value="Senior">Senior</SelectItem>
+                  <SelectItem value="Lead">Lead</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>FTE required</Label>
+              <Input
+                type="number" min={0.5} max={5} step={0.5}
+                value={fte}
+                onChange={(e) => setFte(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>From</Label>
+              <Input type="month" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div>
+              <Label>Until</Label>
+              <Input type="month" value={until} onChange={(e) => setUntil(e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <Label>Priority</Label>
+              <Select onValueChange={setPriority}>
+                <SelectTrigger><SelectValue placeholder="Select priority…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Critical">Critical — blocks project</SelectItem>
+                  <SelectItem value="High">High — needed within 2 weeks</SelectItem>
+                  <SelectItem value="Medium">Medium — within a month</SelectItem>
+                  <SelectItem value="Low">Low — planning ahead</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <Label>Notes (optional)</Label>
+              <Input
+                placeholder="Specific skills, certifications, or context…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleSubmit}>
+            Submit request
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
