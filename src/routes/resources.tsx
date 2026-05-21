@@ -181,7 +181,7 @@ function ResourcesPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{r.projects.join(", ")}</TableCell>
-                  <TableCell><AssignDialog resource={r} /></TableCell>
+                  <TableCell><AssignDialog resource={r} onAssign={(projectName, alloc) => setPool((prev) => prev.map((x) => x.name === r.name ? { ...x, util: Math.min(x.util + alloc, 200), projects: x.projects.includes(projectName) ? x.projects : [...x.projects, projectName] } : x))} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -706,7 +706,7 @@ function AddResourceDialog({ onAdd }: { onAdd: (r: PoolResource) => void }) {
 
 // ── Direct-assign dialog (from People tab) ────────────────────────────────────
 
-function AssignDialog({ resource }: { resource: PoolResource }) {
+function AssignDialog({ resource, onAssign }: { resource: PoolResource; onAssign?: (projectName: string, alloc: number) => void }) {
   const [open, setOpen] = useState(false);
   const [projectId, setProjectId] = useState("");
   const [role, setRole] = useState(resource.role);
@@ -720,7 +720,9 @@ function AssignDialog({ resource }: { resource: PoolResource }) {
   function handleSave() {
     if (!projectId) { toast.error("Please select a project"); return; }
     const proj = projects.find((p) => p.id === projectId);
-    toast.success(`${resource.name} assigned to ${proj?.name ?? projectId} at ${alloc}%`);
+    const projectName = proj?.name ?? projectId;
+    onAssign?.(projectName, alloc);
+    toast.success(`${resource.name} assigned to ${projectName} at ${alloc}%`);
     setOpen(false);
     setProjectId(""); setRole(resource.role); setAlloc(50); setFrom(""); setUntil("");
   }
