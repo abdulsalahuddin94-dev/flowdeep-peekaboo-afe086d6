@@ -588,6 +588,32 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
   const [expandedPkg, setExpandedPkg] = useState<string | null>(null);
   const [newPkgOpen, setNewPkgOpen] = useState(false);
   const [newScope, setNewScope] = useState("");
+
+  // Milestones (v11)
+  const [milestones, setMilestones] = useState<Milestone[]>([
+    { name: "Discovery complete", date: "May 02", owner: "Sara", rag: "green", dep: "—" },
+    { name: "Build phase 1", date: "Jun 30", owner: "Mei", rag: "amber", dep: "Discovery" },
+    { name: "UAT Sign-off", date: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
+    { name: "Go-live", date: "Sep 14", owner: project.pm, rag: "blue", dep: "UAT" },
+  ]);
+
+  // Subcontracted packages (v11)
+  const [subs, setSubs] = useState<SubPackage[]>([
+    { id: "SUB-001", scope: "Civil works & site prep", vendor: "Acme Construction", value: "$420K", period: "Jun–Jul", rag: "green", status: "Awarded" },
+    { id: "SUB-002", scope: "Integration testing", vendor: "TestLabs Co.", value: "$180K", period: "Jul–Aug", rag: "green", status: "Awarded" },
+    { id: "SUB-003", scope: "Training rollout (40 staff)", vendor: "LearnSphere", value: "$95K", period: "Aug", rag: "green", status: "Awarded" },
+    { id: "SUB-004", scope: "Network cabling", vendor: "—", value: "$220K", period: "Jun", rag: "amber", status: "In tender" },
+    { id: "SUB-005", scope: "Security audit & pen-test", vendor: "—", value: "$140K", period: "Sep", rag: "amber", status: "In tender" },
+    { id: "SUB-006", scope: "Go-live support (8 wks)", vendor: "—", value: "$785K", period: "Sep–Oct", rag: "blue", status: "Planned" },
+  ]);
+
+  // Business trips (v11)
+  const [trips, setTrips] = useState<Trip[]>([
+    { id: "T-01", purpose: "Site survey", dest: "Dubai, UAE", dates: "Jun 12 – Jun 15", travelers: "Sara, Mei", cost: "$5.2K", rag: "green", status: "Completed" },
+    { id: "T-02", purpose: "Vendor workshop", dest: "Munich, DE", dates: "Jul 08 – Jul 11", travelers: "K. Bauer", cost: "$3.0K", rag: "green", status: "Completed" },
+    { id: "T-03", purpose: "User training", dest: "Riyadh, KSA", dates: "Aug 18 – Aug 22", travelers: "H. Tanaka, Priya, +2", cost: "$9.8K", rag: "amber", status: "Booked" },
+    { id: "T-04", purpose: "Go-live support", dest: "Doha, QA", dates: "Sep 14 – Sep 28", travelers: "John, Mei, +2", cost: "$6.5K", rag: "blue", status: "Planned" },
+  ]);
   const [newEst, setNewEst] = useState("");
 
   function handleNewPackage() {
