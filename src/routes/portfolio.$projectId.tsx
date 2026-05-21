@@ -41,6 +41,12 @@ const TABS = [
 
 function ProjectDetail() {
   const { project } = Route.useLoaderData();
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reports, setReports] = useState<StatusReport[]>(() => [
+    { week: 18, by: project.pm, when: "3 days ago", rag: project.rag, text: "Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet." },
+    { week: 17, by: project.pm, when: "10 days ago", rag: "amber", text: "Vendor SOW reviewed. Two open RAID items remain; mitigations scheduled this sprint." },
+    { week: 16, by: project.pm, when: "17 days ago", rag: "green", text: "Discovery completed and signed off. Build phase 1 kicked off on plan." },
+  ]);
   return (
     <div>
       <div className="mb-4">
@@ -56,7 +62,7 @@ function ProjectDetail() {
             <RagBadge rag={project.rag} />
             <Badge variant="outline" className="border-border bg-secondary/40">{project.stage}</Badge>
             <Button variant="outline" size="sm">Export</Button>
-            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">Submit status</Button>
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setReportOpen(true)}>Submit status</Button>
           </div>
         }
       />
