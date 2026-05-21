@@ -139,7 +139,7 @@ function ClientSheet({ client, onClose }: { client: typeof clients[number] | nul
   function handleConnect() {
     if (connectSel.length === 0) { toast.error("Select at least one project"); return; }
     setExtraProjectIds((prev) => [...prev, ...connectSel.filter((id) => !prev.includes(id))]);
-    toast.success(`${connectSel.length} project${connectSel.length !== 1 ? "s" : ""} linked to ${client.name}`);
+    toast.success(`${connectSel.length} project${connectSel.length !== 1 ? "s" : ""} linked to ${client?.name ?? ""}`);
     setConnectOpen(false); setConnectSel([]); setConnectSearch("");
   }
 
@@ -376,7 +376,7 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
   function handleConnect() {
     if (connectSel.length === 0) { toast.error("Select at least one contract"); return; }
     setExtraContractIds((prev) => [...prev, ...connectSel.filter((id) => !prev.includes(id))]);
-    toast.success(`${connectSel.length} contract${connectSel.length !== 1 ? "s" : ""} linked to ${vendor.name}`);
+    toast.success(`${connectSel.length} contract${connectSel.length !== 1 ? "s" : ""} linked to ${vendor?.name ?? ""}`);
     setConnectOpen(false); setConnectSel([]);
   }
 
