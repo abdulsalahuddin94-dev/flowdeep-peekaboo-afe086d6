@@ -694,7 +694,13 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
         <TabsContent value="init" className="mt-5">
           <div className="grid gap-4 md:grid-cols-[1fr_320px]">
             <div className="glass-card p-5">
-              <div className="text-sm font-medium text-foreground">Project Summary</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-foreground">Project Summary</div>
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={() => toast.success("Planning document saved")}>
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />Save Changes
+                </Button>
+              </div>
               <div className="mt-4 space-y-4">
                 <PlanningField
                   label="Objectives (SMART)"
