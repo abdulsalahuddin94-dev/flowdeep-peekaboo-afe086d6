@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      project_tasks: {
+        Row: {
+          assignee: string | null
+          color: string
+          created_at: string
+          duration_days: number
+          id: string
+          label: string
+          lane: string
+          project_id: string
+          sort_order: number
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          color?: string
+          created_at?: string
+          duration_days?: number
+          id?: string
+          label: string
+          lane: string
+          project_id: string
+          sort_order?: number
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          color?: string
+          created_at?: string
+          duration_days?: number
+          id?: string
+          label?: string
+          lane?: string
+          project_id?: string
+          sort_order?: number
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
