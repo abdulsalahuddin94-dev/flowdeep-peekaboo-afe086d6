@@ -752,18 +752,25 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
           </div>
         </TabsContent>
 
-        <TabsContent value="ms" className="mt-5 glass-card overflow-hidden">
-          <Table>
-            <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              { n: "Discovery complete", d: "May 02", o: "Sara", s: "green", dep: "—" },
-              { n: "Build phase 1", d: "Jun 30", o: "Mei", s: "amber", dep: "Discovery" },
-              { n: "UAT Sign-off", d: project.endDate, o: project.pm, s: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
-              { n: "Go-live", d: "Sep 14", o: project.pm, s: "blue", dep: "UAT" },
-            ].map((m) => (
-              <TableRow key={m.n}><TableCell className="font-medium text-foreground">{m.n}</TableCell><TableCell>{m.d}</TableCell><TableCell>{m.o}</TableCell><TableCell><RagBadge rag={m.s as any} /></TableCell><TableCell className="text-xs text-muted-foreground">{m.dep}</TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="ms" className="mt-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="label-eyebrow">{milestones.length} milestones</div>
+            <AddMilestoneDialog defaultOwner={project.pm} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
+          </div>
+          <div className="glass-card overflow-hidden">
+            <Table>
+              <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+              <TableBody>{milestones.map((m) => (
+                <TableRow key={m.name}>
+                  <TableCell className="font-medium text-foreground">{m.name}</TableCell>
+                  <TableCell>{m.date}</TableCell>
+                  <TableCell>{m.owner}</TableCell>
+                  <TableCell><RagBadge rag={m.rag} /></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         <TabsContent value="manpower" className="mt-5 space-y-4">
