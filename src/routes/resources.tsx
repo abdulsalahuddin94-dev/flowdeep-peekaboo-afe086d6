@@ -181,7 +181,7 @@ function ResourcesPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{r.projects.join(", ")}</TableCell>
-                  <TableCell><AssignDialog resource={r} /></TableCell>
+                  <TableCell><AssignDialog resource={r} onAssign={(projectName, alloc) => setPool((prev) => prev.map((x) => x.name === r.name ? { ...x, util: Math.min(x.util + alloc, 200), projects: x.projects.includes(projectName) ? x.projects : [...x.projects, projectName] } : x))} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
