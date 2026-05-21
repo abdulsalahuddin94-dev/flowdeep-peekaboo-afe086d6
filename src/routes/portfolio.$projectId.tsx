@@ -846,7 +846,7 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
         <TabsContent value="trips" className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
             {[
-              { l: "Trips Planned", v: "4" },
+              { l: "Trips Planned", v: String(trips.length) },
               { l: "Travelers", v: "9" },
               { l: "Total Budget", v: "$24.5K" },
               { l: "Spent", v: "$8.2K", c: "text-rag-green" },
@@ -857,23 +857,22 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-between">
+            <div className="label-eyebrow">Trips</div>
+            <LogTripDialog onAdd={(t) => setTrips((prev) => [...prev, { ...t, id: `T-${String(prev.length + 1).padStart(2, "0")}` }])} />
+          </div>
           <div className="glass-card overflow-hidden">
             <Table>
               <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Purpose</TableHead><TableHead>Destination</TableHead><TableHead>Dates</TableHead><TableHead>Travelers</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{[
-                { id: "T-01", p: "Site survey", d: "Dubai, UAE", dt: "Jun 12 – Jun 15", t: "Sara, Mei", c: "$5.2K", s: "green", sl: "Completed" },
-                { id: "T-02", p: "Vendor workshop", d: "Munich, DE", dt: "Jul 08 – Jul 11", t: "K. Bauer", c: "$3.0K", s: "green", sl: "Completed" },
-                { id: "T-03", p: "User training", d: "Riyadh, KSA", dt: "Aug 18 – Aug 22", t: "H. Tanaka, Priya, +2", c: "$9.8K", s: "amber", sl: "Booked" },
-                { id: "T-04", p: "Go-live support", d: "Doha, QA", dt: "Sep 14 – Sep 28", t: "John, Mei, +2", c: "$6.5K", s: "blue", sl: "Planned" },
-              ].map((r) => (
+              <TableBody>{trips.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium text-foreground">{r.id}</TableCell>
-                  <TableCell>{r.p}</TableCell>
-                  <TableCell>{r.d}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.dt}</TableCell>
-                  <TableCell className="text-xs">{r.t}</TableCell>
-                  <TableCell className="num-mono">{r.c}</TableCell>
-                  <TableCell><RagBadge rag={r.s as any} label={r.sl} /></TableCell>
+                  <TableCell>{r.purpose}</TableCell>
+                  <TableCell>{r.dest}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.dates}</TableCell>
+                  <TableCell className="text-xs">{r.travelers}</TableCell>
+                  <TableCell className="num-mono">{r.cost}</TableCell>
+                  <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>
