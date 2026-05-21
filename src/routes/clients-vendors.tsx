@@ -116,11 +116,32 @@ function ClientsVendorsPage() {
 
 // ── Client detail sheet ───────────────────────────────────────────────────────
 function ClientSheet({ client, onClose }: { client: typeof clients[number] | null; onClose: () => void }) {
+  const [extraProjectIds, setExtraProjectIds] = useState<string[]>([]);
+  const [connectOpen, setConnectOpen]         = useState(false);
+  const [connectSearch, setConnectSearch]     = useState("");
+  const [connectSel, setConnectSel]           = useState<string[]>([]);
+
   if (!client) return null;
 
-  const detail   = CLIENT_DETAILS[client.name];
-  const linked   = projects.filter((p) => p.client === client.name);
-  const revenue  = client.revenue.toFixed(1);
+  const detail     = CLIENT_DETAILS[client.name];
+  const baseLinked = projects.filter((p) => p.client === client.name);
+  const extraLinked = extraProjectIds.map((id) => projects.find((p) => p.id === id)).filter(Boolean) as typeof projects;
+  const linked     = [...baseLinked, ...extraLinked];
+  const linkedIds  = new Set(linked.map((p) => p.id));
+  const available  = projects.filter((p) => !linkedIds.has(p.id));
+  const filteredAvail = available.filter((p) => p.name.toLowerCase().includes(connectSearch.toLowerCase()));
+  const revenue    = client.revenue.toFixed(1);
+
+  function toggleConnect(id: string) {
+    setConnectSel((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
+  function handleConnect() {
+    if (connectSel.length === 0) { toast.error("Select at least one project"); return; }
+    setExtraProjectIds((prev) => [...prev, ...connectSel.filter((id) => !prev.includes(id))]);
+    toast.success(`${connectSel.length} project${connectSel.length !== 1 ? "s" : ""} linked to ${client.name}`);
+    setConnectOpen(false); setConnectSel([]); setConnectSearch("");
+  }
 
   return (
     <Sheet open={!!client} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -141,17 +162,10 @@ function ClientSheet({ client, onClose }: { client: typeof clients[number] | nul
               </div>
             </div>
           </div>
-
-          {/* Contact row */}
           {detail && (
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Mail className="h-3 w-3" />
-                <a href={`mailto:${detail.email}`} className="hover:text-accent">{detail.email}</a>
-              </span>
-              <span className="flex items-center gap-1">
-                <Phone className="h-3 w-3" />{detail.phone}
-              </span>
+              <span className="flex items-center gap-1"><Mail className="h-3 w-3" /><a href={`mailto:${detail.email}`} className="hover:text-accent">{detail.email}</a></span>
+              <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{detail.phone}</span>
             </div>
           )}
         </SheetHeader>
@@ -173,23 +187,16 @@ function ClientSheet({ client, onClose }: { client: typeof clients[number] | nul
         {/* Projects list */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="label-eyebrow mb-3">Projects</div>
-
           {linked.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-12 text-center">
               <FileText className="h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">No projects linked to {client.name} yet.</p>
-              <p className="text-xs text-muted-foreground/60">Projects can be linked from the Portfolio screen.</p>
+              <button className="mt-1 text-xs text-accent hover:underline" onClick={() => setConnectOpen(true)}>+ Connect existing project</button>
             </div>
           ) : (
             <div className="space-y-2">
               {linked.map((p) => (
-                <Link
-                  key={p.id}
-                  to="/portfolio/$projectId"
-                  params={{ projectId: p.id }}
-                  onClick={onClose}
-                  className="group block"
-                >
+                <Link key={p.id} to="/portfolio/$projectId" params={{ projectId: p.id }} onClick={onClose} className="group block">
                   <div className="glass-card p-3 transition-all hover:border-accent/40 hover:bg-accent-dim/20">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -197,11 +204,9 @@ function ClientSheet({ client, onClose }: { client: typeof clients[number] | nul
                           <span className={`h-2 w-2 shrink-0 rounded-full ${RAG_DOT[p.rag]}`} />
                           <span className="text-sm font-medium text-foreground truncate">{p.name}</span>
                         </div>
-                        <div className="mt-1.5 flex items-center gap-3">
-                          <div className="flex flex-1 items-center gap-2">
-                            <Progress value={p.progress} className={`h-1 flex-1 ${RAG_BAR[p.rag]}`} />
-                            <span className="num-mono text-xs text-muted-foreground">{p.progress}%</span>
-                          </div>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <Progress value={p.progress} className={`h-1 flex-1 ${RAG_BAR[p.rag]}`} />
+                          <span className="num-mono text-xs text-muted-foreground">{p.progress}%</span>
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                           <Badge variant="outline" className="border-border bg-secondary/40 text-[10px] text-muted-foreground py-0">{p.stage}</Badge>
@@ -218,13 +223,67 @@ function ClientSheet({ client, onClose }: { client: typeof clients[number] | nul
           )}
         </div>
 
-        {/* Footer action */}
-        <div className="border-t border-border px-6 py-4">
-          <Button variant="outline" className="w-full" onClick={onClose}>
-            Close
+        {/* Footer */}
+        <div className="border-t border-border px-6 py-4 space-y-2">
+          <Button variant="outline" className="w-full border-accent/40 text-accent hover:bg-accent-dim" onClick={() => setConnectOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />Connect existing project
           </Button>
+          <Button variant="outline" className="w-full" onClick={onClose}>Close</Button>
         </div>
       </SheetContent>
+
+      {/* Connect dialog (sibling of SheetContent inside Sheet) */}
+      <Dialog open={connectOpen} onOpenChange={(o) => { if (!o) { setConnectOpen(false); setConnectSel([]); setConnectSearch(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Link projects to {client.name}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder="Search projects…" className="h-8 pl-7 text-sm" value={connectSearch} onChange={(e) => setConnectSearch(e.target.value)} />
+            </div>
+            <ScrollArea className="h-52 rounded-md border border-border">
+              <div className="p-1.5 space-y-0.5">
+                {filteredAvail.map((p) => {
+                  const checked = connectSel.includes(p.id);
+                  return (
+                    <label key={p.id} className={`flex cursor-pointer items-center gap-2.5 rounded px-2 py-1.5 ${checked ? "bg-accent-dim/30" : "hover:bg-secondary/40"}`}>
+                      <Checkbox checked={checked} onCheckedChange={() => toggleConnect(p.id)} className="shrink-0" />
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${RAG_DOT[p.rag]}`} />
+                      <span className="flex-1 truncate text-sm text-foreground">{p.name}</span>
+                      <Badge variant="outline" className="shrink-0 border-border bg-secondary/40 text-[10px] text-muted-foreground py-0">{p.stage}</Badge>
+                    </label>
+                  );
+                })}
+                {filteredAvail.length === 0 && (
+                  <p className="py-4 text-center text-xs text-muted-foreground">
+                    {available.length === 0 ? "All projects are already linked." : `No projects match "${connectSearch}"`}
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+            {connectSel.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {connectSel.map((id) => {
+                  const p = projects.find((x) => x.id === id);
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/20 px-2 py-0.5 text-[11px] text-accent">
+                      <span className={`h-1.5 w-1.5 rounded-full ${RAG_DOT[p?.rag ?? "grey"]}`} />
+                      {p?.name}
+                      <button onClick={() => toggleConnect(id)} className="ml-0.5 hover:text-rag-red"><X className="h-3 w-3" /></button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setConnectOpen(false); setConnectSel([]); setConnectSearch(""); }}>Cancel</Button>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleConnect}>
+              Link {connectSel.length > 0 ? `${connectSel.length} project${connectSel.length !== 1 ? "s" : ""}` : "selected"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
@@ -290,18 +349,36 @@ function VendorsTab() {
 
 // ── Vendor detail sheet ───────────────────────────────────────────────────────
 function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | null; onClose: () => void }) {
+  const [extraContractIds, setExtraContractIds] = useState<string[]>([]);
+  const [connectOpen, setConnectOpen]           = useState(false);
+  const [connectSel, setConnectSel]             = useState<string[]>([]);
+
   if (!vendor) return null;
 
-  const detail   = VENDOR_DETAILS[vendor.name];
-  const linked   = contracts.filter((c) => c.vendor === vendor.name);
+  const detail      = VENDOR_DETAILS[vendor.name];
+  const baseLinked  = contracts.filter((c) => c.vendor === vendor.name);
+  const extraLinked = extraContractIds.map((id) => contracts.find((c) => c.id === id)).filter(Boolean) as typeof contracts;
+  const linked      = [...baseLinked, ...extraLinked];
+  const linkedIds   = new Set(linked.map((c) => c.id));
+  const available   = contracts.filter((c) => !linkedIds.has(c.id));
 
-  // Simulated sub-scores based on overall eval
   const scores = {
     Delivery:   +(vendor.eval * 0.95).toFixed(1),
     Quality:    +(vendor.eval * 1.03).toFixed(1),
     Commercial: +(vendor.eval * 0.97).toFixed(1),
     Support:    +(vendor.eval * 0.99).toFixed(1),
   };
+
+  function toggleConnect(id: string) {
+    setConnectSel((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
+  function handleConnect() {
+    if (connectSel.length === 0) { toast.error("Select at least one contract"); return; }
+    setExtraContractIds((prev) => [...prev, ...connectSel.filter((id) => !prev.includes(id))]);
+    toast.success(`${connectSel.length} contract${connectSel.length !== 1 ? "s" : ""} linked to ${vendor.name}`);
+    setConnectOpen(false); setConnectSel([]);
+  }
 
   return (
     <Sheet open={!!vendor} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -312,12 +389,8 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
             <div className="min-w-0 flex-1">
               <SheetTitle className="text-lg">{vendor.name}</SheetTitle>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className={vendor.type === "Vendor" ? "border-rag-blue/40 bg-rag-blue/10 text-rag-blue text-[10px]" : "border-role-exec/40 bg-role-exec/10 text-role-exec text-[10px]"}>
-                  {vendor.type}
-                </Badge>
-                <Badge variant="outline" className="border-border bg-secondary/40 text-muted-foreground text-[10px]">
-                  {vendor.category}
-                </Badge>
+                <Badge variant="outline" className={vendor.type === "Vendor" ? "border-rag-blue/40 bg-rag-blue/10 text-rag-blue text-[10px]" : "border-role-exec/40 bg-role-exec/10 text-role-exec text-[10px]"}>{vendor.type}</Badge>
+                <Badge variant="outline" className="border-border bg-secondary/40 text-muted-foreground text-[10px]">{vendor.category}</Badge>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -327,7 +400,6 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
               <span className="ml-1 num-mono text-sm font-medium text-foreground">{vendor.eval.toFixed(1)}</span>
             </div>
           </div>
-
           {detail && (
             <div className="mt-3 space-y-1 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -335,9 +407,7 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
                 <span className="text-muted-foreground/50">·</span>
                 <a href={`mailto:${detail.email}`} className="hover:text-accent">{detail.email}</a>
               </div>
-              <div className="flex items-center gap-1">
-                <Phone className="h-3 w-3" />{detail.phone}
-              </div>
+              <div className="flex items-center gap-1"><Phone className="h-3 w-3" />{detail.phone}</div>
             </div>
           )}
         </SheetHeader>
@@ -364,6 +434,7 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
               <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-10 text-center">
                 <FileText className="h-7 w-7 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">No contracts on record for this vendor.</p>
+                <button className="mt-1 text-xs text-accent hover:underline" onClick={() => setConnectOpen(true)}>+ Connect existing contract</button>
               </div>
             ) : (
               <div className="space-y-2">
@@ -373,9 +444,7 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="num-mono text-xs text-muted-foreground">{c.id}</span>
-                          <Badge variant="outline" className={c.status === "Active" ? "border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]" : "border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]"}>
-                            {c.status}
-                          </Badge>
+                          <Badge variant="outline" className={c.status === "Active" ? "border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]" : "border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]"}>{c.status}</Badge>
                         </div>
                         <div className="mt-1 text-sm font-medium text-foreground">{c.project}</div>
                         <div className="mt-0.5 flex gap-3 text-xs text-muted-foreground">
@@ -383,11 +452,7 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
                           <span>Ends {c.end}</span>
                         </div>
                       </div>
-                      <Link
-                        to="/procurement"
-                        onClick={onClose}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border bg-secondary/40 px-2.5 py-1 text-xs text-muted-foreground hover:border-accent/40 hover:text-accent transition-colors"
-                      >
+                      <Link to="/procurement" onClick={onClose} className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border bg-secondary/40 px-2.5 py-1 text-xs text-muted-foreground hover:border-accent/40 hover:text-accent transition-colors">
                         Open <ChevronRight className="h-3 w-3" />
                       </Link>
                     </div>
@@ -429,10 +494,62 @@ function VendorSheet({ vendor, onClose }: { vendor: typeof vendors[number] | nul
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-6 py-4">
+        <div className="border-t border-border px-6 py-4 space-y-2">
+          <Button variant="outline" className="w-full border-accent/40 text-accent hover:bg-accent-dim" onClick={() => setConnectOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />Connect existing contract
+          </Button>
           <Button variant="outline" className="w-full" onClick={onClose}>Close</Button>
         </div>
       </SheetContent>
+
+      {/* Connect contracts dialog */}
+      <Dialog open={connectOpen} onOpenChange={(o) => { if (!o) { setConnectOpen(false); setConnectSel([]); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Link contracts to {vendor.name}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div className="rounded-md border border-border">
+              <div className="px-2 py-1.5 space-y-0.5">
+                {available.map((c) => {
+                  const checked = connectSel.includes(c.id);
+                  return (
+                    <label key={c.id} className={`flex cursor-pointer items-center gap-2.5 rounded px-2 py-2 ${checked ? "bg-accent-dim/30" : "hover:bg-secondary/40"}`}>
+                      <Checkbox checked={checked} onCheckedChange={() => toggleConnect(c.id)} className="shrink-0" />
+                      <span className="num-mono text-[11px] text-muted-foreground shrink-0">{c.id}</span>
+                      <span className="flex-1 truncate text-sm text-foreground">{c.project}</span>
+                      <span className="num-mono text-xs text-accent shrink-0">${c.value}M</span>
+                      <Badge variant="outline" className={`shrink-0 text-[10px] py-0 ${c.status === "Active" ? "border-rag-green/40 bg-rag-green/10 text-rag-green" : "border-rag-amber/40 bg-rag-amber/10 text-rag-amber"}`}>{c.status}</Badge>
+                    </label>
+                  );
+                })}
+                {available.length === 0 && (
+                  <p className="py-4 text-center text-xs text-muted-foreground">All contracts are already linked.</p>
+                )}
+              </div>
+            </div>
+            {connectSel.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {connectSel.map((id) => {
+                  const c = contracts.find((x) => x.id === id);
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/20 px-2 py-0.5 text-[11px] text-accent">
+                      <span className="num-mono">{c?.id}</span>
+                      <span className="text-muted-foreground">·</span>
+                      {c?.project}
+                      <button onClick={() => toggleConnect(id)} className="ml-0.5 hover:text-rag-red"><X className="h-3 w-3" /></button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setConnectOpen(false); setConnectSel([]); }}>Cancel</Button>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleConnect}>
+              Link {connectSel.length > 0 ? `${connectSel.length} contract${connectSel.length !== 1 ? "s" : ""}` : "selected"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }

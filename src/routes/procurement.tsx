@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Plus, RefreshCw, Star, ChevronRight, CheckCircle2, Clock,
-  XCircle, Download, AlertTriangle, FileText, Loader2, Check,
+  XCircle, Download, AlertTriangle, FileText, Loader2, Check, X,
 } from "lucide-react";
 import { rfps, contracts, vendors, projects } from "@/lib/mock-data";
 
@@ -382,7 +382,7 @@ function ProcurementPage() {
       </Tabs>
 
       {/* ── Detail sheets (rendered outside tabs) ───────────────────────────── */}
-      <RfpSheet rfp={rfpView} onClose={() => setRfpView(null)} />
+      <RfpSheet key={rfpView?.id ?? "none"} rfp={rfpView} onClose={() => setRfpView(null)} />
       <ContractSheet contract={contractView} onClose={() => setContractView(null)} />
     </div>
   );
@@ -471,14 +471,25 @@ function NewRfpDialog({ onAdd }: { onAdd: (r: RfpRow) => void }) {
 
 // ── RFP detail sheet ──────────────────────────────────────────────────────────
 function RfpSheet({ rfp, onClose }: { rfp: RfpRow | null; onClose: () => void }) {
-  const [status, setStatus] = useState(rfp?.status ?? "Open");
+  const [status, setStatus]               = useState(rfp?.status ?? "Open");
+  const [localBidders, setLocalBidders]   = useState(() => rfp ? (RFP_BIDDERS[rfp.id] ?? []) : []);
+  const [addBidOpen, setAddBidOpen]       = useState(false);
+  const [addBidVendor, setAddBidVendor]   = useState("");
+  const [addBidScore, setAddBidScore]     = useState("");
 
   if (!rfp) return null;
 
-  const bidders  = RFP_BIDDERS[rfp.id] ?? [];
-  const criteria = RFP_CRITERIA[rfp.id] ?? [];
-  const submitted = bidders.filter((b) => b.status === "Submitted");
+  const criteria   = RFP_CRITERIA[rfp.id] ?? [];
+  const submitted  = localBidders.filter((b) => b.status === "Submitted");
   const isTerminal = status === "Awarded" || status === "Closed";
+
+  function handleAddBid() {
+    if (!addBidVendor.trim()) { toast.error("Vendor name required"); return; }
+    const score = addBidScore ? Math.min(100, Math.max(0, parseInt(addBidScore))) : undefined;
+    setLocalBidders((prev) => [...prev, { name: addBidVendor.trim(), status: "Submitted" as const, score }]);
+    toast.success(`Bid from ${addBidVendor.trim()} recorded`);
+    setAddBidVendor(""); setAddBidScore(""); setAddBidOpen(false);
+  }
 
   const STATUS_ACTIONS: Record<string, { label: string; next: string; color: string }[]> = {
     "Open":       [{ label: "Move to Evaluation", next: "Evaluation", color: "bg-rag-amber text-black" }],
@@ -519,7 +530,7 @@ function RfpSheet({ rfp, onClose }: { rfp: RfpRow | null; onClose: () => void })
         {/* KPI strip */}
         <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
           {[
-            { l: "Bidders",   v: String(rfp.bidders || bidders.length) },
+            { l: "Bidders",   v: String(localBidders.length || rfp.bidders) },
             { l: "Submitted", v: String(submitted.length) },
             { l: "Due",       v: rfp.due },
           ].map((k) => (
@@ -553,12 +564,25 @@ function RfpSheet({ rfp, onClose }: { rfp: RfpRow | null; onClose: () => void })
 
           {/* Bidder submissions */}
           <div>
-            <div className="label-eyebrow mb-2">Bidder submissions</div>
-            {bidders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No bidders recorded.</p>
+            <div className="flex items-center justify-between mb-2">
+              <div className="label-eyebrow">Bidder submissions</div>
+              {!isTerminal && !addBidOpen && (
+                <button className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-accent"
+                  onClick={() => setAddBidOpen(true)}>
+                  <Plus className="h-3 w-3" />Record bid
+                </button>
+              )}
+            </div>
+            {localBidders.length === 0 && !addBidOpen ? (
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-6 text-center">
+                <p className="text-sm text-muted-foreground">No bids recorded yet.</p>
+                {!isTerminal && (
+                  <button className="text-xs text-accent hover:underline" onClick={() => setAddBidOpen(true)}>+ Record first bid</button>
+                )}
+              </div>
             ) : (
               <div className="space-y-1.5">
-                {bidders.map((b) => (
+                {localBidders.map((b) => (
                   <div key={b.name} className="flex items-center gap-3 rounded-md border border-border px-3 py-2">
                     <div className="flex-1 text-sm font-medium text-foreground">{b.name}</div>
                     {b.status === "Submitted" && b.score !== undefined && (
@@ -580,6 +604,36 @@ function RfpSheet({ rfp, onClose }: { rfp: RfpRow | null; onClose: () => void })
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Add bid form */}
+            {!isTerminal && addBidOpen && (
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-dashed border-accent/40 bg-accent-dim/20 p-2">
+                <Input
+                  className="h-7 flex-1 text-sm"
+                  placeholder="Vendor name…"
+                  value={addBidVendor}
+                  onChange={(e) => setAddBidVendor(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddBid(); }}
+                  autoFocus
+                />
+                <Input
+                  className="h-7 w-20 text-sm num-mono"
+                  placeholder="Score"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={addBidScore}
+                  onChange={(e) => setAddBidScore(e.target.value)}
+                />
+                <Button size="sm" className="h-7 bg-accent text-accent-foreground hover:bg-accent/90 shrink-0 px-3" onClick={handleAddBid}>
+                  Add
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2"
+                  onClick={() => { setAddBidOpen(false); setAddBidVendor(""); setAddBidScore(""); }}>
+                  <X className="h-3 w-3" />
+                </Button>
               </div>
             )}
           </div>

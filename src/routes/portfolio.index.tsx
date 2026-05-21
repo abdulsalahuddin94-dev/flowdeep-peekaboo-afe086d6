@@ -27,6 +27,15 @@ const LINES = ["All", "Software Solutions", "EPC", "Consultation", "Maintenance"
 const VIEWS = ["grid", "list", "gantt"] as const;
 type View = typeof VIEWS[number];
 
+const ALL_RAGS = [
+  { v: "green", l: "On Track" }, { v: "amber", l: "At Risk" },
+  { v: "red", l: "Critical" },   { v: "blue", l: "Not Started" }, { v: "grey", l: "On Hold" },
+] as const;
+const ALL_STAGES = ["Initiation", "Planning", "Execution", "Monitoring", "Closure"] as const;
+const ALL_TAGS    = Array.from(new Set(projects.flatMap((p) => p.tags)));
+const ALL_DEPTS   = Array.from(new Set(projects.map((p) => p.department)));
+const ALL_CLIENTS = Array.from(new Set(projects.map((p) => p.client).filter(Boolean))) as string[];
+
 function PortfolioPage() {
   return (
     <div>
@@ -55,18 +64,33 @@ function PortfolioPage() {
 }
 
 function AllProjectsTab({ restrict }: { restrict?: boolean }) {
-  const [line, setLine] = useState<(typeof LINES)[number]>("All");
-  const [view, setView] = useState<View>("grid");
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState<Project | null>(null);
+  const [line, setLine]           = useState<(typeof LINES)[number]>("All");
+  const [view, setView]           = useState<View>("grid");
+  const [query, setQuery]         = useState("");
+  const [active, setActive]       = useState<Project | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [ragFilter, setRagFilter]   = useState<string[]>([]);
+  const [stageFilter, setStageFilter] = useState<string[]>([]);
+  const [tagFilter, setTagFilter]   = useState<string[]>([]);
+  const [deptFilter, setDeptFilter] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
+
+  const activeCount = ragFilter.length + stageFilter.length + tagFilter.length + (deptFilter ? 1 : 0) + (clientFilter ? 1 : 0);
 
   const list = useMemo(() => {
     let l = projects;
     if (restrict) l = l.slice(0, 6);
     if (line !== "All") l = l.filter((p) => p.businessLine === line);
     if (query) l = l.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
+    if (ragFilter.length > 0) l = l.filter((p) => ragFilter.includes(p.rag));
+    if (stageFilter.length > 0) l = l.filter((p) => stageFilter.includes(p.stage));
+    if (tagFilter.length > 0) l = l.filter((p) => p.tags.some((t) => tagFilter.includes(t)));
+    if (deptFilter) l = l.filter((p) => p.department === deptFilter);
+    if (clientFilter) l = l.filter((p) => p.client === clientFilter);
     return l;
-  }, [line, query, restrict]);
+  }, [line, query, restrict, ragFilter, stageFilter, tagFilter, deptFilter, clientFilter]);
+
+  function clearAll() { setRagFilter([]); setStageFilter([]); setTagFilter([]); setDeptFilter(""); setClientFilter(""); }
 
   return (
     <>
@@ -87,6 +111,7 @@ function AllProjectsTab({ restrict }: { restrict?: boolean }) {
         ))}
       </div>
 
+      {/* Toolbar */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {LINES.map((l) => (
           <button key={l} onClick={() => setLine(l)}
@@ -98,19 +123,135 @@ function AllProjectsTab({ restrict }: { restrict?: boolean }) {
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search projects…" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-8" />
         </div>
-        <Button variant="outline" size="sm"><Filter className="mr-1 h-3.5 w-3.5" />Filters</Button>
+        <Button
+          variant="outline" size="sm"
+          onClick={() => setFilterOpen((o) => !o)}
+          className={activeCount > 0 ? "border-accent/40 bg-accent-dim text-accent" : ""}
+        >
+          <Filter className="mr-1 h-3.5 w-3.5" />
+          Filters{activeCount > 0 ? ` (${activeCount})` : ""}
+        </Button>
         <div className="flex overflow-hidden rounded-md border border-border bg-secondary/40">
-          {([
-            ["grid", LayoutGrid], ["list", List], ["gantt", GanttChartSquare],
-          ] as const).map(([k, Icon]) => (
+          {([["grid", LayoutGrid], ["list", List], ["gantt", GanttChartSquare]] as const).map(([k, Icon]) => (
             <button key={k} onClick={() => setView(k as View)} className={`p-2 ${view === k ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}><Icon className="h-4 w-4" /></button>
           ))}
         </div>
       </div>
 
-      {view === "grid" && <ProjectGrid items={list} onOpen={setActive} />}
-      {view === "list" && <ProjectListView items={list} onOpen={setActive} />}
-      {view === "gantt" && <GanttView items={list} />}
+      {/* Filter panel */}
+      {filterOpen && (
+        <div className="mb-3 rounded-lg border border-border bg-secondary/20 p-4 space-y-3">
+          {/* RAG */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 w-14 text-xs text-muted-foreground">RAG</span>
+            {ALL_RAGS.map(({ v, l }) => {
+              const on = ragFilter.includes(v);
+              const dot = v === "green" ? "bg-rag-green" : v === "amber" ? "bg-rag-amber" : v === "red" ? "bg-rag-red" : v === "blue" ? "bg-rag-blue" : "bg-muted-foreground";
+              return (
+                <button key={v} onClick={() => setRagFilter((prev) => on ? prev.filter((x) => x !== v) : [...prev, v])}
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />{l}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Stage */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 w-14 text-xs text-muted-foreground">Stage</span>
+            {ALL_STAGES.map((s) => {
+              const on = stageFilter.includes(s);
+              return (
+                <button key={s} onClick={() => setStageFilter((prev) => on ? prev.filter((x) => x !== s) : [...prev, s])}
+                  className={`rounded-full border px-2.5 py-1 text-xs ${on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"}`}>
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 w-14 text-xs text-muted-foreground">Tags</span>
+            {ALL_TAGS.map((t) => {
+              const on = tagFilter.includes(t);
+              return (
+                <button key={t} onClick={() => setTagFilter((prev) => on ? prev.filter((x) => x !== t) : [...prev, t])}
+                  className={`rounded-full border px-2.5 py-1 text-xs ${on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"}`}>
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dept + Client + Clear */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={deptFilter || "all"} onValueChange={(v) => setDeptFilter(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Department…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All departments</SelectItem>
+                {ALL_DEPTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={clientFilter || "all"} onValueChange={(v) => setClientFilter(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Client…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All clients</SelectItem>
+                {ALL_CLIENTS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {activeCount > 0 && (
+              <button className="ml-auto text-xs text-muted-foreground hover:text-rag-red" onClick={clearAll}>Clear all</button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Active filter chips */}
+      {activeCount > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {ragFilter.map((v) => {
+            const label = ALL_RAGS.find((r) => r.v === v)?.l ?? v;
+            return (
+              <span key={v} className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/20 px-2 py-0.5 text-[11px] text-accent">
+                {label}<button onClick={() => setRagFilter((p) => p.filter((x) => x !== v))} className="ml-0.5 hover:text-rag-red"><X className="h-3 w-3" /></button>
+              </span>
+            );
+          })}
+          {stageFilter.map((s) => (
+            <span key={s} className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/20 px-2 py-0.5 text-[11px] text-accent">
+              {s}<button onClick={() => setStageFilter((p) => p.filter((x) => x !== s))} className="ml-0.5 hover:text-rag-red"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+          {tagFilter.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/20 px-2 py-0.5 text-[11px] text-accent">
+              {t}<button onClick={() => setTagFilter((p) => p.filter((x) => x !== t))} className="ml-0.5 hover:text-rag-red"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+          {deptFilter && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/20 px-2 py-0.5 text-[11px] text-accent">
+              Dept: {deptFilter}<button onClick={() => setDeptFilter("")} className="ml-0.5 hover:text-rag-red"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {clientFilter && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/20 px-2 py-0.5 text-[11px] text-accent">
+              Client: {clientFilter}<button onClick={() => setClientFilter("")} className="ml-0.5 hover:text-rag-red"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+        </div>
+      )}
+
+      {list.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
+          <Filter className="h-8 w-8 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">No projects match the current filters.</p>
+          <button className="text-xs text-accent hover:underline" onClick={clearAll}>Clear all filters</button>
+        </div>
+      )}
+
+      {view === "grid" && list.length > 0 && <ProjectGrid items={list} onOpen={setActive} />}
+      {view === "list" && list.length > 0 && <ProjectListView items={list} onOpen={setActive} />}
+      {view === "gantt" && list.length > 0 && <GanttView items={list} />}
 
       <ProjectSlideOver project={active} onClose={() => setActive(null)} />
     </>
@@ -136,6 +277,15 @@ function ProjectGrid({ items, onOpen }: { items: Project[]; onOpen: (p: Project)
             <div><div className="label-eyebrow">Budget</div><div className="num-mono text-foreground">${p.budgetUsed.toFixed(1)}M / ${p.budgetTotal.toFixed(1)}M</div></div>
             <div><div className="label-eyebrow">End</div><div className="text-foreground">{p.endDate}</div></div>
           </div>
+          {p.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {p.tags.map((tag) => (
+                <span key={tag} className="rounded-full border border-accent/20 bg-accent-dim/30 px-1.5 py-px text-[10px] text-accent">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span>{p.risks} risks</span><span>{p.issues} issues</span>
