@@ -17,6 +17,7 @@ import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, Ch
 import type { Rag } from "@/lib/mock-data";
 import { projects } from "@/lib/mock-data";
 import { toast } from "sonner";
+import { ProjectGantt } from "@/components/ProjectGantt";
 
 export const Route = createFileRoute("/portfolio/$projectId")({
   component: ProjectDetail,
