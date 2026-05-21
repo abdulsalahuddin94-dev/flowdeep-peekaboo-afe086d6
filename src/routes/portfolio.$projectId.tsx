@@ -11,8 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil } from "lucide-react";
+import type { Rag } from "@/lib/mock-data";
 import { projects } from "@/lib/mock-data";
 import { toast } from "sonner";
 
@@ -39,6 +41,12 @@ const TABS = [
 
 function ProjectDetail() {
   const { project } = Route.useLoaderData();
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reports, setReports] = useState<StatusReport[]>(() => [
+    { week: 18, by: project.pm, when: "3 days ago", rag: project.rag, text: "Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet." },
+    { week: 17, by: project.pm, when: "10 days ago", rag: "amber", text: "Vendor SOW reviewed. Two open RAID items remain; mitigations scheduled this sprint." },
+    { week: 16, by: project.pm, when: "17 days ago", rag: "green", text: "Discovery completed and signed off. Build phase 1 kicked off on plan." },
+  ]);
   return (
     <div>
       <div className="mb-4">
@@ -54,7 +62,7 @@ function ProjectDetail() {
             <RagBadge rag={project.rag} />
             <Badge variant="outline" className="border-border bg-secondary/40">{project.stage}</Badge>
             <Button variant="outline" size="sm">Export</Button>
-            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">Submit status</Button>
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setReportOpen(true)}>Submit status</Button>
           </div>
         }
       />
@@ -344,104 +352,38 @@ function ProjectDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="Risks & Issues" className="mt-5 glass-card overflow-hidden">
-          <Table>
-            <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Score</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              { id: "R-091", t: "Vendor delivery delay > 4 weeks", k: "Risk", s: 20, o: project.pm, st: "Open", c: "red" },
-              { id: "I-044", t: "Test env outage", k: "Issue", s: 12, o: "Mei Chen", st: "In progress", c: "amber" },
-              { id: "R-085", t: "Audit finding remediation overrun", k: "Risk", s: 16, o: "Mei Chen", st: "Open", c: "amber" },
-            ].map((r) => (
-              <TableRow key={r.id}><TableCell className="num-mono text-xs">{r.id}</TableCell><TableCell className="font-medium">{r.t}</TableCell><TableCell>{r.k}</TableCell><TableCell><Badge variant="outline" className="border-border bg-secondary/40 num-mono">{r.s}</Badge></TableCell><TableCell>{r.o}</TableCell><TableCell><RagBadge rag={r.c as any} label={r.st} /></TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="Risks & Issues" className="mt-5">
+          <RisksTab project={project} />
         </TabsContent>
 
         <TabsContent value="Documents" className="mt-5">
-          <div className="glass-card p-5">
-            <div className="label-eyebrow mb-3">Repository</div>
-            <ul className="divide-y divide-border text-sm">
-              {[
-                ["Project Charter v3.pdf", "Charter", "2.4 MB"],
-                ["Risk Register.xlsx", "RAID", "0.8 MB"],
-                ["Vendor Contract — Oracle Consulting.pdf", "Contract", "1.1 MB"],
-                ["Test Plan v2.docx", "QA", "0.6 MB"],
-                ["Steering Committee Deck — May.pdf", "Governance", "5.2 MB"],
-              ].map(([n, k, s]) => (
-                <li key={n} className="flex items-center justify-between py-2">
-                  <span className="flex items-center gap-2 text-foreground"><FileText className="h-4 w-4 text-accent" />{n}</span>
-                  <span className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Badge variant="outline" className="border-border bg-secondary/40">{k}</Badge>{s}
-                    <Button size="icon" variant="ghost" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <DocumentsTab />
         </TabsContent>
 
-        <TabsContent value="Status Reports" className="mt-5 space-y-3">
-          {[18, 17, 16].map((w) => (
-            <div key={w} className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-foreground">Week {w} status report</div>
-                  <div className="text-xs text-muted-foreground">Submitted by {project.pm} · 3 days ago</div>
-                </div>
-                <RagBadge rag={project.rag} />
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet.</p>
-            </div>
-          ))}
+        <TabsContent value="Status Reports" className="mt-5">
+          <StatusReportsTab
+            project={project}
+            reports={reports}
+            setReports={setReports}
+            externalOpen={reportOpen}
+            onExternalOpenChange={setReportOpen}
+          />
         </TabsContent>
 
-        <TabsContent value="Change Requests" className="mt-5 glass-card overflow-hidden">
-          <Table>
-            <TableHeader><TableRow><TableHead>CR</TableHead><TableHead>Title</TableHead><TableHead>Impact</TableHead><TableHead>Stage</TableHead><TableHead>Decision</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              { id: "CR-014", t: "Add data warehouse layer", i: "+$120K · +3 weeks", s: "Approved", c: "green" },
-              { id: "CR-013", t: "Reduce UAT to one week", i: "-1 week · risk +", s: "Rejected", c: "red" },
-              { id: "CR-012", t: "Add 2 QA engineers", i: "+$60K", s: "Under review", c: "amber" },
-            ].map((r) => (
-              <TableRow key={r.id}><TableCell className="num-mono text-xs">{r.id}</TableCell><TableCell>{r.t}</TableCell><TableCell className="text-xs text-muted-foreground">{r.i}</TableCell><TableCell><RagBadge rag={r.c as any} label={r.s} /></TableCell><TableCell><Button size="sm" variant="outline">Open</Button></TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="Change Requests" className="mt-5">
+          <ChangeRequestsTab project={project} />
         </TabsContent>
 
-        <TabsContent value="Procurement" className="mt-5 glass-card p-5 text-sm text-muted-foreground">
-          Linked contracts: CT-2026-038 (Oracle Consulting), CT-2026-029 (Cyberguard). Open RFP-014 (Robotics Integration Partner).
+        <TabsContent value="Procurement" className="mt-5">
+          <ProcurementProjectTab />
         </TabsContent>
 
-        <TabsContent value="Stakeholders" className="mt-5 glass-card p-5">
-          <div className="label-eyebrow mb-3">Stakeholder matrix</div>
-          <Table>
-            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Org</TableHead><TableHead>Influence</TableHead><TableHead>Interest</TableHead><TableHead>Strategy</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              ["V. Mansour", "Exec Sponsor", "High", "High", "Manage closely"],
-              ["R. Hadid", "Client (ACME)", "High", "Medium", "Keep satisfied"],
-              ["IT Steering", "Internal", "Medium", "High", "Keep informed"],
-              ["Finance Board", "Internal", "High", "Low", "Inform monthly"],
-            ].map((r) => (
-              <TableRow key={r[0]}><TableCell className="font-medium">{r[0]}</TableCell><TableCell>{r[1]}</TableCell><TableCell>{r[2]}</TableCell><TableCell>{r[3]}</TableCell><TableCell className="text-xs">{r[4]}</TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="Stakeholders" className="mt-5">
+          <StakeholdersTab />
         </TabsContent>
 
-        <TabsContent value="Lessons Learned" className="mt-5 grid gap-3 md:grid-cols-2">
-          {[
-            { tag: "Process", n: "Earlier vendor SLA reviews surface delays sooner." },
-            { tag: "People", n: "Pair architect with junior dev for knowledge transfer." },
-            { tag: "Tech", n: "Use staging mirror to validate integration before UAT." },
-            { tag: "Governance", n: "Bi-weekly steering tempo too slow for critical phase." },
-          ].map((l) => (
-            <div key={l.n} className="glass-card p-4 text-sm">
-              <Badge variant="outline" className="border-accent/40 bg-accent-dim text-accent">{l.tag}</Badge>
-              <p className="mt-2 text-foreground">{l.n}</p>
-              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                <MessageSquare className="h-3 w-3" /> 3 comments<Paperclip className="ml-3 h-3 w-3" /> 1 attachment
-              </div>
-            </div>
-          ))}
+        <TabsContent value="Lessons Learned" className="mt-5">
+          <LessonsTab project={project} />
         </TabsContent>
       </Tabs>
     </div>
@@ -646,6 +588,32 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
   const [expandedPkg, setExpandedPkg] = useState<string | null>(null);
   const [newPkgOpen, setNewPkgOpen] = useState(false);
   const [newScope, setNewScope] = useState("");
+
+  // Milestones (v11)
+  const [milestones, setMilestones] = useState<Milestone[]>([
+    { name: "Discovery complete", date: "May 02", owner: "Sara", rag: "green", dep: "—" },
+    { name: "Build phase 1", date: "Jun 30", owner: "Mei", rag: "amber", dep: "Discovery" },
+    { name: "UAT Sign-off", date: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
+    { name: "Go-live", date: "Sep 14", owner: project.pm, rag: "blue", dep: "UAT" },
+  ]);
+
+  // Subcontracted packages (v11)
+  const [subs, setSubs] = useState<SubPackage[]>([
+    { id: "SUB-001", scope: "Civil works & site prep", vendor: "Acme Construction", value: "$420K", period: "Jun–Jul", rag: "green", status: "Awarded" },
+    { id: "SUB-002", scope: "Integration testing", vendor: "TestLabs Co.", value: "$180K", period: "Jul–Aug", rag: "green", status: "Awarded" },
+    { id: "SUB-003", scope: "Training rollout (40 staff)", vendor: "LearnSphere", value: "$95K", period: "Aug", rag: "green", status: "Awarded" },
+    { id: "SUB-004", scope: "Network cabling", vendor: "—", value: "$220K", period: "Jun", rag: "amber", status: "In tender" },
+    { id: "SUB-005", scope: "Security audit & pen-test", vendor: "—", value: "$140K", period: "Sep", rag: "amber", status: "In tender" },
+    { id: "SUB-006", scope: "Go-live support (8 wks)", vendor: "—", value: "$785K", period: "Sep–Oct", rag: "blue", status: "Planned" },
+  ]);
+
+  // Business trips (v11)
+  const [trips, setTrips] = useState<Trip[]>([
+    { id: "T-01", purpose: "Site survey", dest: "Dubai, UAE", dates: "Jun 12 – Jun 15", travelers: "Sara, Mei", cost: "$5.2K", rag: "green", status: "Completed" },
+    { id: "T-02", purpose: "Vendor workshop", dest: "Munich, DE", dates: "Jul 08 – Jul 11", travelers: "K. Bauer", cost: "$3.0K", rag: "green", status: "Completed" },
+    { id: "T-03", purpose: "User training", dest: "Riyadh, KSA", dates: "Aug 18 – Aug 22", travelers: "H. Tanaka, Priya, +2", cost: "$9.8K", rag: "amber", status: "Booked" },
+    { id: "T-04", purpose: "Go-live support", dest: "Doha, QA", dates: "Sep 14 – Sep 28", travelers: "John, Mei, +2", cost: "$6.5K", rag: "blue", status: "Planned" },
+  ]);
   const [newEst, setNewEst] = useState("");
 
   function handleNewPackage() {
@@ -726,7 +694,13 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
         <TabsContent value="init" className="mt-5">
           <div className="grid gap-4 md:grid-cols-[1fr_320px]">
             <div className="glass-card p-5">
-              <div className="text-sm font-medium text-foreground">Project Summary</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-foreground">Project Summary</div>
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={() => toast.success("Planning document saved")}>
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />Save Changes
+                </Button>
+              </div>
               <div className="mt-4 space-y-4">
                 <PlanningField
                   label="Objectives (SMART)"
@@ -778,18 +752,25 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
           </div>
         </TabsContent>
 
-        <TabsContent value="ms" className="mt-5 glass-card overflow-hidden">
-          <Table>
-            <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              { n: "Discovery complete", d: "May 02", o: "Sara", s: "green", dep: "—" },
-              { n: "Build phase 1", d: "Jun 30", o: "Mei", s: "amber", dep: "Discovery" },
-              { n: "UAT Sign-off", d: project.endDate, o: project.pm, s: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
-              { n: "Go-live", d: "Sep 14", o: project.pm, s: "blue", dep: "UAT" },
-            ].map((m) => (
-              <TableRow key={m.n}><TableCell className="font-medium text-foreground">{m.n}</TableCell><TableCell>{m.d}</TableCell><TableCell>{m.o}</TableCell><TableCell><RagBadge rag={m.s as any} /></TableCell><TableCell className="text-xs text-muted-foreground">{m.dep}</TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="ms" className="mt-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="label-eyebrow">{milestones.length} milestones</div>
+            <AddMilestoneDialog defaultOwner={project.pm} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
+          </div>
+          <div className="glass-card overflow-hidden">
+            <Table>
+              <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+              <TableBody>{milestones.map((m) => (
+                <TableRow key={m.name}>
+                  <TableCell className="font-medium text-foreground">{m.name}</TableCell>
+                  <TableCell>{m.date}</TableCell>
+                  <TableCell>{m.owner}</TableCell>
+                  <TableCell><RagBadge rag={m.rag} /></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         <TabsContent value="manpower" className="mt-5 space-y-4">
@@ -830,9 +811,9 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
         <TabsContent value="subs" className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
             {[
-              { l: "Total Packages", v: "6" },
-              { l: "Awarded", v: "3", c: "text-rag-green" },
-              { l: "In Tender", v: "2", c: "text-rag-amber" },
+              { l: "Total Packages", v: String(subs.length) },
+              { l: "Awarded", v: String(subs.filter((s) => s.status === "Awarded").length), c: "text-rag-green" },
+              { l: "In Tender", v: String(subs.filter((s) => s.status === "In tender").length), c: "text-rag-amber" },
               { l: "Total Value", v: "$1.84M" },
             ].map((k) => (
               <div key={k.l} className="glass-card p-4">
@@ -841,24 +822,21 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-between">
+            <div className="label-eyebrow">Packages</div>
+            <AddPackageDialog onAdd={(s) => setSubs((prev) => [...prev, { ...s, id: `SUB-${String(prev.length + 1).padStart(3, "0")}` }])} />
+          </div>
           <div className="glass-card overflow-hidden">
             <Table>
               <TableHeader><TableRow><TableHead>Package</TableHead><TableHead>Scope</TableHead><TableHead>Vendor</TableHead><TableHead>Value</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{[
-                { p: "SUB-001", s: "Civil works & site prep", v: "Acme Construction", val: "$420K", per: "Jun–Jul", st: "green", stl: "Awarded" },
-                { p: "SUB-002", s: "Integration testing", v: "TestLabs Co.", val: "$180K", per: "Jul–Aug", st: "green", stl: "Awarded" },
-                { p: "SUB-003", s: "Training rollout (40 staff)", v: "LearnSphere", val: "$95K", per: "Aug", st: "green", stl: "Awarded" },
-                { p: "SUB-004", s: "Network cabling", v: "—", val: "$220K", per: "Jun", st: "amber", stl: "In tender" },
-                { p: "SUB-005", s: "Security audit & pen-test", v: "—", val: "$140K", per: "Sep", st: "amber", stl: "In tender" },
-                { p: "SUB-006", s: "Go-live support (8 wks)", v: "—", val: "$785K", per: "Sep–Oct", st: "blue", stl: "Planned" },
-              ].map((r) => (
-                <TableRow key={r.p}>
-                  <TableCell className="font-medium text-foreground">{r.p}</TableCell>
-                  <TableCell>{r.s}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.v}</TableCell>
-                  <TableCell className="num-mono">{r.val}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.per}</TableCell>
-                  <TableCell><RagBadge rag={r.st as any} label={r.stl} /></TableCell>
+              <TableBody>{subs.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-foreground">{r.id}</TableCell>
+                  <TableCell>{r.scope}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.vendor}</TableCell>
+                  <TableCell className="num-mono">{r.value}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.period}</TableCell>
+                  <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>
@@ -868,7 +846,7 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
         <TabsContent value="trips" className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
             {[
-              { l: "Trips Planned", v: "4" },
+              { l: "Trips Planned", v: String(trips.length) },
               { l: "Travelers", v: "9" },
               { l: "Total Budget", v: "$24.5K" },
               { l: "Spent", v: "$8.2K", c: "text-rag-green" },
@@ -879,23 +857,22 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-between">
+            <div className="label-eyebrow">Trips</div>
+            <LogTripDialog onAdd={(t) => setTrips((prev) => [...prev, { ...t, id: `T-${String(prev.length + 1).padStart(2, "0")}` }])} />
+          </div>
           <div className="glass-card overflow-hidden">
             <Table>
               <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Purpose</TableHead><TableHead>Destination</TableHead><TableHead>Dates</TableHead><TableHead>Travelers</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{[
-                { id: "T-01", p: "Site survey", d: "Dubai, UAE", dt: "Jun 12 – Jun 15", t: "Sara, Mei", c: "$5.2K", s: "green", sl: "Completed" },
-                { id: "T-02", p: "Vendor workshop", d: "Munich, DE", dt: "Jul 08 – Jul 11", t: "K. Bauer", c: "$3.0K", s: "green", sl: "Completed" },
-                { id: "T-03", p: "User training", d: "Riyadh, KSA", dt: "Aug 18 – Aug 22", t: "H. Tanaka, Priya, +2", c: "$9.8K", s: "amber", sl: "Booked" },
-                { id: "T-04", p: "Go-live support", d: "Doha, QA", dt: "Sep 14 – Sep 28", t: "John, Mei, +2", c: "$6.5K", s: "blue", sl: "Planned" },
-              ].map((r) => (
+              <TableBody>{trips.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium text-foreground">{r.id}</TableCell>
-                  <TableCell>{r.p}</TableCell>
-                  <TableCell>{r.d}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.dt}</TableCell>
-                  <TableCell className="text-xs">{r.t}</TableCell>
-                  <TableCell className="num-mono">{r.c}</TableCell>
-                  <TableCell><RagBadge rag={r.s as any} label={r.sl} /></TableCell>
+                  <TableCell>{r.purpose}</TableCell>
+                  <TableCell>{r.dest}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.dates}</TableCell>
+                  <TableCell className="text-xs">{r.travelers}</TableCell>
+                  <TableCell className="num-mono">{r.cost}</TableCell>
+                  <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>
@@ -1265,6 +1242,770 @@ function PlanningField({ label, value, multiline }: { label: string; value: stri
         rows={rows}
         className="w-full resize-none rounded-md border border-border bg-background/40 p-3 text-sm text-foreground focus:border-accent focus:outline-none"
       />
+    </div>
+  );
+}
+
+// ── v11 Types ─────────────────────────────────────────────────────────────────
+type Milestone = { name: string; date: string; owner: string; rag: Rag; dep: string };
+type SubPackage = { id: string; scope: string; vendor: string; value: string; period: string; rag: Rag; status: string };
+type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
+type RaidItem = { id: string; title: string; kind: "Risk" | "Issue"; score: number; owner: string; status: string; rag: Rag };
+type DocItem = { name: string; category: string; size: string; when: string };
+type StatusReport = { week: number; by: string; when: string; rag: Rag; text: string };
+type ChangeReq = { id: string; title: string; impact: string; timeline: string; budget: string; decision: "Under review" | "Approved" | "Rejected" };
+type Stakeholder = { name: string; org: string; influence: "High" | "Medium" | "Low"; interest: "High" | "Medium" | "Low"; strategy: string };
+type Lesson = { tag: string; text: string; by: string; when: string };
+
+// ── Add Milestone dialog ──────────────────────────────────────────────────────
+function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onAdd: (m: Milestone) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [date, setDate] = useState("");
+  const [owner, setOwner] = useState(defaultOwner);
+  const [status, setStatus] = useState("Not Started");
+  const [dep, setDep] = useState("");
+  const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
+  function submit() {
+    if (!name.trim()) { toast.error("Milestone name is required"); return; }
+    onAdd({ name: name.trim(), date: date || "TBD", owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep });
+    toast.success("Milestone added");
+    setOpen(false); setName(""); setDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+  }
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Milestone</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Add Milestone</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div><Label>Milestone name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. UAT Sign-off" /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Due date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div><Label>Owner</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Not Started">Not Started</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Overdue">Overdue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Milestone</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Add Package dialog ────────────────────────────────────────────────────────
+function AddPackageDialog({ onAdd }: { onAdd: (s: Omit<SubPackage, "id">) => void }) {
+  const [open, setOpen] = useState(false);
+  const [scope, setScope] = useState(""); const [vendor, setVendor] = useState("");
+  const [value, setValue] = useState(""); const [period, setPeriod] = useState("");
+  const [status, setStatus] = useState("Planned");
+  const ragMap: Record<string, Rag> = { Planned: "blue", "In Tender": "amber", Awarded: "green" };
+  function submit() {
+    if (!scope.trim()) { toast.error("Scope is required"); return; }
+    onAdd({ scope: scope.trim(), vendor: vendor || "—", value: value || "TBD", period: period || "—", rag: ragMap[status] ?? "blue", status });
+    toast.success("Subcontracted package added");
+    setOpen(false); setScope(""); setVendor(""); setValue(""); setPeriod(""); setStatus("Planned");
+  }
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Package</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Add Subcontracted Package</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div><Label>Scope</Label><Input value={scope} onChange={(e) => setScope(e.target.value)} placeholder="e.g. Network cabling" /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Vendor</Label><Input value={vendor} onChange={(e) => setVendor(e.target.value)} /></div>
+            <div><Label>Est. Value</Label><Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="$120K" /></div>
+            <div><Label>Period</Label><Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="Jul–Aug" /></div>
+            <div>
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Planned">Planned</SelectItem>
+                  <SelectItem value="In Tender">In Tender</SelectItem>
+                  <SelectItem value="Awarded">Awarded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Package</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Log Trip dialog ───────────────────────────────────────────────────────────
+function LogTripDialog({ onAdd }: { onAdd: (t: Omit<Trip, "id">) => void }) {
+  const [open, setOpen] = useState(false);
+  const [purpose, setPurpose] = useState(""); const [dest, setDest] = useState("");
+  const [dates, setDates] = useState(""); const [cost, setCost] = useState(""); const [travelers, setTravelers] = useState("");
+  function submit() {
+    if (!purpose.trim() || !dest.trim()) { toast.error("Purpose and destination are required"); return; }
+    onAdd({ purpose: purpose.trim(), dest: dest.trim(), dates: dates || "TBD", travelers: travelers || "—", cost: cost || "TBD", rag: "blue", status: "Planned" });
+    toast.success("Business trip logged");
+    setOpen(false); setPurpose(""); setDest(""); setDates(""); setCost(""); setTravelers("");
+  }
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Log Trip</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Log Business Trip</DialogTitle></DialogHeader>
+        <div className="rounded-md border border-accent/20 bg-accent-dim/30 px-3 py-2 text-xs text-accent">Status defaults to Planned</div>
+        <div className="grid gap-3">
+          <div><Label>Purpose</Label><Input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="e.g. Vendor workshop" /></div>
+          <div><Label>Destination</Label><Input value={dest} onChange={(e) => setDest(e.target.value)} placeholder="e.g. Munich, DE" /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Dates</Label><Input value={dates} onChange={(e) => setDates(e.target.value)} placeholder="Jul 08 – Jul 11" /></div>
+            <div><Label>Est. Cost</Label><Input value={cost} onChange={(e) => setCost(e.target.value)} placeholder="$3.0K" /></div>
+          </div>
+          <div><Label>Travelers</Label><Input value={travelers} onChange={(e) => setTravelers(e.target.value)} placeholder="Names…" /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Log Trip</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Risks & Issues tab ────────────────────────────────────────────────────────
+function RisksTab({ project }: { project: typeof projects[number] }) {
+  const [items, setItems] = useState<RaidItem[]>([
+    { id: "R-091", title: "Vendor delivery delay > 4 weeks", kind: "Risk", score: 20, owner: project.pm, status: "Open", rag: "red" },
+    { id: "I-044", title: "Test env outage", kind: "Issue", score: 12, owner: "Mei Chen", status: "In progress", rag: "amber" },
+    { id: "R-085", title: "Risk: Audit finding remediation overrun", kind: "Risk", score: 16, owner: "Mei Chen", status: "Open", rag: "amber" },
+  ]);
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"Risk" | "Issue">("Risk");
+  const [title, setTitle] = useState("");
+  const [prob, setProb] = useState(3); const [impact, setImpact] = useState(3);
+  const [owner, setOwner] = useState(project.pm);
+  const [status, setStatus] = useState("Open");
+  const score = prob * impact;
+  const statusRag: Record<string, Rag> = { Open: "red", "In progress": "amber", Mitigated: "blue", Closed: "green" };
+
+  function submit() {
+    if (!title.trim()) { toast.error("Title is required"); return; }
+    const prefix = kind === "Risk" ? "R" : "I";
+    const num = items.filter((i) => i.kind === kind).length + 1;
+    const id = `${prefix}-${String(100 + num).padStart(3, "0")}`;
+    const rag: Rag = score >= 16 ? "red" : score >= 9 ? "amber" : "green";
+    setItems((prev) => [...prev, { id, title: title.trim(), kind, score, owner, status, rag: statusRag[status] ?? rag }]);
+    toast.success(`${kind} ${id} logged`);
+    setOpen(false); setTitle(""); setProb(3); setImpact(3); setStatus("Open");
+  }
+
+  const kpis = [
+    { l: "Open Risks", v: items.filter((i) => i.kind === "Risk" && i.status === "Open").length, c: "text-rag-amber" },
+    { l: "Open Issues", v: items.filter((i) => i.kind === "Issue" && i.status === "Open").length, c: "text-rag-red" },
+    { l: "In Progress", v: items.filter((i) => i.status === "In progress").length, c: "text-accent" },
+    { l: "Closed", v: items.filter((i) => i.status === "Closed").length, c: "text-rag-green" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        {kpis.map((k) => (
+          <div key={k.l} className="glass-card p-4">
+            <div className="label-eyebrow">{k.l}</div>
+            <div className={`mt-1 text-lg font-medium num-mono ${k.c}`}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="label-eyebrow">RAID register</div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <AlertTriangle className="mr-1 h-4 w-4" />Log Risk / Issue
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Log Risk / Issue</DialogTitle></DialogHeader>
+            <div className="grid gap-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Type</Label>
+                  <Select value={kind} onValueChange={(v) => setKind(v as "Risk" | "Issue")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Risk">Risk</SelectItem>
+                      <SelectItem value="Issue">Issue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Open">Open</SelectItem>
+                      <SelectItem value="In progress">In progress</SelectItem>
+                      <SelectItem value="Mitigated">Mitigated</SelectItem>
+                      <SelectItem value="Closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Describe the risk or issue" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Probability (1–5)</Label>
+                  <Select value={String(prob)} onValueChange={(v) => setProb(Number(v))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{[1, 2, 3, 4, 5].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Impact (1–5)</Label>
+                  <Select value={String(impact)} onValueChange={(v) => setImpact(Number(v))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{[1, 2, 3, 4, 5].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className={`rounded-md border px-3 py-2 text-xs num-mono ${
+                score >= 16 ? "border-rag-red/30 bg-rag-red/10 text-rag-red" :
+                score >= 9 ? "border-rag-amber/30 bg-rag-amber/10 text-rag-amber" :
+                "border-rag-green/30 bg-rag-green/10 text-rag-green"
+              }`}>Risk score: {score}</div>
+              <div><Label>Owner</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Log {kind}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="glass-card overflow-hidden">
+        <Table>
+          <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Score</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableBody>{items.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className="num-mono text-xs">{r.id}</TableCell>
+              <TableCell className="font-medium">{r.title}</TableCell>
+              <TableCell>{r.kind}</TableCell>
+              <TableCell><Badge variant="outline" className="border-border bg-secondary/40 num-mono">{r.score}</Badge></TableCell>
+              <TableCell>{r.owner}</TableCell>
+              <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
+            </TableRow>
+          ))}</TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+// ── Documents tab ─────────────────────────────────────────────────────────────
+function DocumentsTab() {
+  const [docs, setDocs] = useState<DocItem[]>([
+    { name: "Project Charter v3.pdf", category: "Charter", size: "2.4 MB", when: "May 10" },
+    { name: "Risk Register.xlsx", category: "RAID", size: "0.8 MB", when: "May 12" },
+    { name: "Vendor Contract — Oracle Consulting.pdf", category: "Contract", size: "1.1 MB", when: "May 15" },
+    { name: "Test Plan v2.docx", category: "QA", size: "0.6 MB", when: "May 17" },
+    { name: "Steering Committee Deck — May.pdf", category: "Governance", size: "5.2 MB", when: "May 20" },
+  ]);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("General");
+  const [uploading, setUploading] = useState(false);
+
+  function upload() {
+    if (!name.trim()) { toast.error("Document name is required"); return; }
+    setUploading(true);
+    setTimeout(() => {
+      setDocs((prev) => [{ name: name.trim(), category, size: "—", when: "Just now" }, ...prev]);
+      toast.success("Document uploaded");
+      setUploading(false); setOpen(false); setName(""); setCategory("General");
+    }, 800);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="label-eyebrow">Repository · {docs.length} files</div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Upload className="mr-1 h-4 w-4" />Upload Document
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Upload Document</DialogTitle></DialogHeader>
+            <div className="rounded-lg border-2 border-dashed border-border/60 bg-secondary/20 p-6 text-center">
+              <FileUp className="mx-auto h-8 w-8 text-muted-foreground" />
+              <div className="mt-2 text-sm text-foreground">Drag &amp; drop a file here, or browse</div>
+              <div className="mt-1 text-xs text-muted-foreground">PDF, DOCX, XLSX, PNG · up to 20 MB</div>
+            </div>
+            <div className="grid gap-3">
+              <div><Label>Document name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Steering Deck — Jun" /></div>
+              <div>
+                <Label>Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Charter", "RAID", "Contract", "QA", "Governance", "Finance", "Design", "General"].map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={upload} disabled={uploading}>
+                {uploading ? "Uploading…" : "Upload"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="glass-card p-5">
+        <ul className="divide-y divide-border text-sm">
+          {docs.map((d) => (
+            <li key={d.name + d.when} className="flex items-center justify-between py-2">
+              <span className="flex items-center gap-2 text-foreground"><FileText className="h-4 w-4 text-accent" />{d.name}</span>
+              <span className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Badge variant="outline" className="border-border bg-secondary/40">{d.category}</Badge>
+                <span>{d.size}</span>
+                <span>{d.when}</span>
+                <Button size="icon" variant="ghost" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ── Status Reports tab ────────────────────────────────────────────────────────
+function StatusReportsTab({
+  project, reports, setReports, externalOpen, onExternalOpenChange,
+}: {
+  project: typeof projects[number];
+  reports: StatusReport[];
+  setReports: React.Dispatch<React.SetStateAction<StatusReport[]>>;
+  externalOpen: boolean;
+  onExternalOpenChange: (open: boolean) => void;
+}) {
+  const nextWeek = Math.max(...reports.map((r) => r.week), 0) + 1;
+  const [rag, setRag] = useState<Rag>("green");
+  const [text, setText] = useState("");
+
+  function submit() {
+    if (!text.trim()) { toast.error("Status narrative is required"); return; }
+    setReports((prev) => [{ week: nextWeek, by: project.pm, when: "Just now", rag, text: text.trim() }, ...prev]);
+    toast.success(`Week ${nextWeek} status report submitted`);
+    onExternalOpenChange(false); setRag("green"); setText("");
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="label-eyebrow">{reports.length} status reports</div>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => onExternalOpenChange(true)}>
+          Submit Week {nextWeek} Report
+        </Button>
+      </div>
+      <div className="space-y-3">
+        {reports.map((r) => (
+          <div key={r.week} className="glass-card p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-foreground">Week {r.week} status report</div>
+                <div className="text-xs text-muted-foreground">Submitted by {r.by} · {r.when}</div>
+              </div>
+              <RagBadge rag={r.rag} />
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{r.text}</p>
+          </div>
+        ))}
+      </div>
+
+      <Dialog open={externalOpen} onOpenChange={onExternalOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Submit Week {nextWeek} Status Report</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-accent/20 bg-accent-dim/30 px-3 py-2 text-xs text-accent">
+            Project: <span className="font-medium">{project.name}</span>
+          </div>
+          <div className="grid gap-3">
+            <div>
+              <Label>Overall RAG status</Label>
+              <Select value={rag} onValueChange={(v) => setRag(v as Rag)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="green">On Track</SelectItem>
+                  <SelectItem value="amber">At Risk</SelectItem>
+                  <SelectItem value="red">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Status narrative</Label><Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="What happened this week, blockers, next steps…" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onExternalOpenChange(false)}>Cancel</Button>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Submit Report</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ── Change Requests tab ───────────────────────────────────────────────────────
+function ChangeRequestsTab({ project: _project }: { project: typeof projects[number] }) {
+  const [crs, setCrs] = useState<ChangeReq[]>([
+    { id: "CR-014", title: "Add data warehouse layer", impact: "Adds BI capacity", timeline: "+3 weeks", budget: "+$120K", decision: "Approved" },
+    { id: "CR-013", title: "Reduce UAT to one week", impact: "Risk + quality concern", timeline: "-1 week", budget: "$0", decision: "Rejected" },
+    { id: "CR-012", title: "Add 2 QA engineers", impact: "Faster test cycles", timeline: "0", budget: "+$60K", decision: "Under review" },
+  ]);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(""); const [impact, setImpact] = useState("");
+  const [timeline, setTimeline] = useState(""); const [budget, setBudget] = useState("");
+
+  function submit() {
+    if (!title.trim()) { toast.error("Title is required"); return; }
+    const id = `CR-${String(15 + crs.length).padStart(3, "0")}`;
+    setCrs((prev) => [{ id, title: title.trim(), impact: impact || "—", timeline: timeline || "0", budget: budget || "$0", decision: "Under review" }, ...prev]);
+    toast.success(`${id} submitted for review`);
+    setOpen(false); setTitle(""); setImpact(""); setTimeline(""); setBudget("");
+  }
+
+  const ragOf = (d: ChangeReq["decision"]): Rag => d === "Approved" ? "green" : d === "Rejected" ? "red" : "amber";
+  const kpis = [
+    { l: "Under Review", v: crs.filter((c) => c.decision === "Under review").length, c: "text-rag-amber" },
+    { l: "Approved", v: crs.filter((c) => c.decision === "Approved").length, c: "text-rag-green" },
+    { l: "Rejected", v: crs.filter((c) => c.decision === "Rejected").length, c: "text-rag-red" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-3">
+        {kpis.map((k) => (
+          <div key={k.l} className="glass-card p-4">
+            <div className="label-eyebrow">{k.l}</div>
+            <div className={`mt-1 text-lg font-medium num-mono ${k.c}`}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="label-eyebrow">Change requests</div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />New Change Request</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>New Change Request</DialogTitle></DialogHeader>
+            <div className="grid gap-3">
+              <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Add reporting module" /></div>
+              <div><Label>Impact description</Label><Textarea rows={3} value={impact} onChange={(e) => setImpact(e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Timeline delta</Label><Input value={timeline} onChange={(e) => setTimeline(e.target.value)} placeholder="+2 weeks" /></div>
+                <div><Label>Budget delta</Label><Input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="+$50K" /></div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Submit Request</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="glass-card overflow-hidden">
+        <Table>
+          <TableHeader><TableRow><TableHead>CR</TableHead><TableHead>Title</TableHead><TableHead>Impact</TableHead><TableHead>Timeline</TableHead><TableHead>Budget</TableHead><TableHead>Decision</TableHead></TableRow></TableHeader>
+          <TableBody>{crs.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className="num-mono text-xs">{r.id}</TableCell>
+              <TableCell>{r.title}</TableCell>
+              <TableCell className="text-xs text-muted-foreground max-w-[240px] truncate">{r.impact}</TableCell>
+              <TableCell className="num-mono text-xs">{r.timeline}</TableCell>
+              <TableCell className="num-mono text-xs">{r.budget}</TableCell>
+              <TableCell><RagBadge rag={ragOf(r.decision)} label={r.decision} /></TableCell>
+            </TableRow>
+          ))}</TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+// ── Procurement (project) tab ─────────────────────────────────────────────────
+function ProcurementProjectTab() {
+  const contracts = [
+    { id: "CT-2026-038", vendor: "Oracle Consulting", value: "$680K", end: "Dec 12", rag: "green" as Rag, status: "Active" },
+    { id: "CT-2026-029", vendor: "Cyberguard", value: "$140K", end: "Sep 30", rag: "green" as Rag, status: "Active" },
+    { id: "CT-2026-031", vendor: "LearnSphere", value: "$95K", end: "Aug 25", rag: "amber" as Rag, status: "Expiring" },
+  ];
+  const rfps = [
+    { id: "RFP-014", title: "Robotics Integration Partner", type: "RFP", due: "Jun 28", bidders: 4, rag: "amber" as Rag, status: "Open" },
+    { id: "RFP-016", title: "Training services rollout", type: "RFP", due: "Jul 12", bidders: 2, rag: "amber" as Rag, status: "Open" },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          { l: "Active Contracts", v: String(contracts.filter((c) => c.status === "Active").length), c: "text-rag-green" },
+          { l: "Open RFPs", v: String(rfps.length), c: "text-rag-amber" },
+          { l: "Total Committed", v: "$915K", c: "text-foreground" },
+        ].map((k) => (
+          <div key={k.l} className="glass-card p-4">
+            <div className="label-eyebrow">{k.l}</div>
+            <div className={`mt-1 text-lg font-medium num-mono ${k.c}`}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="glass-card overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="label-eyebrow">Contracts</div>
+          <Link to="/procurement" className="text-xs text-accent hover:underline">Open Procurement module →</Link>
+        </div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Contract</TableHead><TableHead>Vendor</TableHead><TableHead>Value</TableHead><TableHead>End</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableBody>{contracts.map((c) => (
+            <TableRow key={c.id}>
+              <TableCell className="num-mono text-xs text-accent">{c.id}</TableCell>
+              <TableCell>{c.vendor}</TableCell>
+              <TableCell className="num-mono">{c.value}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{c.end}</TableCell>
+              <TableCell><RagBadge rag={c.rag} label={c.status} /></TableCell>
+            </TableRow>
+          ))}</TableBody>
+        </Table>
+      </div>
+
+      <div className="glass-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border label-eyebrow">Open RFPs</div>
+        <Table>
+          <TableHeader><TableRow><TableHead>RFP</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Due</TableHead><TableHead>Bidders</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableBody>{rfps.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className="num-mono text-xs text-accent">{r.id}</TableCell>
+              <TableCell>{r.title}</TableCell>
+              <TableCell>{r.type}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{r.due}</TableCell>
+              <TableCell className="num-mono">{r.bidders}</TableCell>
+              <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
+            </TableRow>
+          ))}</TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+// ── Stakeholders tab ──────────────────────────────────────────────────────────
+function StakeholdersTab() {
+  const [items, setItems] = useState<Stakeholder[]>([
+    { name: "V. Mansour", org: "Exec Sponsor", influence: "High", interest: "High", strategy: "Manage closely" },
+    { name: "R. Hadid", org: "Client (ACME)", influence: "High", interest: "Medium", strategy: "Keep satisfied" },
+    { name: "IT Steering", org: "Internal", influence: "Medium", interest: "High", strategy: "Keep informed" },
+    { name: "Finance Board", org: "Internal", influence: "High", interest: "Low", strategy: "Inform monthly" },
+  ]);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(""); const [org, setOrg] = useState("");
+  const [influence, setInfluence] = useState<"High" | "Medium" | "Low">("Medium");
+  const [interest, setInterest] = useState<"High" | "Medium" | "Low">("Medium");
+  const [strategy, setStrategy] = useState("");
+
+  function submit() {
+    if (!name.trim()) { toast.error("Name is required"); return; }
+    setItems((prev) => [...prev, { name: name.trim(), org: org || "—", influence, interest, strategy: strategy || "—" }]);
+    toast.success("Stakeholder added");
+    setOpen(false); setName(""); setOrg(""); setStrategy("");
+  }
+
+  const colorFor = (level: "High" | "Medium" | "Low") =>
+    level === "High" ? "text-rag-red" : level === "Medium" ? "text-rag-amber" : "text-muted-foreground";
+
+  const quadrants = [
+    { key: "hi-hi", label: "Manage closely", tint: "bg-rag-red/10 border-rag-red/30", text: "text-rag-red", filter: (s: Stakeholder) => s.influence === "High" && s.interest === "High" },
+    { key: "hi-lo", label: "Keep satisfied", tint: "bg-rag-amber/10 border-rag-amber/30", text: "text-rag-amber", filter: (s: Stakeholder) => s.influence === "High" && s.interest !== "High" },
+    { key: "lo-hi", label: "Keep informed", tint: "bg-accent/10 border-accent/30", text: "text-accent", filter: (s: Stakeholder) => s.influence !== "High" && s.interest === "High" },
+    { key: "lo-lo", label: "Monitor", tint: "bg-secondary/40 border-border", text: "text-muted-foreground", filter: (s: Stakeholder) => s.influence !== "High" && s.interest !== "High" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="label-eyebrow">Stakeholder matrix · {items.length} stakeholders</div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><UserPlus className="mr-1 h-4 w-4" />Add Stakeholder</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Add Stakeholder</DialogTitle></DialogHeader>
+            <div className="grid gap-3">
+              <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+              <div><Label>Organisation</Label><Input value={org} onChange={(e) => setOrg(e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Influence</Label>
+                  <Select value={influence} onValueChange={(v) => setInfluence(v as "High" | "Medium" | "Low")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Interest</Label>
+                  <Select value={interest} onValueChange={(v) => setInterest(v as "High" | "Medium" | "Low")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div><Label>Engagement strategy</Label><Input value={strategy} onChange={(e) => setStrategy(e.target.value)} placeholder="e.g. Weekly 1:1" /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Stakeholder</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="glass-card overflow-hidden">
+        <Table>
+          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Org</TableHead><TableHead>Influence</TableHead><TableHead>Interest</TableHead><TableHead>Strategy</TableHead></TableRow></TableHeader>
+          <TableBody>{items.map((s) => (
+            <TableRow key={s.name}>
+              <TableCell className="font-medium">{s.name}</TableCell>
+              <TableCell>{s.org}</TableCell>
+              <TableCell className={colorFor(s.influence)}>{s.influence}</TableCell>
+              <TableCell className={colorFor(s.interest)}>{s.interest}</TableCell>
+              <TableCell className="text-xs">{s.strategy}</TableCell>
+            </TableRow>
+          ))}</TableBody>
+        </Table>
+      </div>
+
+      {/* 2×2 engagement matrix */}
+      <div className="glass-card p-5">
+        <div className="label-eyebrow mb-3">Engagement matrix</div>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-border">
+          {quadrants.map((q) => (
+            <div key={q.key} className={`${q.tint} border p-4 min-h-32`}>
+              <div className={`text-xs font-medium ${q.text}`}>{q.label}</div>
+              <ul className="mt-2 space-y-1 text-sm text-foreground">
+                {items.filter(q.filter).map((s) => (<li key={s.name}>{s.name}</li>))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
+          {quadrants.map((q) => (
+            <span key={q.key} className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${q.tint.split(" ")[0].replace("/10", "")}`} />{q.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Lessons Learned tab ───────────────────────────────────────────────────────
+function LessonsTab({ project }: { project: typeof projects[number] }) {
+  const [items, setItems] = useState<Lesson[]>([
+    { tag: "Process", text: "Earlier vendor SLA reviews surface delays sooner.", by: project.pm, when: "May 18" },
+    { tag: "People", text: "Pair architect with junior dev for knowledge transfer.", by: "Mei Chen", when: "May 14" },
+    { tag: "Tech", text: "Use staging mirror to validate integration before UAT.", by: "Priya Iyer", when: "May 11" },
+    { tag: "Governance", text: "Bi-weekly steering tempo too slow for critical phase.", by: project.pm, when: "May 09" },
+  ]);
+  const [open, setOpen] = useState(false);
+  const [tag, setTag] = useState("Process");
+  const [text, setText] = useState("");
+
+  function submit() {
+    if (!text.trim()) { toast.error("Lesson text is required"); return; }
+    setItems((prev) => [{ tag, text: text.trim(), by: project.pm, when: "Just now" }, ...prev]);
+    toast.success("Lesson recorded");
+    setOpen(false); setText(""); setTag("Process");
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="label-eyebrow">{items.length} lessons recorded</div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Lesson</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Add Lesson Learned</DialogTitle></DialogHeader>
+            <div className="grid gap-3">
+              <div>
+                <Label>Category</Label>
+                <Select value={tag} onValueChange={setTag}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Process", "People", "Tech", "Governance", "Risk", "Communication", "Planning"].map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Lesson</Label><Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="What did we learn? What would we do differently?" /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Lesson</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {items.map((l, i) => (
+          <div key={i} className="glass-card p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="border-accent/40 bg-accent-dim text-accent">{l.tag}</Badge>
+              <span className="text-xs text-muted-foreground">{l.when}</span>
+            </div>
+            <p className="mt-2 text-foreground">{l.text}</p>
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <MessageSquare className="h-3 w-3" /> by {l.by}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
