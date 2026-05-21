@@ -500,7 +500,7 @@ function RfpSheet({ rfp, onClose }: { rfp: RfpRow | null; onClose: () => void })
 
   function advance(next: string) {
     setStatus(next);
-    toast.success(`${rfp.id} moved to ${next}`, { description: rfp.title });
+    toast.success(`${rfp?.id} moved to ${next}`, { description: rfp?.title });
   }
 
   return (
@@ -675,7 +675,7 @@ function ContractSheet({ contract, onClose }: { contract: ContractRow | null; on
   const paidPct    = contract.value > 0 ? Math.round((paid / contract.value) * 100) : 0;
 
   function handleRenew(months: number) {
-    toast.success(`${contract.id} renewal initiated`, { description: `+${months} months extension` });
+    toast.success(`${contract?.id} renewal initiated`, { description: `+${months} months extension` });
     setRenewOpen(false);
   }
 
