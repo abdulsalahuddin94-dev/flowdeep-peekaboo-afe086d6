@@ -11,8 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil } from "lucide-react";
+import type { Rag } from "@/lib/mock-data";
 import { projects } from "@/lib/mock-data";
 import { toast } from "sonner";
 
