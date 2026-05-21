@@ -811,9 +811,9 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
         <TabsContent value="subs" className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
             {[
-              { l: "Total Packages", v: "6" },
-              { l: "Awarded", v: "3", c: "text-rag-green" },
-              { l: "In Tender", v: "2", c: "text-rag-amber" },
+              { l: "Total Packages", v: String(subs.length) },
+              { l: "Awarded", v: String(subs.filter((s) => s.status === "Awarded").length), c: "text-rag-green" },
+              { l: "In Tender", v: String(subs.filter((s) => s.status === "In tender").length), c: "text-rag-amber" },
               { l: "Total Value", v: "$1.84M" },
             ].map((k) => (
               <div key={k.l} className="glass-card p-4">
@@ -822,24 +822,21 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-between">
+            <div className="label-eyebrow">Packages</div>
+            <AddPackageDialog onAdd={(s) => setSubs((prev) => [...prev, { ...s, id: `SUB-${String(prev.length + 1).padStart(3, "0")}` }])} />
+          </div>
           <div className="glass-card overflow-hidden">
             <Table>
               <TableHeader><TableRow><TableHead>Package</TableHead><TableHead>Scope</TableHead><TableHead>Vendor</TableHead><TableHead>Value</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{[
-                { p: "SUB-001", s: "Civil works & site prep", v: "Acme Construction", val: "$420K", per: "Jun–Jul", st: "green", stl: "Awarded" },
-                { p: "SUB-002", s: "Integration testing", v: "TestLabs Co.", val: "$180K", per: "Jul–Aug", st: "green", stl: "Awarded" },
-                { p: "SUB-003", s: "Training rollout (40 staff)", v: "LearnSphere", val: "$95K", per: "Aug", st: "green", stl: "Awarded" },
-                { p: "SUB-004", s: "Network cabling", v: "—", val: "$220K", per: "Jun", st: "amber", stl: "In tender" },
-                { p: "SUB-005", s: "Security audit & pen-test", v: "—", val: "$140K", per: "Sep", st: "amber", stl: "In tender" },
-                { p: "SUB-006", s: "Go-live support (8 wks)", v: "—", val: "$785K", per: "Sep–Oct", st: "blue", stl: "Planned" },
-              ].map((r) => (
-                <TableRow key={r.p}>
-                  <TableCell className="font-medium text-foreground">{r.p}</TableCell>
-                  <TableCell>{r.s}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.v}</TableCell>
-                  <TableCell className="num-mono">{r.val}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.per}</TableCell>
-                  <TableCell><RagBadge rag={r.st as any} label={r.stl} /></TableCell>
+              <TableBody>{subs.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-foreground">{r.id}</TableCell>
+                  <TableCell>{r.scope}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.vendor}</TableCell>
+                  <TableCell className="num-mono">{r.value}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.period}</TableCell>
+                  <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>
