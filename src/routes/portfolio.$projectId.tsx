@@ -352,104 +352,38 @@ function ProjectDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="Risks & Issues" className="mt-5 glass-card overflow-hidden">
-          <Table>
-            <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Score</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              { id: "R-091", t: "Vendor delivery delay > 4 weeks", k: "Risk", s: 20, o: project.pm, st: "Open", c: "red" },
-              { id: "I-044", t: "Test env outage", k: "Issue", s: 12, o: "Mei Chen", st: "In progress", c: "amber" },
-              { id: "R-085", t: "Audit finding remediation overrun", k: "Risk", s: 16, o: "Mei Chen", st: "Open", c: "amber" },
-            ].map((r) => (
-              <TableRow key={r.id}><TableCell className="num-mono text-xs">{r.id}</TableCell><TableCell className="font-medium">{r.t}</TableCell><TableCell>{r.k}</TableCell><TableCell><Badge variant="outline" className="border-border bg-secondary/40 num-mono">{r.s}</Badge></TableCell><TableCell>{r.o}</TableCell><TableCell><RagBadge rag={r.c as any} label={r.st} /></TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="Risks & Issues" className="mt-5">
+          <RisksTab project={project} />
         </TabsContent>
 
         <TabsContent value="Documents" className="mt-5">
-          <div className="glass-card p-5">
-            <div className="label-eyebrow mb-3">Repository</div>
-            <ul className="divide-y divide-border text-sm">
-              {[
-                ["Project Charter v3.pdf", "Charter", "2.4 MB"],
-                ["Risk Register.xlsx", "RAID", "0.8 MB"],
-                ["Vendor Contract — Oracle Consulting.pdf", "Contract", "1.1 MB"],
-                ["Test Plan v2.docx", "QA", "0.6 MB"],
-                ["Steering Committee Deck — May.pdf", "Governance", "5.2 MB"],
-              ].map(([n, k, s]) => (
-                <li key={n} className="flex items-center justify-between py-2">
-                  <span className="flex items-center gap-2 text-foreground"><FileText className="h-4 w-4 text-accent" />{n}</span>
-                  <span className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Badge variant="outline" className="border-border bg-secondary/40">{k}</Badge>{s}
-                    <Button size="icon" variant="ghost" className="h-7 w-7"><Download className="h-3.5 w-3.5" /></Button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <DocumentsTab />
         </TabsContent>
 
-        <TabsContent value="Status Reports" className="mt-5 space-y-3">
-          {[18, 17, 16].map((w) => (
-            <div key={w} className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-foreground">Week {w} status report</div>
-                  <div className="text-xs text-muted-foreground">Submitted by {project.pm} · 3 days ago</div>
-                </div>
-                <RagBadge rag={project.rag} />
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet.</p>
-            </div>
-          ))}
+        <TabsContent value="Status Reports" className="mt-5">
+          <StatusReportsTab
+            project={project}
+            reports={reports}
+            setReports={setReports}
+            externalOpen={reportOpen}
+            onExternalOpenChange={setReportOpen}
+          />
         </TabsContent>
 
-        <TabsContent value="Change Requests" className="mt-5 glass-card overflow-hidden">
-          <Table>
-            <TableHeader><TableRow><TableHead>CR</TableHead><TableHead>Title</TableHead><TableHead>Impact</TableHead><TableHead>Stage</TableHead><TableHead>Decision</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              { id: "CR-014", t: "Add data warehouse layer", i: "+$120K · +3 weeks", s: "Approved", c: "green" },
-              { id: "CR-013", t: "Reduce UAT to one week", i: "-1 week · risk +", s: "Rejected", c: "red" },
-              { id: "CR-012", t: "Add 2 QA engineers", i: "+$60K", s: "Under review", c: "amber" },
-            ].map((r) => (
-              <TableRow key={r.id}><TableCell className="num-mono text-xs">{r.id}</TableCell><TableCell>{r.t}</TableCell><TableCell className="text-xs text-muted-foreground">{r.i}</TableCell><TableCell><RagBadge rag={r.c as any} label={r.s} /></TableCell><TableCell><Button size="sm" variant="outline">Open</Button></TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="Change Requests" className="mt-5">
+          <ChangeRequestsTab project={project} />
         </TabsContent>
 
-        <TabsContent value="Procurement" className="mt-5 glass-card p-5 text-sm text-muted-foreground">
-          Linked contracts: CT-2026-038 (Oracle Consulting), CT-2026-029 (Cyberguard). Open RFP-014 (Robotics Integration Partner).
+        <TabsContent value="Procurement" className="mt-5">
+          <ProcurementProjectTab />
         </TabsContent>
 
-        <TabsContent value="Stakeholders" className="mt-5 glass-card p-5">
-          <div className="label-eyebrow mb-3">Stakeholder matrix</div>
-          <Table>
-            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Org</TableHead><TableHead>Influence</TableHead><TableHead>Interest</TableHead><TableHead>Strategy</TableHead></TableRow></TableHeader>
-            <TableBody>{[
-              ["V. Mansour", "Exec Sponsor", "High", "High", "Manage closely"],
-              ["R. Hadid", "Client (ACME)", "High", "Medium", "Keep satisfied"],
-              ["IT Steering", "Internal", "Medium", "High", "Keep informed"],
-              ["Finance Board", "Internal", "High", "Low", "Inform monthly"],
-            ].map((r) => (
-              <TableRow key={r[0]}><TableCell className="font-medium">{r[0]}</TableCell><TableCell>{r[1]}</TableCell><TableCell>{r[2]}</TableCell><TableCell>{r[3]}</TableCell><TableCell className="text-xs">{r[4]}</TableCell></TableRow>
-            ))}</TableBody>
-          </Table>
+        <TabsContent value="Stakeholders" className="mt-5">
+          <StakeholdersTab />
         </TabsContent>
 
-        <TabsContent value="Lessons Learned" className="mt-5 grid gap-3 md:grid-cols-2">
-          {[
-            { tag: "Process", n: "Earlier vendor SLA reviews surface delays sooner." },
-            { tag: "People", n: "Pair architect with junior dev for knowledge transfer." },
-            { tag: "Tech", n: "Use staging mirror to validate integration before UAT." },
-            { tag: "Governance", n: "Bi-weekly steering tempo too slow for critical phase." },
-          ].map((l) => (
-            <div key={l.n} className="glass-card p-4 text-sm">
-              <Badge variant="outline" className="border-accent/40 bg-accent-dim text-accent">{l.tag}</Badge>
-              <p className="mt-2 text-foreground">{l.n}</p>
-              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                <MessageSquare className="h-3 w-3" /> 3 comments<Paperclip className="ml-3 h-3 w-3" /> 1 attachment
-              </div>
-            </div>
-          ))}
+        <TabsContent value="Lessons Learned" className="mt-5">
+          <LessonsTab project={project} />
         </TabsContent>
       </Tabs>
     </div>
