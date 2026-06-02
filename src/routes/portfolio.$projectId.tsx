@@ -13,9 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil } from "lucide-react";
 import type { Rag } from "@/lib/mock-data";
-import { projects } from "@/lib/mock-data";
+import { projects, vendors as vendorList } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { ProjectGantt } from "@/components/ProjectGantt";
 
@@ -526,13 +527,61 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
     { id: "T-04", purpose: "Go-live support", dest: "Doha, QA", dates: "Sep 14 – Sep 28", travelers: "John, Mei, +2", cost: "$6.5K", rag: "blue", status: "Planned" },
   ]);
   const [newEst, setNewEst] = useState("");
+  const [newVendors, setNewVendors] = useState<string[]>([]);
+
+  // Stage Gates
+  const [stageGateOpen, setStageGateOpen] = useState(false);
+  const [gateData, setGateData] = useState<GateStage[]>([
+    { name: "Initiation", items: [
+      { task: "Define project objectives & scope", role: "Project Manager", done: true },
+      { task: "Identify key stakeholders", role: "Project Manager", done: true },
+      { task: "Obtain project charter approval", role: "Executive Sponsor", done: true },
+    ]},
+    { name: "Planning", items: [
+      { task: "Develop project management plan", role: "Project Manager", done: true },
+      { task: "Estimate resources and budget", role: "Finance Manager", done: true },
+      { task: "Risk assessment completed", role: "Project Manager", done: false },
+      { task: "Procurement plan approved", role: "Procurement Lead", done: false },
+    ]},
+    { name: "Execution", items: [
+      { task: "Kick-off meeting conducted", role: "Project Manager", done: false },
+      { task: "All team members onboarded", role: "Resource Manager", done: false },
+      { task: "First sprint review completed", role: "Tech Lead", done: false },
+    ]},
+    { name: "Monitoring", items: [
+      { task: "Weekly status reports submitted", role: "Project Manager", done: false },
+      { task: "Budget variance within 5%", role: "Finance Manager", done: false },
+      { task: "RAID log up to date", role: "Project Manager", done: false },
+    ]},
+    { name: "Closure", items: [
+      { task: "Lessons learned documented", role: "Project Manager", done: false },
+      { task: "Final financial report approved", role: "Finance Manager", done: false },
+      { task: "Stakeholder sign-off obtained", role: "Executive Sponsor", done: false },
+      { task: "Project archived", role: "Project Manager", done: false },
+    ]},
+  ]);
+
+  // Financial Planning state
+  const [costEntries, setCostEntries] = useState<CostEntry[]>([
+    { c: "Labour",            b: 1.20, a: 0.84, color: "bg-rag-green" },
+    { c: "Hardware",          b: 0.90, a: 0.62, color: "bg-rag-blue" },
+    { c: "Software licenses", b: 0.40, a: 0.31, color: "bg-accent" },
+    { c: "Business trips",    b: 0.10, a: 0.07, color: "bg-rag-amber" },
+    { c: "Contingency",       b: 0.60, a: 0.26, color: "bg-muted-foreground" },
+  ]);
+  const [revEntries, setRevEntries] = useState<RevEntry[]>([
+    { ms: "Discovery complete", evt: "Advance payment (30%)",  plan: 0.96, date: "May 02",        s: "green", sl: "Received", act: 0.96 },
+    { ms: "Build phase 1",      evt: "Progress invoice (20%)", plan: 0.64, date: "Jun 30",        s: "amber", sl: "Pending",  act: null },
+    { ms: "UAT Sign-off",       evt: "Progress invoice (25%)", plan: 0.80, date: project.endDate, s: "blue",  sl: "Planned",  act: null },
+    { ms: "Go-live",            evt: "Final payment (25%)",    plan: 0.80, date: "Sep 14",        s: "blue",  sl: "Planned",  act: null },
+  ]);
 
   function handleNewPackage() {
     if (!newScope.trim()) { toast.error("Please enter a package scope"); return; }
     const id = `PKG-${String(packages.length + 1).padStart(3, "0")}`;
     setPackages(prev => [...prev, { id, scope: newScope.trim(), est: newEst.trim() || "TBD", status: "Draft" }]);
     toast.success("Tender request created", { description: `${id} saved as Draft` });
-    setNewPkgOpen(false); setNewScope(""); setNewEst("");
+    setNewPkgOpen(false); setNewScope(""); setNewEst(""); setNewVendors([]);
   }
 
   function sendForTendering(pkgId: string) {
@@ -627,6 +676,11 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
                   multiline
                   value={`- Legacy application rewrites (Phase 2)\n- On-premise infrastructure disposal`}
                 />
+                <PlanningField
+                  label="Success Criteria"
+                  multiline
+                  value={`- System uptime ≥ 99.9% within 30 days of go-live\n- 100% of staff trained and certified\n- All audit findings closed before project closure\n- Budget variance ≤ 5%`}
+                />
               </div>
             </div>
 
@@ -656,11 +710,22 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
                   );
                 })}
               </ul>
-              <button className="mt-5 w-full rounded-md border border-accent/40 bg-accent-dim/40 py-2 text-sm text-accent hover:bg-accent-dim/60">
+              <button
+                className="mt-5 w-full rounded-md border border-accent/40 bg-accent-dim/40 py-2 text-sm text-accent hover:bg-accent-dim/60"
+                onClick={() => setStageGateOpen(true)}
+              >
                 View Stage Gates →
               </button>
             </div>
           </div>
+
+          {/* Stage Gates management dialog */}
+          <StageGatesDialog
+            open={stageGateOpen}
+            onOpenChange={setStageGateOpen}
+            gateData={gateData}
+            setGateData={setGateData}
+          />
         </TabsContent>
 
         <TabsContent value="ms" className="mt-5 space-y-3">
@@ -770,7 +835,10 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
           </div>
           <div className="flex items-center justify-between">
             <div className="label-eyebrow">Trips</div>
-            <LogTripDialog onAdd={(t) => setTrips((prev) => [...prev, { ...t, id: `T-${String(prev.length + 1).padStart(2, "0")}` }])} />
+            <LogTripDialog
+              teamMembers={[project.pm, "Mei Chen", "Priya Iyer", "Diego Ortiz", "K. Bauer", "H. Tanaka"]}
+              onAdd={(t) => setTrips((prev) => [...prev, { ...t, id: `T-${String(prev.length + 1).padStart(2, "0")}` }])}
+            />
           </div>
           <div className="glass-card overflow-hidden">
             <Table>
@@ -806,15 +874,12 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
           </div>
           <div className="grid gap-4 md:grid-cols-[1fr_360px]">
             <div className="glass-card p-5">
-              <div className="label-eyebrow mb-3">Cost categories</div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="label-eyebrow">Cost categories</div>
+                <AddCostDialog onAdd={(e) => setCostEntries((prev) => [...prev, e])} />
+              </div>
               <div className="space-y-3">
-                {[
-                  { c: "Labour", b: 1.20, a: 0.84, color: "bg-rag-green" },
-                  { c: "Hardware", b: 0.90, a: 0.62, color: "bg-rag-blue" },
-                  { c: "Software licenses", b: 0.40, a: 0.31, color: "bg-accent" },
-                  { c: "Business trips", b: 0.10, a: 0.07, color: "bg-rag-amber" },
-                  { c: "Contingency", b: 0.60, a: 0.26, color: "bg-muted-foreground" },
-                ].map((r) => {
+                {costEntries.map((r) => {
                   const pct = Math.round((r.a / r.b) * 100);
                   return (
                     <div key={r.c}>
@@ -855,7 +920,12 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
           <div className="glass-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <div className="label-eyebrow">Revenue plan — linked to milestones</div>
-              <div className="num-mono text-xs text-muted-foreground">Total planned: $3.20M</div>
+              <div className="flex items-center gap-3">
+                <span className="num-mono text-xs text-muted-foreground">
+                  Total planned: ${revEntries.reduce((s, r) => s + r.plan, 0).toFixed(2)}M
+                </span>
+                <AddRevenueDialog onAdd={(e) => setRevEntries((prev) => [...prev, e])} />
+              </div>
             </div>
             <Table>
               <TableHeader>
@@ -869,12 +939,7 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[
-                  { ms: "Discovery complete",   evt: "Advance payment (30%)", plan: 0.96, date: "May 02", s: "green",  sl: "Received",   act: 0.96 },
-                  { ms: "Build phase 1",        evt: "Progress invoice (20%)", plan: 0.64, date: "Jun 30", s: "amber",  sl: "Pending",    act: null },
-                  { ms: "UAT Sign-off",         evt: "Progress invoice (25%)", plan: 0.80, date: project.endDate, s: "blue",   sl: "Planned",    act: null },
-                  { ms: "Go-live",              evt: "Final payment (25%)",    plan: 0.80, date: "Sep 14", s: "blue",   sl: "Planned",    act: null },
-                ].map((r) => (
+                {revEntries.map((r) => (
                   <TableRow key={r.ms}>
                     <TableCell className="font-medium text-foreground">{r.ms}</TableCell>
                     <TableCell className="text-muted-foreground">{r.evt}</TableCell>
@@ -926,6 +991,28 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
                   <div>
                     <Label>Estimated value</Label>
                     <Input placeholder="e.g. $150K" value={newEst} onChange={e => setNewEst(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Recommended Vendors</Label>
+                    <div className="mt-1.5 space-y-2 rounded-md border border-border bg-background/40 p-3">
+                      {vendorList.map((v) => (
+                        <div key={v.name} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`nv-${v.name}`}
+                            checked={newVendors.includes(v.name)}
+                            onCheckedChange={(checked) =>
+                              setNewVendors((prev) =>
+                                checked ? [...prev, v.name] : prev.filter((n) => n !== v.name)
+                              )
+                            }
+                          />
+                          <label htmlFor={`nv-${v.name}`} className="cursor-pointer text-sm text-foreground">
+                            {v.name}
+                            <span className="ml-1.5 text-xs text-muted-foreground">({v.category})</span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>
@@ -1161,6 +1248,10 @@ function PlanningField({ label, value, multiline }: { label: string; value: stri
 type Milestone = { name: string; date: string; owner: string; rag: Rag; dep: string };
 type SubPackage = { id: string; scope: string; vendor: string; value: string; period: string; rag: Rag; status: string };
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
+type CostEntry = { c: string; b: number; a: number; color: string };
+type RevEntry = { ms: string; evt: string; plan: number; date: string; s: string; sl: string; act: number | null };
+type GateItem = { task: string; role: string; done: boolean };
+type GateStage = { name: string; items: GateItem[] };
 type RaidItem = { id: string; title: string; kind: "Risk" | "Issue"; score: number; owner: string; status: string; rag: Rag };
 type DocItem = { name: string; category: string; size: string; when: string };
 type StatusReport = { week: number; by: string; when: string; rag: Rag; text: string };
@@ -1244,7 +1335,18 @@ function AddPackageDialog({ onAdd }: { onAdd: (s: Omit<SubPackage, "id">) => voi
         <div className="grid gap-3">
           <div><Label>Scope</Label><Input value={scope} onChange={(e) => setScope(e.target.value)} placeholder="e.g. Network cabling" /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label>Vendor</Label><Input value={vendor} onChange={(e) => setVendor(e.target.value)} /></div>
+            <div>
+              <Label>Vendor</Label>
+              <Select value={vendor || "__tbd__"} onValueChange={(v) => setVendor(v === "__tbd__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Select vendor…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__tbd__">— TBD —</SelectItem>
+                  {vendorList.map((v) => (
+                    <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Est. Value</Label><Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="$120K" /></div>
             <div><Label>Period</Label><Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="Jul–Aug" /></div>
             <div>
@@ -1270,15 +1372,21 @@ function AddPackageDialog({ onAdd }: { onAdd: (s: Omit<SubPackage, "id">) => voi
 }
 
 // ── Log Trip dialog ───────────────────────────────────────────────────────────
-function LogTripDialog({ onAdd }: { onAdd: (t: Omit<Trip, "id">) => void }) {
+function LogTripDialog({ onAdd, teamMembers }: { onAdd: (t: Omit<Trip, "id">) => void; teamMembers: string[] }) {
   const [open, setOpen] = useState(false);
   const [purpose, setPurpose] = useState(""); const [dest, setDest] = useState("");
-  const [dates, setDates] = useState(""); const [cost, setCost] = useState(""); const [travelers, setTravelers] = useState("");
+  const [dates, setDates] = useState(""); const [cost, setCost] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+
+  function toggle(name: string) {
+    setSelected((prev) => prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]);
+  }
   function submit() {
     if (!purpose.trim() || !dest.trim()) { toast.error("Purpose and destination are required"); return; }
-    onAdd({ purpose: purpose.trim(), dest: dest.trim(), dates: dates || "TBD", travelers: travelers || "—", cost: cost || "TBD", rag: "blue", status: "Planned" });
+    const travelers = selected.length > 0 ? selected.join(", ") : "—";
+    onAdd({ purpose: purpose.trim(), dest: dest.trim(), dates: dates || "TBD", travelers, cost: cost || "TBD", rag: "blue", status: "Planned" });
     toast.success("Business trip logged");
-    setOpen(false); setPurpose(""); setDest(""); setDates(""); setCost(""); setTravelers("");
+    setOpen(false); setPurpose(""); setDest(""); setDates(""); setCost(""); setSelected([]);
   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -1295,7 +1403,27 @@ function LogTripDialog({ onAdd }: { onAdd: (t: Omit<Trip, "id">) => void }) {
             <div><Label>Dates</Label><Input value={dates} onChange={(e) => setDates(e.target.value)} placeholder="Jul 08 – Jul 11" /></div>
             <div><Label>Est. Cost</Label><Input value={cost} onChange={(e) => setCost(e.target.value)} placeholder="$3.0K" /></div>
           </div>
-          <div><Label>Travelers</Label><Input value={travelers} onChange={(e) => setTravelers(e.target.value)} placeholder="Names…" /></div>
+          <div>
+            <Label>Travelers</Label>
+            {selected.length > 0 && (
+              <div className="mb-1.5 flex flex-wrap gap-1 mt-1">
+                {selected.map((n) => (
+                  <span key={n} className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/40 px-2 py-0.5 text-xs text-accent">
+                    {n}
+                    <button onClick={() => toggle(n)} className="hover:text-foreground">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="mt-1.5 space-y-2 rounded-md border border-border bg-background/40 p-3">
+              {teamMembers.map((name) => (
+                <div key={name} className="flex items-center gap-2">
+                  <Checkbox id={`tr-${name}`} checked={selected.includes(name)} onCheckedChange={() => toggle(name)} />
+                  <label htmlFor={`tr-${name}`} className="cursor-pointer text-sm text-foreground">{name}</label>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -1850,6 +1978,238 @@ function StakeholdersTab() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Add Cost Entry dialog ─────────────────────────────────────────────────────
+const COST_COLORS: Record<string, string> = {
+  Labour: "bg-rag-green", Hardware: "bg-rag-blue", Software: "bg-accent",
+  "Business trips": "bg-rag-amber", Contingency: "bg-muted-foreground", Other: "bg-rag-red",
+};
+function AddCostDialog({ onAdd }: { onAdd: (e: CostEntry) => void }) {
+  const [open, setOpen] = useState(false);
+  const [cat, setCat] = useState(""); const [budget, setBudget] = useState(""); const [actual, setActual] = useState("");
+  function submit() {
+    if (!cat.trim() || !budget) { toast.error("Category and budget are required"); return; }
+    const b = parseFloat(budget); const a = parseFloat(actual || "0");
+    if (isNaN(b)) { toast.error("Budget must be a number"); return; }
+    onAdd({ c: cat.trim(), b, a: isNaN(a) ? 0 : a, color: COST_COLORS[cat] ?? "bg-muted-foreground" });
+    toast.success("Cost entry added");
+    setOpen(false); setCat(""); setBudget(""); setActual("");
+  }
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="h-7 border-accent/40 text-accent hover:bg-accent-dim text-xs">
+          <Plus className="mr-1 h-3.5 w-3.5" />Add Cost
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Add Cost Entry</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div>
+            <Label>Category</Label>
+            <Select value={cat} onValueChange={setCat}>
+              <SelectTrigger><SelectValue placeholder="Select category…" /></SelectTrigger>
+              <SelectContent>
+                {["Labour", "Hardware", "Software", "Business trips", "Contingency", "Other"].map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Budget ($M)</Label><Input type="number" min={0} step={0.01} value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.50" /></div>
+            <div><Label>Actual ($M)</Label><Input type="number" min={0} step={0.01} value={actual} onChange={(e) => setActual(e.target.value)} placeholder="0.00" /></div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Entry</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Add Revenue Event dialog ──────────────────────────────────────────────────
+function AddRevenueDialog({ onAdd }: { onAdd: (e: RevEntry) => void }) {
+  const [open, setOpen] = useState(false);
+  const [ms, setMs] = useState(""); const [evt, setEvt] = useState("");
+  const [plan, setPlan] = useState(""); const [date, setDate] = useState("");
+  function submit() {
+    if (!ms.trim() || !plan) { toast.error("Milestone and planned amount are required"); return; }
+    const p = parseFloat(plan);
+    if (isNaN(p)) { toast.error("Planned amount must be a number"); return; }
+    onAdd({ ms: ms.trim(), evt: evt || "—", plan: p, date: date || "TBD", s: "blue", sl: "Planned", act: null });
+    toast.success("Revenue event added");
+    setOpen(false); setMs(""); setEvt(""); setPlan(""); setDate("");
+  }
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="h-7 border-accent/40 text-accent hover:bg-accent-dim text-xs">
+          <Plus className="mr-1 h-3.5 w-3.5" />Add Revenue Event
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Add Revenue Event</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div><Label>Linked milestone</Label><Input value={ms} onChange={(e) => setMs(e.target.value)} placeholder="e.g. Phase 2 sign-off" /></div>
+          <div><Label>Revenue event</Label><Input value={evt} onChange={(e) => setEvt(e.target.value)} placeholder="e.g. Progress invoice (15%)" /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Planned ($M)</Label><Input type="number" min={0} step={0.01} value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="0.50" /></div>
+            <div><Label>Expected date</Label><Input value={date} onChange={(e) => setDate(e.target.value)} placeholder="Oct 30" /></div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Event</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Stage Gates dialog ────────────────────────────────────────────────────────
+const GATE_ROLES = ["Project Manager", "Tech Lead", "Finance Manager", "Resource Manager", "Procurement Lead", "Executive Sponsor"];
+function StageGatesDialog({
+  open, onOpenChange, gateData, setGateData,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  gateData: GateStage[];
+  setGateData: React.Dispatch<React.SetStateAction<GateStage[]>>;
+}) {
+  const [activeStage, setActiveStage] = useState(0);
+  const [newTask, setNewTask] = useState("");
+  const [newRole, setNewRole] = useState("Project Manager");
+
+  function toggleDone(stageIdx: number, itemIdx: number) {
+    setGateData((prev) =>
+      prev.map((s, si) => si !== stageIdx ? s : {
+        ...s,
+        items: s.items.map((it, ii) => ii !== itemIdx ? it : { ...it, done: !it.done }),
+      })
+    );
+  }
+
+  function changeRole(stageIdx: number, itemIdx: number, role: string) {
+    setGateData((prev) =>
+      prev.map((s, si) => si !== stageIdx ? s : {
+        ...s,
+        items: s.items.map((it, ii) => ii !== itemIdx ? it : { ...it, role }),
+      })
+    );
+  }
+
+  function addItem() {
+    if (!newTask.trim()) return;
+    setGateData((prev) =>
+      prev.map((s, si) => si !== activeStage ? s : {
+        ...s,
+        items: [...s.items, { task: newTask.trim(), role: newRole, done: false }],
+      })
+    );
+    toast.success("Checklist item added");
+    setNewTask("");
+  }
+
+  const stage = gateData[activeStage];
+  const doneCount = stage?.items.filter((i) => i.done).length ?? 0;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Stage Gate Checklists</DialogTitle></DialogHeader>
+
+        {/* Stage tabs */}
+        <div className="flex gap-1 overflow-x-auto border-b border-border pb-2">
+          {gateData.map((s, i) => {
+            const done = s.items.filter((x) => x.done).length;
+            const total = s.items.length;
+            return (
+              <button
+                key={s.name}
+                onClick={() => setActiveStage(i)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors ${
+                  i === activeStage
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-secondary/60"
+                }`}
+              >
+                {s.name}
+                <span className={`num-mono rounded-full px-1.5 py-0.5 text-[10px] ${
+                  done === total ? "bg-rag-green/20 text-rag-green" : "bg-secondary/60"
+                }`}>{done}/{total}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Checklist */}
+        <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
+          {stage?.items.map((item, ii) => (
+            <div key={ii} className="flex items-center gap-3 rounded-md border border-border/60 bg-secondary/20 px-3 py-2">
+              <Checkbox
+                checked={item.done}
+                onCheckedChange={() => toggleDone(activeStage, ii)}
+                className="shrink-0"
+              />
+              <span className={`flex-1 text-sm ${item.done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                {item.task}
+              </span>
+              <Select value={item.role} onValueChange={(r) => changeRole(activeStage, ii, r)}>
+                <SelectTrigger className="h-7 w-[160px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GATE_ROLES.map((r) => <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{stage?.name} progress</span>
+            <span className="num-mono">{doneCount}/{stage?.items.length ?? 0}</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/50">
+            <div
+              className="h-full rounded-full bg-accent transition-all"
+              style={{ width: stage?.items.length ? `${(doneCount / stage.items.length) * 100}%` : "0%" }}
+            />
+          </div>
+        </div>
+
+        {/* Add new item */}
+        <div className="flex gap-2 border-t border-border pt-3">
+          <Input
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Add checklist item…"
+            className="flex-1 h-8 text-sm"
+            onKeyDown={(e) => { if (e.key === "Enter") addItem(); }}
+          />
+          <Select value={newRole} onValueChange={setNewRole}>
+            <SelectTrigger className="h-8 w-[148px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {GATE_ROLES.map((r) => <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="sm" className="h-8 bg-accent text-accent-foreground hover:bg-accent/90" onClick={addItem}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

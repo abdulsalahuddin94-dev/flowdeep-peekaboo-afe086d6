@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { pipelineItems } from "@/lib/mock-data";
 import { toast } from "sonner";
-import { Check, X as XIcon, Plus, GripVertical } from "lucide-react";
+import { Check, X as XIcon, Plus, GripVertical, ExternalLink } from "lucide-react";
 import { NewBusinessCaseFlow } from "@/components/NewBusinessCaseFlow";
 
 export const Route = createFileRoute("/pipeline")({
@@ -44,7 +45,23 @@ type Item = {
   score: number; roi: string; submittedBy: string; date: string; pillar: string;
 };
 
+// ── Approval-queue types ──────────────────────────────────────────────────────
+type ApprovalAction = "Pending" | "Approved" | "Rejected";
+type RoleApproval = { role: string; action: ApprovalAction; by?: string; when?: string; comment?: string };
+type ApprovalHistory = Record<string, RoleApproval[]>;
+
+const APPROVAL_ROLES = ["Department Head", "Finance Director", "Portfolio Director"];
+
+function buildInitialHistory(items: Item[]): ApprovalHistory {
+  return Object.fromEntries(
+    items
+      .filter((p) => p.stage === "Under Review" || p.stage === "Submitted")
+      .map((p) => [p.id, APPROVAL_ROLES.map((role) => ({ role, action: "Pending" as ApprovalAction }))])
+  );
+}
+
 function PipelinePage() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>(
     pipelineItems.map((p) => ({ ...p, stage: p.stage as Stage }))
   );
@@ -54,6 +71,11 @@ function PipelinePage() {
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
   const [dragOver, setDragOver] = useState<Stage | null>(null);
   const columnRefs = useRef<Partial<Record<Stage, HTMLDivElement | null>>>({});
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const hasMoved = useRef(false);
+
+  // ── Card detail view ─────────────────────────────────────────────────────────
+  const [detailItem, setDetailItem] = useState<string | null>(null);
 
   // ── Dialog state ─────────────────────────────────────────────────────────────
   const [pendingApprove, setPendingApprove] = useState<string | null>(null);
@@ -63,6 +85,15 @@ function PipelinePage() {
   const [queueApprove, setQueueApprove] = useState<string | null>(null);
   const [queueReject,  setQueueReject]  = useState<string | null>(null);
   const [newCase, setNewCase] = useState(false);
+
+  // ── Approval history ─────────────────────────────────────────────────────────
+  const [approvalHistory, setApprovalHistory] = useState<ApprovalHistory>(() =>
+    buildInitialHistory(pipelineItems.map((p) => ({ ...p, stage: p.stage as Stage })))
+  );
+  const [roleApproveDialog, setRoleApproveDialog] = useState<{ itemId: string; role: string } | null>(null);
+  const [roleRejectDialog,  setRoleRejectDialog]  = useState<{ itemId: string; role: string } | null>(null);
+  const [roleNote,   setRoleNote]   = useState("");
+  const [roleReason, setRoleReason] = useState("");
 
   const draggingItem = items.find((i) => i.id === dragging) ?? null;
   const validTargets: Stage[] = draggingItem ? VALID_TRANSITIONS[draggingItem.stage] : [];
@@ -83,11 +114,23 @@ function PipelinePage() {
     if (!dragging) return;
 
     function onMove(e: PointerEvent) {
+      const dx = e.clientX - dragStartPos.current.x;
+      const dy = e.clientY - dragStartPos.current.y;
+      if (!hasMoved.current && Math.sqrt(dx * dx + dy * dy) > 5) {
+        hasMoved.current = true;
+      }
       setGhostPos({ x: e.clientX, y: e.clientY });
       setDragOver(stageAtPoint(e.clientX, e.clientY));
     }
 
     function onUp(e: PointerEvent) {
+      if (!hasMoved.current) {
+        // Treat as click — open detail view
+        setDragging(null);
+        setDragOver(null);
+        setDetailItem(dragging);
+        return;
+      }
       const target = stageAtPoint(e.clientX, e.clientY);
       if (target) attemptDrop(target);
       setDragging(null);
@@ -239,10 +282,12 @@ function PipelinePage() {
                           `}
                           onPointerDown={(e) => {
                             if (isTerminal) {
-                              toast.error(`"${b.stage}" is a terminal stage — cards cannot be moved`);
+                              setDetailItem(b.id);
                               return;
                             }
                             e.preventDefault();
+                            dragStartPos.current = { x: e.clientX, y: e.clientY };
+                            hasMoved.current = false;
                             setDragging(b.id);
                             setGhostPos({ x: e.clientX, y: e.clientY });
                           }}
@@ -301,11 +346,16 @@ function PipelinePage() {
           Commercial bids board — 4 active bids in pursuit, 2 in proposal, 1 awaiting decision.
         </TabsContent>
 
-        <TabsContent value="queue" className="mt-5">
-          <div className="glass-card overflow-hidden">
-            <div className="divide-y divide-border">
-              {items.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").map((p) => (
-                <div key={p.id} className="flex items-center gap-3 p-4">
+        <TabsContent value="queue" className="mt-5 space-y-3">
+          {items.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").length === 0 && (
+            <div className="glass-card p-8 text-center text-sm text-muted-foreground">No items pending approval</div>
+          )}
+          {items.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").map((p) => {
+            const history: RoleApproval[] = approvalHistory[p.id] ?? APPROVAL_ROLES.map((r) => ({ role: r, action: "Pending" as ApprovalAction }));
+            return (
+              <div key={p.id} className="glass-card overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                   <Avatar className="h-9 w-9">
                     <AvatarFallback className="bg-accent-dim text-xs text-accent">
                       {p.submittedBy.split(" ").map((s) => s[0]).join("")}
@@ -320,22 +370,61 @@ function PipelinePage() {
                     p.score >= 41 ? "bg-rag-amber/10 text-rag-amber" :
                                     "bg-rag-red/10 text-rag-red"
                   }`}>Score {p.score}</span>
-                  <Button
-                    size="sm"
-                    className="bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-40"
-                    disabled={p.score < 71}
-                    title={p.score < 71 ? `Score ${p.score}/100 — minimum 71 required` : undefined}
-                    onClick={() => setQueueApprove(p.id)}
-                  >
-                    <Check className="mr-1 h-3 w-3" />Approve
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setQueueReject(p.id)}>
-                    <XIcon className="mr-1 h-3 w-3" />Reject
+                  <Button size="sm" variant="ghost" className="h-7 text-xs text-accent" onClick={() => setDetailItem(p.id)}>
+                    <ExternalLink className="mr-1 h-3 w-3" />View
                   </Button>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* Approval history rows */}
+                <div className="divide-y divide-border/40">
+                  {history.map((a) => (
+                    <div key={a.role} className="flex items-center gap-3 px-4 py-2.5">
+                      <div className={`h-2 w-2 shrink-0 rounded-full ${
+                        a.action === "Approved" ? "bg-rag-green" :
+                        a.action === "Rejected" ? "bg-rag-red" :
+                        "bg-muted-foreground/40"
+                      }`} />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-medium text-foreground">{a.role}</span>
+                        {a.by && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            — {a.by} · {a.when}
+                            {a.comment && <span className="ml-1 italic">"{a.comment}"</span>}
+                          </span>
+                        )}
+                      </div>
+                      {a.action === "Pending" ? (
+                        <div className="flex gap-1.5">
+                          <Button
+                            size="sm"
+                            className="h-6 bg-accent text-accent-foreground hover:bg-accent/90 px-2 text-xs disabled:opacity-40"
+                            disabled={p.score < 71}
+                            title={p.score < 71 ? `Score ${p.score} — min 71` : undefined}
+                            onClick={() => { setRoleApproveDialog({ itemId: p.id, role: a.role }); setRoleNote(""); }}
+                          >
+                            <Check className="mr-1 h-3 w-3" />Approve
+                          </Button>
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => { setRoleRejectDialog({ itemId: p.id, role: a.role }); setRoleReason(""); }}
+                          >
+                            <XIcon className="mr-1 h-3 w-3" />Reject
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className={`text-[10px] ${
+                          a.action === "Approved"
+                            ? "border-rag-green/30 bg-rag-green/10 text-rag-green"
+                            : "border-rag-red/30 bg-rag-red/10 text-rag-red"
+                        }`}>{a.action}</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </TabsContent>
       </Tabs>
 
@@ -390,6 +479,185 @@ function PipelinePage() {
       </Dialog>
 
       <NewBusinessCaseFlow open={newCase} onOpenChange={setNewCase} />
+
+      {/* Per-role Approve dialog */}
+      <Dialog open={!!roleApproveDialog} onOpenChange={(o) => { if (!o) setRoleApproveDialog(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Approve — {roleApproveDialog?.role}</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-md border border-rag-green/20 bg-rag-green/5 p-3 text-sm">
+            <div className="font-medium text-foreground">
+              {items.find((i) => i.id === roleApproveDialog?.itemId)?.title}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Approval note (optional)</Label>
+            <Textarea
+              placeholder="Any conditions or comments…"
+              value={roleNote}
+              onChange={(e) => setRoleNote(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleApproveDialog(null)}>Cancel</Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => {
+                if (!roleApproveDialog) return;
+                const { itemId, role } = roleApproveDialog;
+                setApprovalHistory((prev) => {
+                  const updated = (prev[itemId] ?? []).map((a) =>
+                    a.role === role
+                      ? { ...a, action: "Approved" as ApprovalAction, by: "You", when: "Just now", comment: roleNote || undefined }
+                      : a
+                  );
+                  const allDone = updated.every((a) => a.action !== "Pending");
+                  const allApproved = updated.every((a) => a.action === "Approved");
+                  if (allDone && allApproved) {
+                    setTimeout(() => {
+                      commitMove(itemId, "Approved");
+                      navigate({ to: "/portfolio" });
+                    }, 300);
+                  }
+                  return { ...prev, [itemId]: updated };
+                });
+                toast.success(`${role} approved`);
+                setRoleApproveDialog(null);
+                setRoleNote("");
+              }}
+            >
+              <Check className="mr-1.5 h-3.5 w-3.5" />Confirm Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Per-role Reject dialog */}
+      <Dialog open={!!roleRejectDialog} onOpenChange={(o) => { if (!o) setRoleRejectDialog(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reject — {roleRejectDialog?.role}</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-md border border-rag-red/20 bg-rag-red/5 p-3 text-sm">
+            <div className="font-medium text-foreground">
+              {items.find((i) => i.id === roleRejectDialog?.itemId)?.title}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Reason <span className="text-rag-red">*</span></Label>
+            <Textarea
+              placeholder="Why is this being rejected? (required)"
+              value={roleReason}
+              onChange={(e) => setRoleReason(e.target.value)}
+              rows={3}
+              className={!roleReason ? "border-rag-red/30" : ""}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleRejectDialog(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!roleRejectDialog || !roleReason.trim()) {
+                  toast.error("Rejection reason is required");
+                  return;
+                }
+                const { itemId, role } = roleRejectDialog;
+                setApprovalHistory((prev) => ({
+                  ...prev,
+                  [itemId]: (prev[itemId] ?? []).map((a) =>
+                    a.role === role
+                      ? { ...a, action: "Rejected" as ApprovalAction, by: "You", when: "Just now", comment: roleReason }
+                      : a
+                  ),
+                }));
+                toast.info(`${role} rejected`);
+                setRoleRejectDialog(null);
+                setRoleReason("");
+              }}
+            >
+              <XIcon className="mr-1.5 h-3.5 w-3.5" />Confirm Reject
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Business Case detail dialog */}
+      {(() => {
+        const bc = items.find((i) => i.id === detailItem);
+        if (!bc) return null;
+        return (
+          <Dialog open={!!detailItem} onOpenChange={(o) => { if (!o) setDetailItem(null); }}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <span className="num-mono text-sm text-muted-foreground">{bc.id}</span>
+                  {bc.title}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { l: "Score", v: String(bc.score), c: bc.score >= 71 ? "text-rag-green" : bc.score >= 41 ? "text-rag-amber" : "text-rag-red" },
+                    { l: "ROI", v: bc.roi, c: "text-foreground" },
+                    { l: "Pillar", v: bc.pillar, c: "text-accent" },
+                  ].map((k) => (
+                    <div key={k.l} className="rounded-md border border-border bg-secondary/30 p-3 text-center">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{k.l}</div>
+                      <div className={`mt-1 text-base font-medium num-mono ${k.c}`}>{k.v}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-md border border-border bg-secondary/20 p-3 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Submitted by</span>
+                    <span className="font-medium text-foreground">{bc.submittedBy}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Date</span>
+                    <span className="text-foreground">{bc.date}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Stage</span>
+                    <Badge variant="outline" className="border-border bg-secondary/40 text-xs">{bc.stage}</Badge>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-secondary/20 border border-border p-3 text-sm text-muted-foreground">
+                  This business case is pending review. Scoring is based on strategic alignment, ROI, risk profile, and resource availability. A minimum score of 71 is required for approval.
+                </div>
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setDetailItem(null)}>Close</Button>
+                {(bc.stage === "Under Review" || bc.stage === "Submitted") && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="border-rag-red/40 text-rag-red hover:bg-rag-red/10"
+                      onClick={() => { setDetailItem(null); setQueueReject(bc.id); }}
+                    >
+                      <XIcon className="mr-1.5 h-3.5 w-3.5" />Reject
+                    </Button>
+                    <Button
+                      className="bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-40"
+                      disabled={bc.score < 71}
+                      title={bc.score < 71 ? `Score ${bc.score} — min 71 required` : undefined}
+                      onClick={() => { setDetailItem(null); setQueueApprove(bc.id); }}
+                    >
+                      <Check className="mr-1.5 h-3.5 w-3.5" />Approve
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </div>
   );
 }
