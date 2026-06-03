@@ -37,7 +37,7 @@ export const Route = createFileRoute("/portfolio/$projectId")({
 });
 
 const TABS = [
-  "Overview", "Planning", "Schedule", "Team & Allocation", "Financials",
+  "Overview", "Project Charter", "Planning", "Schedule", "Team & Allocation", "Financials",
   "Risks & Issues", "Documents", "Status Reports", "Change Requests",
   "Procurement", "Stakeholders", "Lessons Learned",
 ];
@@ -107,6 +107,10 @@ function ProjectDetail() {
 
         <TabsContent value="Overview" className="mt-5">
           <OverviewTab project={project} />
+        </TabsContent>
+
+        <TabsContent value="Project Charter" className="mt-5">
+          <CharterTab project={project} />
         </TabsContent>
 
         <TabsContent value="Planning" className="mt-5">
@@ -341,6 +345,146 @@ function ProjectDetail() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return <div><div className="label-eyebrow">{label}</div><div className="text-foreground">{value}</div></div>;
+}
+
+// ── Project Charter tab ───────────────────────────────────────────────────────
+function CharterTab({ project }: { project: typeof projects[number] }) {
+  const [editMode, setEditMode] = useState(false);
+  const [approved, setApproved] = useState(project.stage !== "Initiation");
+
+  const [fields, setFields] = useState({
+    objective:   `Deliver ${project.name} on time and within budget, achieving the agreed scope for ${project.client ?? project.department}.`,
+    scope:       `In scope: full delivery of ${project.name} across all defined workstreams.\nOut of scope: ongoing operations, post-go-live support beyond 90 days.`,
+    sponsor:     "Executive Director, " + project.department,
+    pm:          project.pm,
+    startDate:   "2026-04-01",
+    endDate:     project.endDate,
+    budget:      `$${project.budgetTotal.toFixed(1)}M`,
+    constraints: "Must comply with procurement policy. Key milestones cannot slip beyond 30 days without board approval.",
+    assumptions: "Stakeholder availability confirmed. No major regulatory changes expected during delivery.",
+    risks:       `${project.risks} open risks logged in RAID register. Top risk: vendor delivery delay.`,
+    successCriteria: "Go-live achieved by target date. User acceptance ≥ 85%. Budget variance < 5%.",
+  });
+
+  function patch(key: keyof typeof fields, val: string) {
+    setFields((prev) => ({ ...prev, [key]: val }));
+  }
+
+  function Field({ label, fieldKey, multiline = false }: { label: string; fieldKey: keyof typeof fields; multiline?: boolean }) {
+    return (
+      <div className="space-y-1">
+        <div className="label-eyebrow">{label}</div>
+        {editMode ? (
+          multiline
+            ? <Textarea value={fields[fieldKey]} onChange={(e) => patch(fieldKey, e.target.value)} className="bg-secondary/40 text-sm min-h-[64px]" rows={3} />
+            : <Input value={fields[fieldKey]} onChange={(e) => patch(fieldKey, e.target.value)} className="bg-secondary/40 text-sm" />
+        ) : (
+          <p className="text-sm text-foreground whitespace-pre-line">{fields[fieldKey]}</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header bar */}
+      <div className="glass-card flex items-center justify-between px-5 py-4">
+        <div>
+          <h2 className="text-base font-medium text-foreground">Project Charter — {project.name}</h2>
+          <p className="text-xs text-muted-foreground">Version 1.0 · {project.department} · {project.businessLine}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+            approved
+              ? "bg-rag-green/10 text-rag-green border border-rag-green/30"
+              : "bg-rag-amber/10 text-rag-amber border border-rag-amber/30"
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${approved ? "bg-rag-green" : "bg-rag-amber"}`} />
+            {approved ? "Approved" : "Pending Approval"}
+          </span>
+          {!approved && (
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs"
+              onClick={() => { setApproved(true); toast.success("Charter approved"); }}>
+              Approve Charter
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="text-xs"
+            onClick={() => { setEditMode((e) => !e); if (editMode) toast.success("Charter saved"); }}>
+            {editMode ? "Save" : "Edit"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Main content grid */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Left column */}
+        <div className="space-y-4">
+          <div className="glass-card p-5 space-y-4">
+            <div className="label-eyebrow text-accent">Project Purpose</div>
+            <Field label="Objective" fieldKey="objective" multiline />
+            <Field label="Scope" fieldKey="scope" multiline />
+          </div>
+
+          <div className="glass-card p-5 space-y-4">
+            <div className="label-eyebrow text-accent">Success Criteria</div>
+            <Field label="Definition of success" fieldKey="successCriteria" multiline />
+          </div>
+
+          <div className="glass-card p-5 space-y-4">
+            <div className="label-eyebrow text-accent">Constraints & Assumptions</div>
+            <Field label="Constraints" fieldKey="constraints" multiline />
+            <Field label="Assumptions" fieldKey="assumptions" multiline />
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-4">
+          <div className="glass-card p-5 space-y-4">
+            <div className="label-eyebrow text-accent">Project Identity</div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Sponsor" fieldKey="sponsor" />
+              <Field label="Project Manager" fieldKey="pm" />
+              <Field label="Start Date" fieldKey="startDate" />
+              <Field label="End Date" fieldKey="endDate" />
+              <Field label="Approved Budget" fieldKey="budget" />
+              <div className="space-y-1">
+                <div className="label-eyebrow">Client</div>
+                <p className="text-sm text-foreground">{project.client ?? "Internal"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card p-5 space-y-4">
+            <div className="label-eyebrow text-accent">Risk Summary</div>
+            <Field label="Key risks at charter stage" fieldKey="risks" multiline />
+          </div>
+
+          <div className="glass-card p-5 space-y-3">
+            <div className="label-eyebrow text-accent">Approval Record</div>
+            {[
+              { role: "Executive Sponsor", name: "Ahmad Al-Farsi", date: approved ? "May 02, 2026" : "—", done: approved },
+              { role: "Portfolio Director", name: "Aisha Khoury",  date: approved ? "May 04, 2026" : "—", done: approved },
+              { role: "Project Manager",   name: project.pm,       date: approved ? "Apr 29, 2026" : "—", done: true },
+              { role: "Finance Manager",   name: "John Smith",     date: approved ? "May 04, 2026" : "—", done: approved },
+            ].map((a) => (
+              <div key={a.role} className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-foreground">{a.name}</div>
+                  <div className="text-xs text-muted-foreground">{a.role}</div>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">{a.date}</span>
+                  <span className={`h-5 w-5 flex items-center justify-center rounded-full text-[10px] font-bold ${
+                    a.done ? "bg-rag-green/10 text-rag-green" : "bg-rag-amber/10 text-rag-amber"
+                  }`}>{a.done ? "✓" : "…"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function OverviewTab({ project }: { project: typeof projects[number] }) {
