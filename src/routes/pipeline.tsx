@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { pipelineItems } from "@/lib/mock-data";
+import { pipelineItems, type Project, type Rag } from "@/lib/mock-data";
+import { useProjects } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { Check, X as XIcon, Plus, GripVertical, ExternalLink } from "lucide-react";
 import { NewBusinessCaseFlow } from "@/components/NewBusinessCaseFlow";
@@ -52,6 +53,29 @@ type ApprovalHistory = Record<string, RoleApproval[]>;
 
 const APPROVAL_ROLES = ["Department Head", "Finance Director", "Portfolio Director"];
 
+function itemToProject(item: Item): Project {
+  const avatar = item.submittedBy.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  const roiMatch = item.roi.match(/\$([\d.]+)M/);
+  return {
+    id: `p-${Date.now()}`,
+    name: item.title,
+    businessLine: "Software Solutions",
+    department: "Engineering",
+    pm: item.submittedBy,
+    pmAvatar: avatar,
+    progress: 0,
+    budgetUsed: 0,
+    budgetTotal: roiMatch ? parseFloat(roiMatch[1]) : 0,
+    endDate: "TBD",
+    rag: "blue" as Rag,
+    risks: 0,
+    issues: 0,
+    stage: "Initiation",
+    tags: [item.pillar],
+    ragNote: "Pipeline approved",
+  };
+}
+
 function buildInitialHistory(items: Item[]): ApprovalHistory {
   return Object.fromEntries(
     items
@@ -62,6 +86,7 @@ function buildInitialHistory(items: Item[]): ApprovalHistory {
 
 function PipelinePage() {
   const navigate = useNavigate();
+  const { addProject } = useProjects();
   const [items, setItems] = useState<Item[]>(
     pipelineItems.map((p) => ({ ...p, stage: p.stage as Stage }))
   );
@@ -181,6 +206,8 @@ function PipelinePage() {
   }
 
   function confirmApprove(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (item) addProject(itemToProject(item));
     commitMove(id, "Approved");
     setPendingApprove(null); setQueueApprove(null); setApproveNote("");
   }
@@ -516,6 +543,8 @@ function PipelinePage() {
                   const allDone = updated.every((a) => a.action !== "Pending");
                   const allApproved = updated.every((a) => a.action === "Approved");
                   if (allDone && allApproved) {
+                    const fullItem = items.find((i) => i.id === itemId);
+                    if (fullItem) addProject(itemToProject(fullItem));
                     setTimeout(() => {
                       commitMove(itemId, "Approved");
                       navigate({ to: "/portfolio" });

@@ -10,6 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AppTopbar } from "@/components/AppTopbar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ProjectsProvider } from "@/lib/projects-store";
 
 function NotFoundComponent() {
   return (
@@ -94,6 +95,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
+      <ProjectsProvider>
       <TooltipProvider delayDuration={120}>
         <SidebarProvider defaultOpen>
           <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -108,6 +110,7 @@ function RootComponent() {
           <Toaster richColors theme="dark" position="bottom-right" />
         </SidebarProvider>
       </TooltipProvider>
+      </ProjectsProvider>
     </QueryClientProvider>
   );
 }

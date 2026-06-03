@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, LayoutGrid, List, GanttChartSquare, Search, Filter, X } from "lucide-react";
 import { projects, pipelineItems, type Project, type Rag } from "@/lib/mock-data";
+import { useProjects } from "@/lib/projects-store";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +38,7 @@ const ALL_DEPTS   = Array.from(new Set(projects.map((p) => p.department)));
 const ALL_CLIENTS = Array.from(new Set(projects.map((p) => p.client).filter(Boolean))) as string[];
 
 function PortfolioPage() {
-  const [projectList, setProjectList] = useState<Project[]>(projects);
+  const { projects: projectList, addProject } = useProjects();
   return (
     <div>
       <PageHeader
@@ -45,7 +46,7 @@ function PortfolioPage() {
         subtitle={`${projectList.length} active projects · FY2026`}
         actions={
           <div className="flex gap-2">
-            <NewProjectDialog onAdd={(p) => setProjectList((prev) => [p, ...prev])} />
+            <NewProjectDialog onAdd={addProject} />
             <NewBusinessCaseDialog />
           </div>
         }
