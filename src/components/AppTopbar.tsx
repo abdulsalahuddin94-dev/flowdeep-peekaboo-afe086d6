@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bell, Plus, Search, Command as CmdIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Bell, Plus, Search, Command as CmdIcon, Briefcase, Users, Zap } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,8 +16,15 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { pipelineItems, resources } from "@/lib/mock-data";
+import { useProjects } from "@/lib/projects-store";
+
+const RAG_DOT: Record<string, string> = {
+  green: "bg-rag-green", amber: "bg-rag-amber",
+  red: "bg-rag-red", blue: "bg-rag-blue", grey: "bg-muted-foreground",
+};
 
 const crumbsMap: Record<string, string> = {
   "/": "Dashboard",
@@ -36,9 +43,27 @@ const crumbsMap: Record<string, string> = {
 
 export function AppTopbar() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const { projects } = useProjects();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const top = "/" + (pathname.split("/")[1] ?? "");
   const label = crumbsMap[top] ?? "Workspace";
+
+  useEffect(() => {
+    function down(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+    }
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
+
+  function go(to: string) {
+    setOpen(false);
+    navigate({ to });
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md">
@@ -53,31 +78,93 @@ export function AppTopbar() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <button className="flex h-9 w-72 items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 text-sm text-muted-foreground hover:border-accent/40 hover:text-foreground">
-              <Search className="h-4 w-4" />
-              <span>Search projects, people, docs…</span>
-              <kbd className="ml-auto flex items-center gap-0.5 rounded border border-border bg-background px-1.5 py-0.5 text-[10px]">
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate text-left">Search projects, people, docs…</span>
+              <kbd className="ml-auto flex shrink-0 items-center gap-0.5 rounded border border-border bg-background px-1.5 py-0.5 text-[10px]">
                 <CmdIcon className="h-3 w-3" />K
               </kbd>
             </button>
           </DialogTrigger>
-          <DialogContent className="overflow-hidden p-0">
+          <DialogContent className="overflow-hidden p-0 sm:max-w-xl">
             <Command>
-              <CommandInput placeholder="Type to search anything…" />
-              <CommandList>
-                <CommandEmpty>No results.</CommandEmpty>
+              <CommandInput placeholder="Search projects, people, pipeline…" />
+              <CommandList className="max-h-[400px]">
+                <CommandEmpty>No results found.</CommandEmpty>
+
                 <CommandGroup heading="Projects">
-                  <CommandItem onSelect={() => setOpen(false)}>ERP System Upgrade</CommandItem>
-                  <CommandItem onSelect={() => setOpen(false)}>Coastal Refinery Expansion</CommandItem>
-                  <CommandItem onSelect={() => setOpen(false)}>Salesforce Migration</CommandItem>
+                  {projects.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      value={`${p.name} ${p.pm} ${p.businessLine} ${p.department} ${p.stage}`}
+                      onSelect={() => {
+                        navigate({ to: "/portfolio/$projectId", params: { projectId: p.id } });
+                        setOpen(false);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${RAG_DOT[p.rag] ?? "bg-muted-foreground"}`} />
+                      <span className="flex-1 truncate">{p.name}</span>
+                      <span className="ml-3 shrink-0 text-[11px] text-muted-foreground">{p.pm}</span>
+                      <span className="ml-2 shrink-0 text-[10px] text-muted-foreground/50">{p.stage}</span>
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
+
+                <CommandGroup heading="Pipeline">
+                  {pipelineItems.map((b) => (
+                    <CommandItem
+                      key={b.id}
+                      value={`${b.title} ${b.submittedBy} ${b.pillar} ${b.id}`}
+                      onSelect={() => go("/pipeline")}
+                      className="flex items-center gap-2"
+                    >
+                      <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                      <span className="flex-1 truncate">{b.title}</span>
+                      <span className="ml-3 shrink-0 num-mono text-[10px] text-muted-foreground">{b.pillar}</span>
+                      <span className={`ml-2 shrink-0 num-mono text-[10px] rounded px-1 ${
+                        b.score >= 71 ? "bg-rag-green/10 text-rag-green" :
+                        b.score >= 41 ? "bg-rag-amber/10 text-rag-amber" :
+                        "bg-rag-red/10 text-rag-red"
+                      }`}>{b.score}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+
                 <CommandGroup heading="People">
-                  <CommandItem>Sara Al-Rashid · PM</CommandItem>
-                  <CommandItem>Mei Chen · Security Lead</CommandItem>
+                  {resources.map((r) => (
+                    <CommandItem
+                      key={r.name}
+                      value={`${r.name} ${r.role} ${r.dept}`}
+                      onSelect={() => go("/resources")}
+                      className="flex items-center gap-2"
+                    >
+                      <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                      <span className="flex-1 truncate">{r.name}</span>
+                      <span className="ml-3 shrink-0 text-[11px] text-muted-foreground">{r.role}</span>
+                      <span className={`ml-2 shrink-0 num-mono text-[10px] ${
+                        r.util > 100 ? "text-rag-red" : r.util > 80 ? "text-rag-amber" : "text-rag-green"
+                      }`}>{r.util}%</span>
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
-                <CommandGroup heading="Actions">
-                  <CommandItem>+ New Business Case</CommandItem>
-                  <CommandItem>+ New Risk</CommandItem>
-                  <CommandItem>Run Executive Report</CommandItem>
+
+                <CommandGroup heading="Quick Actions">
+                  <CommandItem value="new business case pipeline submit" onSelect={() => go("/pipeline")} className="flex items-center gap-2">
+                    <Zap className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    <span>New Business Case</span>
+                  </CommandItem>
+                  <CommandItem value="new project portfolio create" onSelect={() => go("/portfolio")} className="flex items-center gap-2">
+                    <Zap className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    <span>New Project</span>
+                  </CommandItem>
+                  <CommandItem value="executive report run reports" onSelect={() => go("/reports")} className="flex items-center gap-2">
+                    <Zap className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    <span>Run Executive Report</span>
+                  </CommandItem>
+                  <CommandItem value="log risk risks issues" onSelect={() => go("/risks")} className="flex items-center gap-2">
+                    <Zap className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    <span>Log Risk / Issue</span>
+                  </CommandItem>
                 </CommandGroup>
               </CommandList>
             </Command>
