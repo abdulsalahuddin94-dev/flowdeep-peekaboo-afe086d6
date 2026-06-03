@@ -37,7 +37,7 @@ export const Route = createFileRoute("/portfolio/$projectId")({
 });
 
 const TABS = [
-  "Overview", "Project Charter", "Planning", "Schedule", "Team & Allocation", "Financials",
+  "Overview", "Project Charter", "Planning", "Gantt", "Team & Allocation", "Financials",
   "Risks & Issues", "Documents", "Status Reports", "Change Requests",
   "Procurement", "Stakeholders", "Lessons Learned",
 ];
@@ -117,7 +117,7 @@ function ProjectDetail() {
           <PlanningTab project={project} addRfp={addRfp} addResourceRequest={addResourceRequest} />
         </TabsContent>
 
-        <TabsContent value="Schedule" className="mt-5">
+        <TabsContent value="Gantt" className="mt-5">
           <ProjectGantt projectId={project.id} defaultAssignee={project.pm} />
         </TabsContent>
 
@@ -805,7 +805,7 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
   const pct = Math.round((doneCount / checklist.length) * 100);
 
   const subTabs = [
-    { v: "init", l: "Initiation & Planning" },
+    { v: "init", l: "Stage Gate" },
     { v: "ms", l: "Milestones & Dependencies" },
     { v: "manpower", l: "Manpower Requirements" },
     { v: "subs", l: "Subcontracted Packages" },
@@ -989,39 +989,7 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
         </TabsList>
 
         <TabsContent value="init" className="mt-5">
-          <div className="grid gap-4 md:grid-cols-[1fr_320px]">
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium text-foreground">Project Summary</div>
-                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={() => toast.success("Planning document saved")}>
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" />Save Changes
-                </Button>
-              </div>
-              <div className="mt-4 space-y-4">
-                <PlanningField
-                  label="Objectives (SMART)"
-                  value={`Migrate all legacy infrastructure to cloud-based services, reducing operational costs by 30% and improving system uptime to 99.9% by Q4 2026.`}
-                />
-                <PlanningField
-                  label="Scope"
-                  multiline
-                  value={`- Migration of 50+ servers to AWS cloud infrastructure\n- Implementation of automated backup and disaster recovery\n- Staff training on new cloud-based systems\n- Security and compliance certification`}
-                />
-                <PlanningField
-                  label="Out-of-Scope"
-                  multiline
-                  value={`- Legacy application rewrites (Phase 2)\n- On-premise infrastructure disposal`}
-                />
-                <PlanningField
-                  label="Success Criteria"
-                  multiline
-                  value={`- System uptime ≥ 99.9% within 30 days of go-live\n- 100% of staff trained and certified\n- All audit findings closed before project closure\n- Budget variance ≤ 5%`}
-                />
-              </div>
-            </div>
-
-            <div className="glass-card p-5">
+          <div className="glass-card p-5 max-w-sm">
               <div className="label-eyebrow">Stage Gate Overview</div>
               <ul className="mt-4 space-y-3">
                 {stages.map((s) => {
@@ -1053,7 +1021,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
               >
                 View Stage Gates →
               </button>
-            </div>
           </div>
 
           {/* Stage Gates management dialog */}
