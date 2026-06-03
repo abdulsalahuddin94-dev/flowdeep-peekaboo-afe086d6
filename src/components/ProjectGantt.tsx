@@ -67,6 +67,18 @@ function initials(name: string | null) {
   return name.split(/\s+/).map((s) => s[0]).filter(Boolean).join("").slice(0, 2).toUpperCase();
 }
 
+function makeDemoTasks(projectId: string, today: Date): Task[] {
+  const d = (n: number) => toISO(addDays(today, n));
+  return [
+    { id: "demo-1", project_id: projectId, lane: "Requirements",  label: "Stakeholder workshops",        start_date: d(-1), duration_days: 3, assignee: "Sara Al-Rashid", color: "blue",   sort_order: 0 },
+    { id: "demo-2", project_id: projectId, lane: "Design",        label: "System architecture design",   start_date: d(1),  duration_days: 4, assignee: "Mei Chen",       color: "violet", sort_order: 1 },
+    { id: "demo-3", project_id: projectId, lane: "Development",   label: "Backend API development",      start_date: d(0),  duration_days: 5, assignee: "Diego Ortiz",    color: "green",  sort_order: 2 },
+    { id: "demo-4", project_id: projectId, lane: "Development",   label: "Frontend UI build",            start_date: d(2),  duration_days: 4, assignee: "Priya Iyer",     color: "peach",  sort_order: 3 },
+    { id: "demo-5", project_id: projectId, lane: "Testing",       label: "UAT preparation & execution",  start_date: d(4),  duration_days: 3, assignee: "John Smith",     color: "amber",  sort_order: 4 },
+    { id: "demo-6", project_id: projectId, lane: "Deployment",    label: "Production go-live",           start_date: d(6),  duration_days: 2, assignee: "Sara Al-Rashid", color: "pink",   sort_order: 5 },
+  ];
+}
+
 export function ProjectGantt({ projectId, defaultAssignee }: { projectId: string; defaultAssignee?: string }) {
   const qc = useQueryClient();
   const today = useMemo(() => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }, []);
@@ -77,7 +89,7 @@ export function ProjectGantt({ projectId, defaultAssignee }: { projectId: string
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const weekEnd = days[6];
 
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: dbTasks = [], isLoading } = useQuery({
     queryKey: ["project_tasks", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -90,6 +102,11 @@ export function ProjectGantt({ projectId, defaultAssignee }: { projectId: string
       return data as Task[];
     },
   });
+
+  const tasks = useMemo(
+    () => (!isLoading && dbTasks.length === 0 ? makeDemoTasks(projectId, today) : dbTasks),
+    [dbTasks, isLoading, projectId, today]
+  );
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["project_tasks", projectId] });
 
@@ -207,11 +224,6 @@ export function ProjectGantt({ projectId, defaultAssignee }: { projectId: string
 
           {/* Loading / empty */}
           {isLoading && <div className="px-3 py-10 text-center text-sm text-muted-foreground">Loading tasks…</div>}
-          {!isLoading && lanes.length === 0 && (
-            <div className="px-3 py-10 text-center text-sm text-muted-foreground">
-              No tasks yet. Click <span className="text-foreground">Add task</span> to create one.
-            </div>
-          )}
 
           {/* Rows */}
           {lanes.map((lane) => (

@@ -380,8 +380,8 @@ function PipelinePage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="commercial" className="mt-5 glass-card p-6 text-sm text-muted-foreground">
-          Commercial bids board — 4 active bids in pursuit, 2 in proposal, 1 awaiting decision.
+        <TabsContent value="commercial" className="mt-5">
+          <CommercialBidsBoard />
         </TabsContent>
 
         <TabsContent value="queue" className="mt-5 space-y-3">
@@ -736,6 +736,102 @@ function PipelinePage() {
           </Dialog>
         );
       })()}
+    </div>
+  );
+}
+
+// ── Commercial Bids Board ─────────────────────────────────────────────────────
+
+const BID_STAGES = ["In Pursuit", "RFP Issued", "Proposal Submitted", "Evaluation", "Awarded", "Lost"] as const;
+type BidStage = typeof BID_STAGES[number];
+
+const BID_STAGE_STYLE: Record<BidStage, string> = {
+  "In Pursuit":         "border-rag-blue/30 bg-rag-blue/5",
+  "RFP Issued":         "border-rag-amber/30 bg-rag-amber/5",
+  "Proposal Submitted": "border-role-director/30 bg-role-director/5",
+  "Evaluation":         "border-accent/30 bg-accent-dim/10",
+  "Awarded":            "border-rag-green/30 bg-rag-green/5",
+  "Lost":               "border-rag-red/20 bg-rag-red/5",
+};
+
+type Bid = {
+  id: string; title: string; client: string; value: string;
+  owner: string; stage: BidStage; due: string; probability: number;
+};
+
+const SEED_BIDS: Bid[] = [
+  { id: "BID-031", title: "Smart Grid Operations Center",       client: "National Grid Co.",      value: "$8.2M",  owner: "PI",  stage: "In Pursuit",         due: "Aug 2026", probability: 40 },
+  { id: "BID-032", title: "Offshore Platform Safety Upgrade",   client: "Petro Gulf Ltd.",        value: "$15.4M", owner: "JS",  stage: "In Pursuit",         due: "Sep 2026", probability: 35 },
+  { id: "BID-033", title: "Airport Terminal Expansion",         client: "Dubai Airports",         value: "$42.0M", owner: "SA",  stage: "RFP Issued",         due: "Jul 2026", probability: 55 },
+  { id: "BID-034", title: "Water Treatment Plant Phase 2",      client: "Municipal Authority",    value: "$12.8M", owner: "OH",  stage: "RFP Issued",         due: "Jul 2026", probability: 60 },
+  { id: "BID-035", title: "IT Infrastructure Modernisation",    client: "Acme Holdings",          value: "$6.5M",  owner: "MC",  stage: "Proposal Submitted", due: "Jun 2026", probability: 70 },
+  { id: "BID-036", title: "Industrial Automation — Sector B",   client: "Khaleeji Mfg.",          value: "$9.1M",  owner: "DO",  stage: "Proposal Submitted", due: "Jun 2026", probability: 65 },
+  { id: "BID-037", title: "Healthcare Digital Transformation",  client: "MedNet Group",           value: "$11.3M", owner: "PI",  stage: "Evaluation",         due: "Jun 2026", probability: 80 },
+  { id: "BID-038", title: "Port Logistics Automation",          client: "Gulf Ports Authority",   value: "$28.5M", owner: "JS",  stage: "Awarded",            due: "Awarded",  probability: 100 },
+  { id: "BID-039", title: "Data Center Expansion — Phase 3",    client: "TelCo MENA",             value: "$19.2M", owner: "SA",  stage: "Lost",               due: "—",        probability: 0 },
+];
+
+function CommercialBidsBoard() {
+  const [bids, setBids] = useState<Bid[]>(SEED_BIDS);
+
+  const totalPipeline = bids
+    .filter((b) => b.stage !== "Lost")
+    .reduce((s, b) => s + parseFloat(b.value.replace(/[$M]/g, "")), 0);
+
+  return (
+    <div className="space-y-4">
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { l: "Total pipeline",   v: `$${totalPipeline.toFixed(1)}M` },
+          { l: "Active bids",      v: String(bids.filter((b) => !["Awarded","Lost"].includes(b.stage)).length) },
+          { l: "Awarded",          v: String(bids.filter((b) => b.stage === "Awarded").length), c: "text-rag-green" },
+          { l: "Win rate (YTD)",   v: "64%", c: "text-accent" },
+        ].map((k) => (
+          <div key={k.l} className="glass-card p-4">
+            <div className="label-eyebrow">{k.l}</div>
+            <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Kanban */}
+      <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        {BID_STAGES.map((stage) => {
+          const stageBids = bids.filter((b) => b.stage === stage);
+          return (
+            <div key={stage} className={`rounded-lg border p-3 ${BID_STAGE_STYLE[stage]}`}>
+              <div className="mb-3 flex items-center justify-between">
+                <span className="label-eyebrow">{stage}</span>
+                <Badge variant="outline" className="border-border bg-secondary/40 text-[10px]">{stageBids.length}</Badge>
+              </div>
+              <div className="space-y-2 min-h-[56px]">
+                {stageBids.map((b) => (
+                  <div key={b.id} className="glass-card p-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="num-mono text-muted-foreground">{b.id}</span>
+                      <span className={`num-mono rounded px-1.5 py-0.5 text-[10px] ${
+                        b.probability >= 80 ? "bg-rag-green/10 text-rag-green" :
+                        b.probability >= 50 ? "bg-rag-amber/10 text-rag-amber" :
+                        b.probability  > 0  ? "bg-rag-blue/10 text-rag-blue" :
+                                              "bg-rag-red/10 text-rag-red"
+                      }`}>{b.probability}%</span>
+                    </div>
+                    <div className="mt-1 text-sm font-medium text-foreground leading-snug">{b.title}</div>
+                    <div className="mt-1.5 text-[11px] text-muted-foreground">{b.client}</div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="bg-accent-dim text-[10px] text-accent">{b.owner}</AvatarFallback>
+                      </Avatar>
+                      <span className="num-mono text-[10px] text-muted-foreground">{b.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
