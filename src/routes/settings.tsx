@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Mail } from "lucide-react";
+import { UserPlus, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { roleCatalogue } from "@/lib/mock-data";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -45,6 +48,7 @@ function SettingsPage() {
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="workspace" className="mt-5 glass-card p-6 space-y-4 max-w-2xl">
@@ -186,6 +190,10 @@ function SettingsPage() {
             onInvite={(u) => { setUsers((prev) => [...prev, u]); toast.success(`Invitation sent to ${u.email}`); }}
           />
         </TabsContent>
+
+        <TabsContent value="roles" className="mt-5 space-y-4">
+          <RolesTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -239,5 +247,136 @@ function InviteUserDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── Roles & Permissions tab ───────────────────────────────────────────────────
+
+const DOMAINS = [
+  "Portfolio", "Project", "Pipeline", "Resources", "Financials",
+  "Procurement", "Risk & Issues", "Reports", "Organization", "Admin",
+];
+const ACTIONS = ["view", "create", "edit", "approve", "delete", "export", "admin"] as const;
+
+function RolesTab() {
+  const [open, setOpen] = useState<typeof roleCatalogue[number] | null>(null);
+  const [newRoleOpen, setNewRoleOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleDesc, setNewRoleDesc] = useState("");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm font-medium text-foreground">70-permission matrix · {roleCatalogue.length} default roles</div>
+          <div className="text-xs text-muted-foreground">Click a role to view and edit its permission matrix</div>
+        </div>
+        <Button size="sm" className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setNewRoleOpen(true)}>
+          <ShieldCheck className="h-3.5 w-3.5" />New Role
+        </Button>
+      </div>
+
+      <div className="glass-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Role</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Users</TableHead>
+              <TableHead className="text-right">Permissions</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {roleCatalogue.map((r) => (
+              <TableRow key={r.name} className="cursor-pointer hover:bg-accent-dim/40" onClick={() => setOpen(r)}>
+                <TableCell className="font-medium text-foreground">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full" style={{ background: r.color }} />
+                    {r.name}
+                  </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{r.desc}</TableCell>
+                <TableCell className="text-right num-mono text-sm">{r.users}</TableCell>
+                <TableCell className="text-right">
+                  <Badge variant="outline" className="border-accent/40 bg-accent-dim text-accent">{r.perms} / 70</Badge>
+                </TableCell>
+                <TableCell>
+                  <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setOpen(r); }}>Edit</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Permission matrix sheet */}
+      <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
+        <SheetContent className="w-[640px] overflow-y-auto bg-surface sm:max-w-[640px]">
+          {open && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2 text-foreground">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: open.color }} />
+                  {open.name}
+                </SheetTitle>
+              </SheetHeader>
+              <p className="mt-2 text-sm text-muted-foreground">{open.desc}</p>
+              <div className="mt-5">
+                <div className="label-eyebrow mb-3">Permission matrix</div>
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40">
+                      <tr>
+                        <th className="p-2 text-left">Domain</th>
+                        {ACTIONS.map((a) => <th key={a} className="p-2 text-center capitalize">{a}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {DOMAINS.map((d, i) => (
+                        <tr key={d} className="border-t border-border">
+                          <td className="p-2 text-foreground">{d}</td>
+                          {ACTIONS.map((a, j) => (
+                            <td key={a} className="p-2 text-center">
+                              <Checkbox defaultChecked={(i + j) % 3 !== 0} />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div className="mt-5 flex gap-2">
+                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 flex-1" onClick={() => toast.success("Permissions updated")}>Save changes</Button>
+                <Button variant="outline" onClick={() => toast.success("Role duplicated")}>Duplicate</Button>
+                <Button variant="outline" className="text-rag-red border-rag-red/40" onClick={() => { toast.success("Role deleted"); setOpen(null); }}>Delete</Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* New role dialog */}
+      <Dialog open={newRoleOpen} onOpenChange={setNewRoleOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Create new role</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Role name</Label>
+              <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="e.g. Programme Director" className="bg-secondary/40" />
+            </div>
+            <div className="space-y-1">
+              <Label>Description</Label>
+              <Input value={newRoleDesc} onChange={(e) => setNewRoleDesc(e.target.value)} placeholder="Short description of responsibilities" className="bg-secondary/40" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewRoleOpen(false)}>Cancel</Button>
+            <Button className="bg-accent text-accent-foreground" onClick={() => { toast.success(`Role "${newRoleName}" created`); setNewRoleOpen(false); setNewRoleName(""); setNewRoleDesc(""); }}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

@@ -13,20 +13,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 const main = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Organization", url: "/organization", icon: Building2 },
+  { title: "Dashboard",       url: "/",               icon: LayoutDashboard },
+  { title: "Portfolio",       url: "/portfolio",       icon: Target },
+  { title: "Pipeline",        url: "/pipeline",        icon: GitBranch, badge: 6 },
+  { title: "Risk & Issues",   url: "/risks",           icon: AlertTriangle, badge: 3, badgeTone: "red" as const },
+  { title: "Resources",       url: "/resources",       icon: Users },
   { title: "Clients & Vendors", url: "/clients-vendors", icon: Handshake },
-  { title: "Portfolio", url: "/portfolio", icon: Target },
-  { title: "Pipeline", url: "/pipeline", icon: GitBranch, badge: 6 },
-  { title: "Resources", url: "/resources", icon: Users },
-  { title: "Financials", url: "/financials", icon: DollarSign },
-  { title: "Risk & Issues", url: "/risks", icon: AlertTriangle, badge: 3, badgeTone: "red" as const },
-  { title: "Procurement", url: "/procurement", icon: HardHat },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Procurement",     url: "/procurement",     icon: HardHat },
+  { title: "Financials",      url: "/financials",      icon: DollarSign },
+  { title: "Reports",         url: "/reports",         icon: BarChart3 },
+  { title: "Organization",    url: "/organization",    icon: Building2 },
 ];
 
 const mgmt = [
-  { title: "Roles & Permissions", url: "/roles", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
