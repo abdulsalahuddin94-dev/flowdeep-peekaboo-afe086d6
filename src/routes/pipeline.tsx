@@ -20,25 +20,25 @@ export const Route = createFileRoute("/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline — Nexus PMO" }, { name: "description", content: "Pre-approval funnel: business case intake, scoring, Kanban routing and DoA sign-off." }] }),
 });
 
-const STAGES = ["Submitted", "Under Review", "Revision Requested", "Approved", "Deferred", "Rejected"] as const;
+const STAGES = ["Submitted", "Under Review", "Approved", "Deferred", "Rejected", "Closed"] as const;
 type Stage = typeof STAGES[number];
 
 const VALID_TRANSITIONS: Record<Stage, Stage[]> = {
-  "Submitted":          ["Under Review", "Deferred", "Rejected"],
-  "Under Review":       ["Approved", "Revision Requested", "Rejected", "Deferred"],
-  "Revision Requested": ["Submitted", "Under Review"],
-  "Approved":           [],
-  "Rejected":           [],
-  "Deferred":           ["Submitted", "Under Review"],
+  "Submitted":    ["Under Review", "Deferred", "Rejected"],
+  "Under Review": ["Approved", "Rejected", "Closed", "Deferred"],
+  "Approved":     [],
+  "Rejected":     [],
+  "Deferred":     ["Submitted", "Under Review"],
+  "Closed":       [],
 };
 
 const STAGE_STYLE: Record<Stage, string> = {
-  "Submitted":          "border-rag-blue/30 bg-rag-blue/5",
-  "Under Review":       "border-rag-amber/30 bg-rag-amber/5",
-  "Revision Requested": "border-role-exec/30 bg-role-exec/5",
-  "Approved":           "border-rag-green/30 bg-rag-green/5",
-  "Deferred":           "border-border bg-secondary/10",
-  "Rejected":           "border-rag-red/30 bg-rag-red/5",
+  "Submitted":    "border-rag-blue/30 bg-rag-blue/5",
+  "Under Review": "border-rag-amber/30 bg-rag-amber/5",
+  "Approved":     "border-rag-green/30 bg-rag-green/5",
+  "Deferred":     "border-border bg-secondary/10",
+  "Rejected":     "border-rag-red/30 bg-rag-red/5",
+  "Closed":       "border-border bg-secondary/20",
 };
 
 type Item = {
@@ -106,8 +106,10 @@ function PipelinePage() {
   // ── Dialog state ─────────────────────────────────────────────────────────────
   const [pendingApprove, setPendingApprove] = useState<string | null>(null);
   const [pendingReject,  setPendingReject]  = useState<string | null>(null);
+  const [pendingClose,   setPendingClose]   = useState<string | null>(null);
   const [approveNote,  setApproveNote]  = useState("");
   const [rejectReason, setRejectReason] = useState("");
+  const [closeNote,    setCloseNote]    = useState("");
   const [queueApprove, setQueueApprove] = useState<string | null>(null);
   const [queueReject,  setQueueReject]  = useState<string | null>(null);
   const [newCase, setNewCase] = useState(false);
@@ -196,6 +198,7 @@ function PipelinePage() {
 
     if (targetStage === "Approved") { setPendingApprove(draggingItem.id); return; }
     if (targetStage === "Rejected") { setPendingReject(draggingItem.id);  return; }
+    if (targetStage === "Closed")   { setPendingClose(draggingItem.id);   return; }
 
     commitMove(draggingItem.id, targetStage);
   }
@@ -220,6 +223,11 @@ function PipelinePage() {
     if (!rejectReason.trim()) { toast.error("Please enter a rejection reason"); return; }
     commitMove(id, "Rejected");
     setPendingReject(null); setQueueReject(null); setRejectReason("");
+  }
+
+  function confirmClose(id: string) {
+    commitMove(id, "Closed");
+    setPendingClose(null); setCloseNote("");
   }
 
   // ── Column style ─────────────────────────────────────────────────────────────
@@ -367,9 +375,8 @@ function PipelinePage() {
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground">
             <span className="font-medium text-foreground/70">Stage rules:</span>
             <span>Submitted → Under Review · Deferred · Rejected</span>
-            <span>Under Review → Approved (score ≥ 71) · Revision · Rejected · Deferred</span>
-            <span>Revision → Submitted · Under Review</span>
-            <span className="text-rag-red/70">Approved / Rejected = terminal (locked)</span>
+            <span>Under Review → Approved (score ≥ 71) · Rejected · Closed · Deferred</span>
+            <span className="text-rag-red/70">Approved / Rejected / Closed = terminal (locked)</span>
           </div>
         </TabsContent>
 
@@ -471,8 +478,8 @@ function PipelinePage() {
           </div>
           <p className="text-sm text-muted-foreground">Approving will move this case to the active Portfolio and notify the proposed PM.</p>
           <div className="space-y-2">
-            <Label>Approval note (optional)</Label>
-            <Textarea placeholder="Any conditions or scope adjustments…" value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
+            <Label>Comment <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Textarea placeholder="Any conditions, scope adjustments, or notes for the PM…" value={approveNote} onChange={(e) => setApproveNote(e.target.value)} rows={3} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setPendingApprove(null); setQueueApprove(null); setApproveNote(""); }}>Cancel</Button>
@@ -492,11 +499,12 @@ function PipelinePage() {
             <div className="mt-0.5 text-xs text-muted-foreground">Score {items.find((i) => i.id === rejectTarget)?.score}/100</div>
           </div>
           <div className="space-y-2">
-            <Label>Reason <span className="text-rag-red">*</span></Label>
+            <Label>Comment <span className="text-rag-red">*</span></Label>
             <Textarea
               placeholder="Why is this being rejected? (required)"
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
               className={!rejectReason ? "border-rag-red/30" : ""}
             />
           </div>
@@ -504,6 +512,33 @@ function PipelinePage() {
             <Button variant="outline" onClick={() => { setPendingReject(null); setQueueReject(null); setRejectReason(""); }}>Cancel</Button>
             <Button variant="destructive" onClick={() => rejectTarget && confirmReject(rejectTarget)}>
               <XIcon className="mr-1 h-3.5 w-3.5" />Confirm Reject
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close Case dialog */}
+      <Dialog open={!!pendingClose} onOpenChange={(o) => { if (!o) { setPendingClose(null); setCloseNote(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Close Business Case</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-border bg-secondary/30 p-3 text-sm">
+            <div className="font-medium text-foreground">{items.find((i) => i.id === pendingClose)?.title}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">Score {items.find((i) => i.id === pendingClose)?.score}/100</div>
+          </div>
+          <p className="text-sm text-muted-foreground">This business case will be closed and archived. It cannot be reopened.</p>
+          <div className="space-y-2">
+            <Label>Comment <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Textarea
+              placeholder="Reason for closing…"
+              value={closeNote}
+              onChange={(e) => setCloseNote(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPendingClose(null); setCloseNote(""); }}>Cancel</Button>
+            <Button variant="outline" className="border-border text-foreground" onClick={() => pendingClose && confirmClose(pendingClose)}>
+              Confirm Close
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -669,9 +704,16 @@ function PipelinePage() {
               </div>
 
               <DialogFooter className="gap-2">
-                <Button variant="outline" onClick={() => setDetailItem(null)}>Close</Button>
-                {(bc.stage === "Under Review" || bc.stage === "Submitted") && (
+                <Button variant="outline" onClick={() => setDetailItem(null)}>Cancel</Button>
+                {bc.stage === "Under Review" && (
                   <>
+                    <Button
+                      variant="outline"
+                      className="border-border text-muted-foreground hover:bg-secondary/60"
+                      onClick={() => { setDetailItem(null); setPendingClose(bc.id); }}
+                    >
+                      Close Case
+                    </Button>
                     <Button
                       variant="outline"
                       className="border-rag-red/40 text-rag-red hover:bg-rag-red/10"
