@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil } from "lucide-react";
 import type { Rag } from "@/lib/mock-data";
-import { projects, vendors as vendorList } from "@/lib/mock-data";
+import { projects, vendors as vendorList, resources as resourcePool } from "@/lib/mock-data";
+import { useProjects, useNotifications, useRfps, useResourceRequests, type RfpEntry, type ResourceRequest } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { ProjectGantt } from "@/components/ProjectGantt";
 
@@ -42,8 +43,21 @@ const TABS = [
 ];
 
 function ProjectDetail() {
-  const { project } = Route.useLoaderData();
+  const { project: loaderProject } = Route.useLoaderData();
+  const { projects: liveProjects, updateProject } = useProjects();
+  const { addNotification } = useNotifications();
+  const { addRfp } = useRfps();
+  const { addResourceRequest } = useResourceRequests();
+  const project = liveProjects.find((p) => p.id === loaderProject.id) ?? loaderProject;
   const [reportOpen, setReportOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([
+    { n: project.pm, r: "PM", a: 80, p: "Apr–Sep", s: "green" as Rag },
+    { n: "Mei Chen", r: "Security Lead", a: 40, p: "May–Aug", s: "green" as Rag },
+    { n: "Priya Iyer", r: "Tech Lead", a: 100, p: "Jun–Sep", s: "amber" as Rag },
+    { n: "Diego Ortiz", r: "BI Engineer", a: 30, p: "Jul–Aug", s: "blue" as Rag },
+  ]);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [reqResourceOpen, setReqResourceOpen] = useState(false);
   const [reports, setReports] = useState<StatusReport[]>(() => [
     { week: 18, by: project.pm, when: "3 days ago", rag: project.rag, text: "Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet." },
     { week: 17, by: project.pm, when: "10 days ago", rag: "amber", text: "Vendor SOW reviewed. Two open RAID items remain; mitigations scheduled this sprint." },
@@ -63,7 +77,7 @@ function ProjectDetail() {
           <div className="flex items-center gap-2">
             <RagBadge rag={project.rag} />
             <Badge variant="outline" className="border-border bg-secondary/40">{project.stage}</Badge>
-            <Button variant="outline" size="sm">Export</Button>
+            <Button variant="outline" size="sm" onClick={() => window.print()}>Export</Button>
             <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setReportOpen(true)}>Submit status</Button>
           </div>
         }
@@ -96,7 +110,7 @@ function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="Planning" className="mt-5">
-          <PlanningTab project={project} />
+          <PlanningTab project={project} addRfp={addRfp} addResourceRequest={addResourceRequest} />
         </TabsContent>
 
         <TabsContent value="Schedule" className="mt-5">
@@ -166,36 +180,58 @@ function ProjectDetail() {
               </div>
             </TabsContent>
 
-            <TabsContent value="team-members" className="mt-4 glass-card overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Member</TableHead><TableHead>Role</TableHead>
-                    <TableHead>Allocation %</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[
-                    { n: project.pm, r: "PM", a: 80, p: "Apr–Sep", s: "green" },
-                    { n: "Mei Chen", r: "Security Lead", a: 40, p: "May–Aug", s: "green" },
-                    { n: "Priya Iyer", r: "Tech Lead", a: 100, p: "Jun–Sep", s: "amber" },
-                    { n: "Diego Ortiz", r: "BI Engineer", a: 30, p: "Jul–Aug", s: "blue" },
-                  ].map((m) => (
-                    <TableRow key={m.n}>
-                      <TableCell className="font-medium">{m.n}</TableCell>
-                      <TableCell>{m.r}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={m.a} className="h-1.5 w-32" />
-                          <span className="num-mono text-xs">{m.a}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{m.p}</TableCell>
-                      <TableCell><RagBadge rag={m.s as any} /></TableCell>
+            <TabsContent value="team-members" className="mt-4 space-y-3">
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="outline" className="gap-1 text-xs border-accent/40 text-accent hover:bg-accent-dim"
+                  onClick={() => setReqResourceOpen(true)}>
+                  <UserPlus className="h-3.5 w-3.5" />Request Resource
+                </Button>
+                <Button size="sm" className="gap-1 text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={() => setAddMemberOpen(true)}>
+                  <Plus className="h-3.5 w-3.5" />Add Member
+                </Button>
+              </div>
+              <div className="glass-card overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Member</TableHead><TableHead>Role</TableHead>
+                      <TableHead>Allocation %</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {teamMembers.map((m) => (
+                      <TableRow key={m.n}>
+                        <TableCell className="font-medium">{m.n}</TableCell>
+                        <TableCell>{m.r}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress value={m.a} className="h-1.5 w-32" />
+                            <span className="num-mono text-xs">{m.a}%</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{m.p}</TableCell>
+                        <TableCell><RagBadge rag={m.s} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Add Member dialog */}
+              <AddTeamMemberDialog
+                open={addMemberOpen}
+                onOpenChange={setAddMemberOpen}
+                onAdd={(m) => { setTeamMembers((prev) => [...prev, m]); toast.success(`${m.n} added to team`); }}
+              />
+
+              {/* Request Resource dialog */}
+              <RequestResourceDialog
+                open={reqResourceOpen}
+                onOpenChange={setReqResourceOpen}
+                project={project}
+                onSubmit={(r) => { addResourceRequest(r); toast.success("Resource request submitted to Resources module"); }}
+              />
             </TabsContent>
 
             <TabsContent value="alloc-overview" className="mt-4 glass-card p-5">
@@ -279,6 +315,7 @@ function ProjectDetail() {
             setReports={setReports}
             externalOpen={reportOpen}
             onExternalOpenChange={setReportOpen}
+            onRagChange={(rag) => { updateProject(project.id, { rag }); addNotification({ tone: rag === "red" ? "red" : rag === "amber" ? "amber" : "green", title: `${project.name} status updated to ${rag === "red" ? "Critical" : rag === "amber" ? "At Risk" : "On Track"}`, time: "Just now" }); }}
           />
         </TabsContent>
 
@@ -446,6 +483,147 @@ function OverviewTab({ project }: { project: typeof projects[number] }) {
   );
 }
 
+// ── Add Team Member dialog ─────────────────────────────────────────────────────
+type TeamMemberEntry = { n: string; r: string; a: number; p: string; s: Rag };
+
+function AddTeamMemberDialog({
+  open, onOpenChange, onAdd,
+}: { open: boolean; onOpenChange: (o: boolean) => void; onAdd: (m: TeamMemberEntry) => void }) {
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+  const [alloc, setAlloc] = useState("50");
+  const [period, setPeriod] = useState("");
+
+  function submit() {
+    if (!name.trim() || !role.trim()) { toast.error("Name and role are required"); return; }
+    onAdd({ n: name.trim(), r: role.trim(), a: parseInt(alloc) || 50, p: period || "TBD", s: "green" });
+    onOpenChange(false); setName(""); setRole(""); setAlloc("50"); setPeriod("");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Add Team Member</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Name</Label>
+            <Select onValueChange={setName}>
+              <SelectTrigger className="bg-secondary/40"><SelectValue placeholder="Select person" /></SelectTrigger>
+              <SelectContent>
+                {resourcePool.map((r) => (
+                  <SelectItem key={r.name} value={r.name}>{r.name} — {r.role}</SelectItem>
+                ))}
+                <SelectItem value="__custom__">Enter manually…</SelectItem>
+              </SelectContent>
+            </Select>
+            {name === "__custom__" && (
+              <Input placeholder="Full name" onChange={(e) => setName(e.target.value)} className="mt-1 bg-secondary/40" />
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label>Role on project</Label>
+            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Business Analyst" className="bg-secondary/40" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Allocation %</Label>
+              <Input type="number" min={10} max={100} value={alloc} onChange={(e) => setAlloc(e.target.value)} className="bg-secondary/40" />
+            </div>
+            <div className="space-y-1">
+              <Label>Period</Label>
+              <Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="e.g. Jun–Sep" className="bg-secondary/40" />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Member</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Request Resource dialog ───────────────────────────────────────────────────
+function RequestResourceDialog({
+  open, onOpenChange, project, onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  project: typeof projects[number];
+  onSubmit: (r: Omit<ResourceRequest, "id" | "date" | "status">) => void;
+}) {
+  const [role, setRole] = useState("");
+  const [skill, setSkill] = useState<"Junior" | "Mid" | "Senior" | "Lead">("Mid");
+  const [fte, setFte] = useState("1.0");
+  const [from, setFrom] = useState("");
+  const [until, setUntil] = useState("");
+  const [priority, setPriority] = useState<"Critical" | "High" | "Medium" | "Low">("Medium");
+  const [notes, setNotes] = useState("");
+
+  function submit() {
+    if (!role.trim() || !from || !until) { toast.error("Role and dates are required"); return; }
+    onSubmit({ project: project.name, role: role.trim(), skill, fte: parseFloat(fte) || 1, from, until, priority, submittedBy: project.pm, notes });
+    onOpenChange(false); setRole(""); setSkill("Mid"); setFte("1.0"); setFrom(""); setUntil(""); setPriority("Medium"); setNotes("");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Request Resource</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Role / Skill needed</Label>
+            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Data Engineer" className="bg-secondary/40" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Skill level</Label>
+              <Select value={skill} onValueChange={(v) => setSkill(v as any)}>
+                <SelectTrigger className="bg-secondary/40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Junior", "Mid", "Senior", "Lead"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>FTE</Label>
+              <Input type="number" min={0.5} max={3} step={0.5} value={fte} onChange={(e) => setFte(e.target.value)} className="bg-secondary/40" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>From (yyyy-mm)</Label>
+              <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="2026-07" className="bg-secondary/40" />
+            </div>
+            <div className="space-y-1">
+              <Label>Until (yyyy-mm)</Label>
+              <Input value={until} onChange={(e) => setUntil(e.target.value)} placeholder="2026-09" className="bg-secondary/40" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Priority</Label>
+            <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
+              <SelectTrigger className="bg-secondary/40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["Critical", "High", "Medium", "Low"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requirements…" className="bg-secondary/40 text-sm" rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Submit Request</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type TenderStatus = "Draft" | "Sent for Tendering" | "Proposals Received" | "Awarded" | "Cancelled";
 type TenderProposal = { vendor: string; score: number; value: string };
 type TenderPackage = {
@@ -465,7 +643,11 @@ const SEED_PACKAGES: TenderPackage[] = [
   { id: "PKG-004", scope: "Managed support (1 year)", est: "$285K", status: "Draft" },
 ];
 
-function PlanningTab({ project }: { project: typeof projects[number] }) {
+function PlanningTab({ project, addRfp, addResourceRequest }: {
+  project: typeof projects[number];
+  addRfp: (r: RfpEntry) => void;
+  addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => void;
+}) {
   const checklist = [
     { label: "Objectives & scope defined", done: true },
     { label: "Milestone schedule created", done: true },
@@ -585,12 +767,23 @@ function PlanningTab({ project }: { project: typeof projects[number] }) {
   }
 
   function sendForTendering(pkgId: string) {
+    const pkg = packages.find(p => p.id === pkgId);
+    if (!pkg) return;
     const rfpNum = 17 + packages.filter(p => p.rfp).length;
     const rfpId = `RFP-0${rfpNum}`;
     setPackages(prev => prev.map(p => p.id === pkgId
       ? { ...p, status: "Sent for Tendering", rfp: rfpId, issued: "Today", closes: "30 days" }
       : p
     ));
+    addRfp({
+      id: rfpId,
+      title: pkg.scope,
+      type: "RFP",
+      status: "Open",
+      bidders: 0,
+      due: "30 days",
+      project: project.name,
+    });
     toast.success("RFP created in Procurement", { description: `${rfpId} published — vendors can submit proposals` });
   }
 
@@ -1648,13 +1841,14 @@ function DocumentsTab() {
 
 // ── Status Reports tab ────────────────────────────────────────────────────────
 function StatusReportsTab({
-  project, reports, setReports, externalOpen, onExternalOpenChange,
+  project, reports, setReports, externalOpen, onExternalOpenChange, onRagChange,
 }: {
   project: typeof projects[number];
   reports: StatusReport[];
   setReports: React.Dispatch<React.SetStateAction<StatusReport[]>>;
   externalOpen: boolean;
   onExternalOpenChange: (open: boolean) => void;
+  onRagChange: (rag: Rag) => void;
 }) {
   const nextWeek = Math.max(...reports.map((r) => r.week), 0) + 1;
   const [rag, setRag] = useState<Rag>("green");
@@ -1663,6 +1857,7 @@ function StatusReportsTab({
   function submit() {
     if (!text.trim()) { toast.error("Status narrative is required"); return; }
     setReports((prev) => [{ week: nextWeek, by: project.pm, when: "Just now", rag, text: text.trim() }, ...prev]);
+    onRagChange(rag);
     toast.success(`Week ${nextWeek} status report submitted`);
     onExternalOpenChange(false); setRag("green"); setText("");
   }

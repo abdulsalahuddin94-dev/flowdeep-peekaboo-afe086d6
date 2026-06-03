@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { resources, projects, departments } from "@/lib/mock-data";
+import { useResourceRequests } from "@/lib/projects-store";
+import type { ResourceRequest } from "@/lib/projects-store";
 import { Upload, Plus, CheckCircle2, XCircle, Clock, AlertTriangle, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,34 +25,7 @@ export const Route = createFileRoute("/resources")({
 
 // ── Resource request types ────────────────────────────────────────────────────
 
-type RequestStatus = "Pending" | "Fulfilled" | "Declined";
 type Priority = "Critical" | "High" | "Medium" | "Low";
-
-interface ResourceRequest {
-  id: string;
-  project: string;
-  role: string;
-  skill: "Junior" | "Mid" | "Senior" | "Lead";
-  fte: number;
-  from: string;
-  until: string;
-  priority: Priority;
-  status: RequestStatus;
-  submittedBy: string;
-  date: string;
-  notes: string;
-  assignedTo?: string;
-  declineReason?: string;
-}
-
-const SEED_REQUESTS: ResourceRequest[] = [
-  { id: "RR-001", project: "ERP System Upgrade",        role: "Solution Architect", skill: "Senior", fte: 1.0, from: "2026-06", until: "2026-09", priority: "Critical", status: "Pending",   submittedBy: "Sara Al-Rashid", date: "2d ago",  notes: "Must have SAP ECC or S/4HANA experience" },
-  { id: "RR-002", project: "Coastal Refinery Expansion", role: "Field Engineer",    skill: "Senior", fte: 2.0, from: "2026-07", until: "2026-12", priority: "High",     status: "Pending",   submittedBy: "John Smith",     date: "3d ago",  notes: "" },
-  { id: "RR-003", project: "Smart Grid Pilot",           role: "QA Engineer",       skill: "Mid",    fte: 1.0, from: "2026-07", until: "2026-09", priority: "Medium",   status: "Pending",   submittedBy: "Priya Iyer",     date: "5d ago",  notes: "" },
-  { id: "RR-004", project: "AI Forecasting Engine",      role: "Data Engineer",     skill: "Mid",    fte: 1.5, from: "2026-06", until: "2026-11", priority: "Medium",   status: "Pending",   submittedBy: "Diego Ortiz",    date: "6d ago",  notes: "Python + Spark stack preferred" },
-  { id: "RR-005", project: "Security Hardening 2026",    role: "Security Lead",     skill: "Senior", fte: 0.5, from: "2026-08", until: "2026-08", priority: "Critical", status: "Fulfilled", submittedBy: "Mei Chen",       date: "1w ago",  notes: "Pen-test cert required", assignedTo: "Mei Chen" },
-  { id: "RR-006", project: "Warehouse Robotics",         role: "Change Manager",    skill: "Mid",    fte: 0.5, from: "2026-09", until: "2026-09", priority: "Low",      status: "Declined",  submittedBy: "Priya Iyer",     date: "1w ago",  notes: "", declineReason: "No available change managers this quarter — recommend external consultant" },
-];
 
 const PRIORITY_STYLE: Record<Priority, string> = {
   Critical: "border-rag-red/40 bg-rag-red/10 text-rag-red",
@@ -65,7 +40,7 @@ type PoolResource = typeof resources[number];
 
 function ResourcesPage() {
   const [pool, setPool] = useState<PoolResource[]>(resources.map((r) => ({ ...r })));
-  const [requests, setRequests] = useState<ResourceRequest[]>(SEED_REQUESTS);
+  const { resourceRequests: requests, updateResourceRequest } = useResourceRequests();
 
   const pendingCount = requests.filter((r) => r.status === "Pending").length;
 
@@ -74,20 +49,16 @@ function ResourcesPage() {
   }
 
   function fulfillRequest(id: string, assignedTo: string, alloc: number) {
-    setRequests((prev) =>
-      prev.map((r) => r.id === id ? { ...r, status: "Fulfilled", assignedTo } : r)
-    );
     const req = requests.find((r) => r.id === id);
+    updateResourceRequest(id, { status: "Fulfilled", assignedTo });
     toast.success(`${req?.role} assigned to ${req?.project}`, {
       description: `${assignedTo} · ${alloc}% allocation · ${req?.from} → ${req?.until}`,
     });
   }
 
   function declineRequest(id: string, reason: string) {
-    setRequests((prev) =>
-      prev.map((r) => r.id === id ? { ...r, status: "Declined", declineReason: reason } : r)
-    );
     const req = requests.find((r) => r.id === id);
+    updateResourceRequest(id, { status: "Declined", declineReason: reason });
     toast.success(`Request ${id} declined`, { description: req?.project });
   }
 

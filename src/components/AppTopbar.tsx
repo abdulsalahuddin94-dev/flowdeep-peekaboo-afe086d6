@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { pipelineItems, resources } from "@/lib/mock-data";
-import { useProjects } from "@/lib/projects-store";
+import { useProjects, useNotifications } from "@/lib/projects-store";
 
 const RAG_DOT: Record<string, string> = {
   green: "bg-rag-green", amber: "bg-rag-amber",
@@ -45,6 +45,7 @@ export function AppTopbar() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { projects } = useProjects();
+  const { notifications, unreadCount, markAllRead } = useNotifications();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const top = "/" + (pathname.split("/")[1] ?? "");
   const label = crumbsMap[top] ?? "Workspace";
@@ -189,11 +190,17 @@ export function AppTopbar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Sheet>
+        <Sheet onOpenChange={(o) => { if (o) markAllRead(); }}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
               <Bell className="h-4 w-4" />
-              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rag-red" />
+              {unreadCount > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rag-red px-1 text-[9px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              ) : (
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rag-red" />
+              )}
             </Button>
           </SheetTrigger>
           <SheetContent className="w-[420px] bg-surface border-l border-border">
@@ -201,21 +208,19 @@ export function AppTopbar() {
               <SheetTitle className="text-foreground">Notifications</SheetTitle>
             </SheetHeader>
             <div className="mt-4 space-y-3">
-              {[
-                { tone: "red", title: "ERP Upgrade slipping — UAT Sign-off in 18 days", time: "12m ago" },
-                { tone: "amber", title: "Business Case BC-018 awaiting your review", time: "1h ago" },
-                { tone: "green", title: "Salesforce Migration milestone closed", time: "3h ago" },
-                { tone: "amber", title: "Priya Iyer over-allocated to 102%", time: "Yesterday" },
-                { tone: "blue", title: "Weekly Executive Report ready", time: "Yesterday" },
-              ].map((n, i) => (
-                <div key={i} className="glass-card flex items-start gap-3 p-3">
-                  <span className={`mt-1.5 h-2 w-2 rounded-full bg-rag-${n.tone}`} />
+              {notifications.map((n) => (
+                <div key={n.id} className={`glass-card flex items-start gap-3 p-3 transition-opacity ${n.read ? "opacity-60" : ""}`}>
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full bg-rag-${n.tone}`} />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm text-foreground">{n.title}</div>
                     <div className="text-[11px] text-muted-foreground">{n.time}</div>
                   </div>
+                  {!n.read && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
                 </div>
               ))}
+              {notifications.length === 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">All caught up</p>
+              )}
             </div>
           </SheetContent>
         </Sheet>

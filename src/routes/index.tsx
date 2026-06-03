@@ -235,16 +235,30 @@ function FinanceView() {
   );
 }
 
+const MY_TASKS = ["Review test cases — ERP UAT", "Update sprint board", "Sync with vendor (10:30)", "Submit timesheet"];
+
 function TeamMemberView() {
+  const [done, setDone] = useState<string[]>([]);
+
+  function toggle(t: string) {
+    setDone((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <div className="glass-card col-span-2 p-5">
-        <div className="label-eyebrow">My tasks today</div>
+        <div className="flex items-center justify-between">
+          <div className="label-eyebrow">My tasks today</div>
+          <span className="text-xs text-muted-foreground num-mono">{done.length}/{MY_TASKS.length} done</span>
+        </div>
         <ul className="mt-3 space-y-2 text-sm">
-          {["Review test cases — ERP UAT", "Update sprint board", "Sync with vendor (10:30)", "Submit timesheet"].map((t) => (
-            <li key={t} className="flex items-center gap-2 rounded-md border border-border bg-background/30 p-2">
-              <input type="checkbox" className="accent-accent" />
-              <span className="text-foreground">{t}</span>
+          {MY_TASKS.map((t) => (
+            <li key={t}
+              className={`flex items-center gap-2 rounded-md border border-border bg-background/30 p-2 cursor-pointer transition-opacity ${done.includes(t) ? "opacity-50" : ""}`}
+              onClick={() => toggle(t)}
+            >
+              <input type="checkbox" className="accent-accent pointer-events-none" checked={done.includes(t)} readOnly />
+              <span className={`text-foreground ${done.includes(t) ? "line-through text-muted-foreground" : ""}`}>{t}</span>
             </li>
           ))}
         </ul>

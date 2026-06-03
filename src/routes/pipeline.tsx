@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { pipelineItems, type Project, type Rag } from "@/lib/mock-data";
-import { useProjects } from "@/lib/projects-store";
+import { useProjects, useNotifications } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { Check, X as XIcon, Plus, GripVertical, ExternalLink } from "lucide-react";
 import { NewBusinessCaseFlow } from "@/components/NewBusinessCaseFlow";
@@ -87,6 +87,7 @@ function buildInitialHistory(items: Item[]): ApprovalHistory {
 function PipelinePage() {
   const navigate = useNavigate();
   const { addProject } = useProjects();
+  const { addNotification } = useNotifications();
   const [items, setItems] = useState<Item[]>(
     pipelineItems.map((p) => ({ ...p, stage: p.stage as Stage }))
   );
@@ -207,7 +208,10 @@ function PipelinePage() {
 
   function confirmApprove(id: string) {
     const item = items.find((i) => i.id === id);
-    if (item) addProject(itemToProject(item));
+    if (item) {
+      addProject(itemToProject(item));
+      addNotification({ tone: "green", title: `${item.title} approved — added to Portfolio`, time: "Just now" });
+    }
     commitMove(id, "Approved");
     setPendingApprove(null); setQueueApprove(null); setApproveNote("");
   }
@@ -544,7 +548,10 @@ function PipelinePage() {
                   const allApproved = updated.every((a) => a.action === "Approved");
                   if (allDone && allApproved) {
                     const fullItem = items.find((i) => i.id === itemId);
-                    if (fullItem) addProject(itemToProject(fullItem));
+                    if (fullItem) {
+                      addProject(itemToProject(fullItem));
+                      addNotification({ tone: "green", title: `${fullItem.title} fully approved — added to Portfolio`, time: "Just now" });
+                    }
                     setTimeout(() => {
                       commitMove(itemId, "Approved");
                       navigate({ to: "/portfolio" });

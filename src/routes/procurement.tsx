@@ -18,6 +18,7 @@ import {
   XCircle, Download, AlertTriangle, FileText, Loader2, Check, X,
 } from "lucide-react";
 import { rfps, contracts, vendors, projects } from "@/lib/mock-data";
+import { useRfps, type RfpEntry } from "@/lib/projects-store";
 
 export const Route = createFileRoute("/procurement")({
   component: ProcurementPage,
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/procurement")({
 
 // ── Supplemental mock data ────────────────────────────────────────────────────
 
-type RfpRow = typeof rfps[number];
+type RfpRow = RfpEntry;
 type ContractRow = typeof contracts[number];
 
 const RFP_BIDDERS: Record<string, { name: string; status: "Submitted" | "Pending" | "Withdrawn"; score?: number }[]> = {
@@ -137,7 +138,7 @@ const ERP_ISSUES = [
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 function ProcurementPage() {
-  const [rfpList, setRfpList]         = useState<RfpRow[]>([...rfps]);
+  const { rfps: rfpList, addRfp } = useRfps();
   const [rfpView, setRfpView]         = useState<RfpRow | null>(null);
   const [contractView, setContractView] = useState<ContractRow | null>(null);
   const [syncing, setSyncing]         = useState(false);
@@ -169,7 +170,7 @@ function ProcurementPage() {
       <PageHeader
         title="Procurement"
         subtitle="RFI/RFP, contracts, vendor evaluation, ERP sync"
-        actions={<NewRfpDialog onAdd={(r) => setRfpList((prev) => [r, ...prev])} />}
+        actions={<NewRfpDialog onAdd={addRfp} />}
       />
 
       <Tabs defaultValue="rfp">

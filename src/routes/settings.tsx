@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
@@ -13,7 +18,22 @@ export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Nexus PMO" }, { name: "description", content: "Workspace, profile, notifications, integrations and security settings." }] }),
 });
 
+const SEED_USERS = [
+  { id: "u1", name: "Aisha Khoury",    email: "aisha@acme.com",   role: "Portfolio Director", status: "Active",  last: "Today" },
+  { id: "u2", name: "Sara Al-Rashid",  email: "sara@acme.com",    role: "Project Manager",    status: "Active",  last: "Today" },
+  { id: "u3", name: "Priya Iyer",      email: "priya@acme.com",   role: "Project Manager",    status: "Active",  last: "Yesterday" },
+  { id: "u4", name: "Mei Chen",        email: "mei@acme.com",     role: "Resource Manager",   status: "Active",  last: "Yesterday" },
+  { id: "u5", name: "Diego Ortiz",     email: "diego@acme.com",   role: "Team Member",        status: "Active",  last: "2d ago" },
+  { id: "u6", name: "John Smith",      email: "john@acme.com",    role: "Finance Manager",    status: "Active",  last: "3d ago" },
+  { id: "u7", name: "External Audit",  email: "audit@partner.com", role: "Read-only",         status: "Pending", last: "—" },
+];
+
+const ROLE_OPTIONS = ["Portfolio Director", "Project Manager", "Resource Manager", "Finance Manager", "Team Member", "Read-only"];
+
 function SettingsPage() {
+  const [users, setUsers] = useState(SEED_USERS);
+  const [inviteOpen, setInviteOpen] = useState(false);
+
   return (
     <div>
       <PageHeader title="Settings" subtitle="Workspace, profile, notifications, integrations & security" />
@@ -24,6 +44,7 @@ function SettingsPage() {
           <TabsTrigger value="notif">Notifications</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
         </TabsList>
 
         <TabsContent value="workspace" className="mt-5 glass-card p-6 space-y-4 max-w-2xl">
@@ -113,7 +134,110 @@ function SettingsPage() {
             <Select defaultValue="7y"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1y">1 year</SelectItem><SelectItem value="3y">3 years</SelectItem><SelectItem value="7y">7 years</SelectItem></SelectContent></Select>
           </div>
         </TabsContent>
+
+        <TabsContent value="users" className="mt-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-foreground">{users.length} users</div>
+              <div className="text-xs text-muted-foreground">{users.filter(u => u.status === "Active").length} active · {users.filter(u => u.status === "Pending").length} pending invitation</div>
+            </div>
+            <Button size="sm" className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setInviteOpen(true)}>
+              <UserPlus className="h-3.5 w-3.5" />Invite User
+            </Button>
+          </div>
+          <div className="glass-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead><TableHead>Last active</TableHead><TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium text-foreground">{u.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px]">{u.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center gap-1 text-xs ${u.status === "Active" ? "text-rag-green" : "text-rag-amber"}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${u.status === "Active" ? "bg-rag-green" : "bg-rag-amber"}`} />
+                        {u.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{u.last}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-rag-red"
+                        onClick={() => { setUsers((prev) => prev.filter(x => x.id !== u.id)); toast.success(`${u.name} removed`); }}>
+                        Remove
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <InviteUserDialog
+            open={inviteOpen}
+            onOpenChange={setInviteOpen}
+            onInvite={(u) => { setUsers((prev) => [...prev, u]); toast.success(`Invitation sent to ${u.email}`); }}
+          />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// ── Invite User dialog ────────────────────────────────────────────────────────
+
+function InviteUserDialog({
+  open, onOpenChange, onInvite,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onInvite: (u: typeof SEED_USERS[number]) => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("Team Member");
+
+  function submit() {
+    if (!name.trim() || !email.trim()) { toast.error("Name and email are required"); return; }
+    onInvite({ id: `u-${Date.now()}`, name: name.trim(), email: email.trim(), role, status: "Pending", last: "—" });
+    onOpenChange(false); setName(""); setEmail(""); setRole("Team Member");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Mail className="h-4 w-4 text-accent" />Invite User</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Full name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" className="bg-secondary/40" />
+          </div>
+          <div className="space-y-1">
+            <Label>Email</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@acme.com" className="bg-secondary/40" />
+          </div>
+          <div className="space-y-1">
+            <Label>Role</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="bg-secondary/40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ROLE_OPTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Send Invitation</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
