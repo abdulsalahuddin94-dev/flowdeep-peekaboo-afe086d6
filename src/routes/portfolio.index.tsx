@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, LayoutGrid, List, GanttChartSquare, Search, Filter, X } from "lucide-react";
-import { projects, portfolioSummary, pipelineItems, type Project } from "@/lib/mock-data";
+import { projects, pipelineItems, type Project, type Rag } from "@/lib/mock-data";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,12 +37,18 @@ const ALL_DEPTS   = Array.from(new Set(projects.map((p) => p.department)));
 const ALL_CLIENTS = Array.from(new Set(projects.map((p) => p.client).filter(Boolean))) as string[];
 
 function PortfolioPage() {
+  const [projectList, setProjectList] = useState<Project[]>(projects);
   return (
     <div>
       <PageHeader
         title="Portfolio"
-        subtitle={`${portfolioSummary.active} active projects · FY2026`}
-        actions={<NewBusinessCaseDialog />}
+        subtitle={`${projectList.length} active projects · FY2026`}
+        actions={
+          <div className="flex gap-2">
+            <NewProjectDialog onAdd={(p) => setProjectList((prev) => [p, ...prev])} />
+            <NewBusinessCaseDialog />
+          </div>
+        }
       />
       <Tabs defaultValue="all">
         <TabsList className="bg-secondary/40">
@@ -53,8 +59,8 @@ function PortfolioPage() {
           <TabsTrigger value="gov">Governance History</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-5"><AllProjectsTab /></TabsContent>
-        <TabsContent value="mine" className="mt-5"><AllProjectsTab restrict /></TabsContent>
+        <TabsContent value="all" className="mt-5"><AllProjectsTab projectList={projectList} /></TabsContent>
+        <TabsContent value="mine" className="mt-5"><AllProjectsTab projectList={projectList} restrict /></TabsContent>
         <TabsContent value="archived" className="mt-5"><ArchivedTab /></TabsContent>
         <TabsContent value="bc" className="mt-5"><BusinessCasesTab /></TabsContent>
         <TabsContent value="gov" className="mt-5"><GovernanceTab /></TabsContent>
@@ -63,7 +69,7 @@ function PortfolioPage() {
   );
 }
 
-function AllProjectsTab({ restrict }: { restrict?: boolean }) {
+function AllProjectsTab({ restrict, projectList }: { restrict?: boolean; projectList: Project[] }) {
   const [line, setLine]           = useState<(typeof LINES)[number]>("All");
   const [view, setView]           = useState<View>("grid");
   const [query, setQuery]         = useState("");
@@ -78,7 +84,7 @@ function AllProjectsTab({ restrict }: { restrict?: boolean }) {
   const activeCount = ragFilter.length + stageFilter.length + tagFilter.length + (deptFilter ? 1 : 0) + (clientFilter ? 1 : 0);
 
   const list = useMemo(() => {
-    let l = projects;
+    let l = projectList;
     if (restrict) l = l.slice(0, 6);
     if (line !== "All") l = l.filter((p) => p.businessLine === line);
     if (query) l = l.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
@@ -88,7 +94,7 @@ function AllProjectsTab({ restrict }: { restrict?: boolean }) {
     if (deptFilter) l = l.filter((p) => p.department === deptFilter);
     if (clientFilter) l = l.filter((p) => p.client === clientFilter);
     return l;
-  }, [line, query, restrict, ragFilter, stageFilter, tagFilter, deptFilter, clientFilter]);
+  }, [projectList, line, query, restrict, ragFilter, stageFilter, tagFilter, deptFilter, clientFilter]);
 
   function clearAll() { setRagFilter([]); setStageFilter([]); setTagFilter([]); setDeptFilter(""); setClientFilter(""); }
 
@@ -96,10 +102,10 @@ function AllProjectsTab({ restrict }: { restrict?: boolean }) {
     <>
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { l: "Active", v: portfolioSummary.active },
-          { l: "On Track", v: portfolioSummary.onTrack, c: "rag-green" },
-          { l: "Budget Used", v: `$${portfolioSummary.budgetUsed.toFixed(1)}M / $${portfolioSummary.budgetTotal.toFixed(0)}M` },
-          { l: "Critical", v: portfolioSummary.critical, c: "rag-red", pulse: true },
+          { l: "Active", v: projectList.length },
+          { l: "On Track", v: projectList.filter((p) => p.rag === "green").length, c: "rag-green" },
+          { l: "Budget Used", v: `$${projectList.reduce((s, p) => s + p.budgetUsed, 0).toFixed(1)}M / $${projectList.reduce((s, p) => s + p.budgetTotal, 0).toFixed(0)}M` },
+          { l: "Critical", v: projectList.filter((p) => p.rag === "red").length, c: "rag-red", pulse: true },
         ].map((m) => (
           <div key={m.l} className="glass-card p-4">
             <div className="label-eyebrow">{m.l}</div>
@@ -526,6 +532,142 @@ function GovernanceTab() {
         ))}</TableBody>
       </Table>
     </div>
+  );
+}
+
+const PM_LIST = ["Sara Al-Rashid", "John Smith", "Mei Chen", "Omar Haddad", "Priya Iyer", "Liam Walker", "Hana Tanaka", "Diego Ortiz"];
+
+function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [businessLine, setBusinessLine] = useState("Software Solutions");
+  const [department, setDepartment] = useState("Engineering");
+  const [client, setClient] = useState("Internal");
+  const [pm, setPm] = useState("Sara Al-Rashid");
+  const [stage, setStage] = useState<Project["stage"]>("Initiation");
+  const [endDate, setEndDate] = useState("");
+  const [budget, setBudget] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
+
+  function reset() { setName(""); setBudget(""); setEndDate(""); setTagsInput(""); }
+
+  function handleCreate() {
+    if (!name.trim()) { toast.error("Project name is required"); return; }
+    const avatar = pm.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+    const newProject: Project = {
+      id: `p-${Date.now()}`,
+      name: name.trim(),
+      businessLine,
+      department,
+      client,
+      pm,
+      pmAvatar: avatar,
+      progress: 0,
+      budgetUsed: 0,
+      budgetTotal: parseFloat(budget) || 0,
+      endDate: endDate ? new Date(endDate).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "TBD",
+      rag: "blue" as Rag,
+      risks: 0,
+      issues: 0,
+      stage,
+      tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
+      ragNote: "New",
+    };
+    onAdd(newProject);
+    toast.success(`Project "${newProject.name}" created`);
+    reset();
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); setOpen(o); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="border-accent/40 text-accent hover:bg-accent/10">
+          <Plus className="mr-1 h-4 w-4" />New Project
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>New Project</DialogTitle>
+          <DialogDescription>Create a project directly in the portfolio. For new initiatives requiring approval, use Submit Business Case instead.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <Label>Project name *</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. ERP Integration Phase 2" />
+          </div>
+          <div>
+            <Label>Business Line</Label>
+            <Select value={businessLine} onValueChange={setBusinessLine}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["Software Solutions", "EPC", "Consultation", "Maintenance"].map((l) => (
+                  <SelectItem key={l} value={l}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Department</Label>
+            <Select value={department} onValueChange={setDepartment}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["Engineering", "IT", "Operations", "R&D", "Finance"].map((d) => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Project Manager</Label>
+            <Select value={pm} onValueChange={setPm}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PM_LIST.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Client</Label>
+            <Select value={client} onValueChange={setClient}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Internal">Internal</SelectItem>
+                <SelectItem value="ACME Energy">ACME Energy</SelectItem>
+                <SelectItem value="Northwind Logistics">Northwind Logistics</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Stage</Label>
+            <Select value={stage} onValueChange={(v) => setStage(v as Project["stage"])}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(["Initiation", "Planning", "Execution", "Monitoring", "Closure"] as const).map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Target end date</Label>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
+          <div>
+            <Label>Budget total ($M)</Label>
+            <Input type="number" min="0" step="0.1" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="e.g. 2.5" />
+          </div>
+          <div className="col-span-2">
+            <Label>Tags (comma-separated, optional)</Label>
+            <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Strategic, Innovation…" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { reset(); setOpen(false); }}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleCreate}>Create Project</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
