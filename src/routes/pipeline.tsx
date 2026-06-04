@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { pipelineItems, type Project, type Rag } from "@/lib/mock-data";
-import { useProjects, useNotifications } from "@/lib/projects-store";
+import { useProjects, useNotifications, useRfps } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { Check, X as XIcon, Plus, GripVertical, ExternalLink } from "lucide-react";
 import { NewBusinessCaseFlow } from "@/components/NewBusinessCaseFlow";
@@ -784,6 +784,8 @@ const SEED_BIDS: Bid[] = [
 
 function CommercialBidsBoard() {
   const [bids, setBids] = useState<Bid[]>(SEED_BIDS);
+  const { addRfp } = useRfps();
+  const { addNotification } = useNotifications();
 
   // PM actions
   const [rfpTarget,    setRfpTarget]    = useState<string | null>(null);
@@ -993,9 +995,24 @@ function CommercialBidsBoard() {
             <Button
               className="bg-accent text-accent-foreground hover:bg-accent/90"
               onClick={() => {
-                const name = bids.find((b) => b.id === rfpTarget)?.title;
+                const bid = bids.find((b) => b.id === rfpTarget);
+                if (!bid) return;
                 moveBid(rfpTarget!, "RFP Issued");
-                toast.success(`${name} — RFP received, awaiting Bid / No-Bid decision`);
+                addRfp({
+                  id: `RFP-${rfpTarget}`,
+                  title: bid.title,
+                  type: "RFP",
+                  status: "Open",
+                  bidders: 0,
+                  due: bid.due,
+                  project: bid.client,
+                });
+                addNotification({
+                  tone: "blue",
+                  title: `RFP created for "${bid.title}" — awaiting Bid / No-Bid decision`,
+                  time: "Just now",
+                });
+                toast.success(`RFP created for ${bid.title}`);
                 setRfpTarget(null);
               }}
             >
