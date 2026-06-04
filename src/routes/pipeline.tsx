@@ -784,17 +784,31 @@ const SEED_BIDS: Bid[] = [
 
 function CommercialBidsBoard() {
   const [bids, setBids] = useState<Bid[]>(SEED_BIDS);
-  const [awardTarget, setAwardTarget] = useState<string | null>(null);
-  const [lostTarget,  setLostTarget]  = useState<string | null>(null);
-  const [lostReason,  setLostReason]  = useState("");
+
+  // PM actions
+  const [rfpTarget,    setRfpTarget]    = useState<string | null>(null);
+  const [submitTarget, setSubmitTarget] = useState<string | null>(null);
+  const [outcomeTarget, setOutcomeTarget] = useState<string | null>(null);
+  const [outcomePick,  setOutcomePick]  = useState<"Awarded" | "Lost" | null>(null);
+  const [outcomeReason, setOutcomeReason] = useState("");
+
+  // Director Bid/No-Bid actions
+  const [proceedTarget, setProceedTarget] = useState<string | null>(null);
+  const [declineTarget, setDeclineTarget] = useState<string | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
+
+  // Comment (no-decision)
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState("");
+  const [commentText,   setCommentText]   = useState("");
+
+  const moveBid = (id: string, to: BidStage) =>
+    setBids((prev) => prev.map((b) => b.id === id ? { ...b, stage: to } : b));
 
   const totalPipeline = bids
     .filter((b) => b.stage !== "Lost")
     .reduce((s, b) => s + parseFloat(b.value.replace(/[$M]/g, "")), 0);
 
-  const pendingBids = bids.filter((b) => b.stage === "Evaluation");
+  const pendingBids = bids.filter((b) => b.stage === "RFP Issued");
 
   return (
     <div className="space-y-4">
@@ -843,6 +857,37 @@ function CommercialBidsBoard() {
                       </Avatar>
                       <span className="num-mono text-[10px] text-muted-foreground">{b.value}</span>
                     </div>
+
+                    {/* Stage-specific action button */}
+                    {b.stage === "In Pursuit" && (
+                      <button
+                        className="mt-2 w-full rounded border border-rag-amber/40 bg-rag-amber/10 py-1 text-[10px] font-medium text-rag-amber hover:bg-rag-amber/20 transition-colors"
+                        onClick={() => setRfpTarget(b.id)}
+                      >
+                        Mark RFP Received
+                      </button>
+                    )}
+                    {b.stage === "RFP Issued" && (
+                      <div className="mt-2 w-full rounded border border-rag-amber/30 bg-rag-amber/5 py-1 text-center text-[10px] text-rag-amber/70">
+                        Awaiting Bid Decision
+                      </div>
+                    )}
+                    {b.stage === "Proposal Submitted" && (
+                      <button
+                        className="mt-2 w-full rounded border border-accent/40 bg-accent-dim/20 py-1 text-[10px] font-medium text-accent hover:bg-accent-dim/40 transition-colors"
+                        onClick={() => setSubmitTarget(b.id)}
+                      >
+                        Submit to Client
+                      </button>
+                    )}
+                    {b.stage === "Evaluation" && (
+                      <button
+                        className="mt-2 w-full rounded border border-border bg-secondary/30 py-1 text-[10px] font-medium text-foreground/70 hover:bg-secondary/60 transition-colors"
+                        onClick={() => { setOutcomeTarget(b.id); setOutcomePick(null); setOutcomeReason(""); }}
+                      >
+                        Record Outcome
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -851,8 +896,8 @@ function CommercialBidsBoard() {
         })}
       </div>
 
-      {/* Commercial Approval Queue */}
-      <div className="mt-4">
+      {/* Approval Queue — Director Bid/No-Bid decision on RFP Issued items */}
+      <div className="mt-8">
         <div className="mb-3 flex items-center gap-2">
           <h3 className="text-sm font-medium text-foreground">Approval Queue</h3>
           {pendingBids.length > 0 && (
@@ -860,7 +905,7 @@ function CommercialBidsBoard() {
           )}
         </div>
         {pendingBids.length === 0 ? (
-          <div className="glass-card p-8 text-center text-sm text-muted-foreground">No bids pending award decision</div>
+          <div className="glass-card p-8 text-center text-sm text-muted-foreground">No bids awaiting Bid / No-Bid decision</div>
         ) : (
           <div className="space-y-3">
             {pendingBids.map((b) => (
@@ -883,16 +928,16 @@ function CommercialBidsBoard() {
                   <Button
                     size="sm"
                     className="h-7 bg-accent text-accent-foreground hover:bg-accent/90 px-3 text-xs"
-                    onClick={() => setAwardTarget(b.id)}
+                    onClick={() => setProceedTarget(b.id)}
                   >
-                    <Check className="mr-1 h-3 w-3" />Award
+                    <Check className="mr-1 h-3 w-3" />Proceed with Bid
                   </Button>
                   <Button
                     size="sm" variant="outline"
                     className="h-7 px-3 text-xs border-rag-red/40 text-rag-red hover:bg-rag-red/10"
-                    onClick={() => { setLostTarget(b.id); setLostReason(""); }}
+                    onClick={() => { setDeclineTarget(b.id); setDeclineReason(""); }}
                   >
-                    <XIcon className="mr-1 h-3 w-3" />Mark Lost
+                    <XIcon className="mr-1 h-3 w-3" />Decline
                   </Button>
                   {commentTarget === b.id ? (
                     <div className="flex flex-1 items-center gap-2">
@@ -932,63 +977,193 @@ function CommercialBidsBoard() {
         )}
       </div>
 
-      {/* Award confirmation dialog */}
-      <Dialog open={!!awardTarget} onOpenChange={(o) => { if (!o) setAwardTarget(null); }}>
+      {/* Dialog: Mark RFP Received (In Pursuit → RFP Issued) */}
+      <Dialog open={!!rfpTarget} onOpenChange={(o) => { if (!o) setRfpTarget(null); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Award bid</DialogTitle></DialogHeader>
-          <div className="rounded-md border border-rag-green/20 bg-rag-green/5 p-3 text-sm">
-            <div className="font-medium text-foreground">{bids.find((b) => b.id === awardTarget)?.title}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              {bids.find((b) => b.id === awardTarget)?.client} · {bids.find((b) => b.id === awardTarget)?.value}
-            </div>
+          <DialogHeader><DialogTitle>Mark RFP Received</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-rag-amber/20 bg-rag-amber/5 p-3 text-sm">
+            <div className="font-medium text-foreground">{bids.find((b) => b.id === rfpTarget)?.title}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{bids.find((b) => b.id === rfpTarget)?.client}</div>
           </div>
-          <p className="text-sm text-muted-foreground">Awarding this bid will move it to Awarded and a Project Workspace will be created.</p>
+          <p className="text-sm text-muted-foreground">
+            Confirm that the client has issued a formal RFP. This moves the bid to <strong>RFP Issued</strong> and routes it to the Director for a Bid / No-Bid decision.
+          </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAwardTarget(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRfpTarget(null)}>Cancel</Button>
             <Button
               className="bg-accent text-accent-foreground hover:bg-accent/90"
               onClick={() => {
-                setBids((prev) => prev.map((b) => b.id === awardTarget ? { ...b, stage: "Awarded" as BidStage } : b));
-                toast.success(`${bids.find((b) => b.id === awardTarget)?.title} awarded`);
-                setAwardTarget(null);
+                const name = bids.find((b) => b.id === rfpTarget)?.title;
+                moveBid(rfpTarget!, "RFP Issued");
+                toast.success(`${name} — RFP received, awaiting Bid / No-Bid decision`);
+                setRfpTarget(null);
               }}
             >
-              <Check className="mr-1 h-3.5 w-3.5" />Confirm Award
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Mark Lost dialog */}
-      <Dialog open={!!lostTarget} onOpenChange={(o) => { if (!o) { setLostTarget(null); setLostReason(""); } }}>
+      {/* Dialog: Proceed with Bid (Director: RFP Issued → Proposal Submitted) */}
+      <Dialog open={!!proceedTarget} onOpenChange={(o) => { if (!o) setProceedTarget(null); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Mark bid as Lost</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Proceed with Bid</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-rag-green/20 bg-rag-green/5 p-3 text-sm">
+            <div className="font-medium text-foreground">{bids.find((b) => b.id === proceedTarget)?.title}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              {bids.find((b) => b.id === proceedTarget)?.client} · {bids.find((b) => b.id === proceedTarget)?.value}
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Approving this bid authorises the team to prepare a proposal. The bid moves to <strong>Proposal Submitted</strong> for the PM to action.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProceedTarget(null)}>Cancel</Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => {
+                const name = bids.find((b) => b.id === proceedTarget)?.title;
+                moveBid(proceedTarget!, "Proposal Submitted");
+                toast.success(`${name} — bid approved, proposal preparation authorised`);
+                setProceedTarget(null);
+              }}
+            >
+              <Check className="mr-1 h-3.5 w-3.5" />Approve Bid
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Decline (Director: RFP Issued → Lost) */}
+      <Dialog open={!!declineTarget} onOpenChange={(o) => { if (!o) { setDeclineTarget(null); setDeclineReason(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Decline Bid</DialogTitle></DialogHeader>
           <div className="rounded-md border border-rag-red/20 bg-rag-red/5 p-3 text-sm">
-            <div className="font-medium text-foreground">{bids.find((b) => b.id === lostTarget)?.title}</div>
+            <div className="font-medium text-foreground">{bids.find((b) => b.id === declineTarget)?.title}</div>
           </div>
           <div className="space-y-2">
-            <Label>Reason <span className="text-rag-red">*</span></Label>
+            <Label>Reason for declining <span className="text-rag-red">*</span></Label>
             <Textarea
-              placeholder="Why was this bid lost? (required)"
-              value={lostReason}
-              onChange={(e) => setLostReason(e.target.value)}
+              placeholder="Why are we not bidding on this? (required)"
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
               rows={3}
-              className={!lostReason ? "border-rag-red/30" : ""}
+              className={!declineReason ? "border-rag-red/30" : ""}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setLostTarget(null); setLostReason(""); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setDeclineTarget(null); setDeclineReason(""); }}>Cancel</Button>
             <Button
               variant="destructive"
               onClick={() => {
-                if (!lostReason.trim()) { toast.error("Please enter a reason"); return; }
-                setBids((prev) => prev.map((b) => b.id === lostTarget ? { ...b, stage: "Lost" as BidStage } : b));
-                toast.info(`${bids.find((b) => b.id === lostTarget)?.title} marked as Lost`);
-                setLostTarget(null);
-                setLostReason("");
+                if (!declineReason.trim()) { toast.error("Reason is required"); return; }
+                const name = bids.find((b) => b.id === declineTarget)?.title;
+                moveBid(declineTarget!, "Lost");
+                toast.info(`${name} — bid declined`);
+                setDeclineTarget(null);
+                setDeclineReason("");
               }}
             >
-              <XIcon className="mr-1 h-3.5 w-3.5" />Confirm Lost
+              <XIcon className="mr-1 h-3.5 w-3.5" />Confirm Decline
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Submit to Client (Proposal Submitted → Evaluation) */}
+      <Dialog open={!!submitTarget} onOpenChange={(o) => { if (!o) setSubmitTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Submit Proposal to Client</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-accent/20 bg-accent-dim/10 p-3 text-sm">
+            <div className="font-medium text-foreground">{bids.find((b) => b.id === submitTarget)?.title}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{bids.find((b) => b.id === submitTarget)?.client}</div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Confirm the proposal has been submitted to the client. The bid moves to <strong>Evaluation</strong> while the client reviews.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSubmitTarget(null)}>Cancel</Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => {
+                const name = bids.find((b) => b.id === submitTarget)?.title;
+                moveBid(submitTarget!, "Evaluation");
+                toast.success(`${name} — proposal submitted, awaiting client evaluation`);
+                setSubmitTarget(null);
+              }}
+            >
+              Confirm Submission
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Record Outcome (Evaluation → Awarded / Lost) */}
+      <Dialog open={!!outcomeTarget} onOpenChange={(o) => { if (!o) { setOutcomeTarget(null); setOutcomePick(null); setOutcomeReason(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Record Outcome</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-border bg-secondary/30 p-3 text-sm">
+            <div className="font-medium text-foreground">{bids.find((b) => b.id === outcomeTarget)?.title}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{bids.find((b) => b.id === outcomeTarget)?.client}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              className={`rounded-lg border p-4 text-left transition-colors ${
+                outcomePick === "Awarded"
+                  ? "border-rag-green bg-rag-green/10"
+                  : "border-border bg-secondary/20 hover:bg-secondary/40"
+              }`}
+              onClick={() => setOutcomePick("Awarded")}
+            >
+              <div className="text-sm font-medium text-rag-green">Awarded</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">Client selected us</div>
+            </button>
+            <button
+              className={`rounded-lg border p-4 text-left transition-colors ${
+                outcomePick === "Lost"
+                  ? "border-rag-red bg-rag-red/10"
+                  : "border-border bg-secondary/20 hover:bg-secondary/40"
+              }`}
+              onClick={() => setOutcomePick("Lost")}
+            >
+              <div className="text-sm font-medium text-rag-red">Lost</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">Client chose another vendor</div>
+            </button>
+          </div>
+          {outcomePick === "Lost" && (
+            <div className="space-y-2">
+              <Label>Reason <span className="text-rag-red">*</span></Label>
+              <Textarea
+                placeholder="Why did we lose this bid?"
+                value={outcomeReason}
+                onChange={(e) => setOutcomeReason(e.target.value)}
+                rows={3}
+                className={!outcomeReason ? "border-rag-red/30" : ""}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setOutcomeTarget(null); setOutcomePick(null); setOutcomeReason(""); }}>Cancel</Button>
+            <Button
+              className={outcomePick === "Awarded" ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
+              variant={outcomePick === "Lost" ? "destructive" : "default"}
+              disabled={!outcomePick || (outcomePick === "Lost" && !outcomeReason.trim())}
+              onClick={() => {
+                if (!outcomeTarget || !outcomePick) return;
+                const name = bids.find((b) => b.id === outcomeTarget)?.title;
+                moveBid(outcomeTarget, outcomePick);
+                outcomePick === "Awarded"
+                  ? toast.success(`${name} — awarded! Project Workspace will be created.`)
+                  : toast.info(`${name} — marked as Lost`);
+                setOutcomeTarget(null);
+                setOutcomePick(null);
+                setOutcomeReason("");
+              }}
+            >
+              {outcomePick === "Awarded" && <Check className="mr-1 h-3.5 w-3.5" />}
+              {outcomePick === "Lost"    && <XIcon className="mr-1 h-3.5 w-3.5" />}
+              {outcomePick ? `Confirm ${outcomePick}` : "Select an outcome"}
             </Button>
           </DialogFooter>
         </DialogContent>
