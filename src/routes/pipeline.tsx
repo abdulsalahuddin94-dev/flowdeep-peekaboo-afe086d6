@@ -280,7 +280,6 @@ function PipelinePage() {
         <TabsList className="bg-secondary/40">
           <TabsTrigger value="capital">Capital Projects</TabsTrigger>
           <TabsTrigger value="commercial">Commercial Bids</TabsTrigger>
-          <TabsTrigger value="queue">Approval Queue</TabsTrigger>
         </TabsList>
 
         <TabsContent value="capital" className="mt-5">
@@ -378,91 +377,103 @@ function PipelinePage() {
             <span>Under Review → Approved (score ≥ 71) · Rejected · Closed · Deferred</span>
             <span className="text-rag-red/70">Approved / Rejected / Closed = terminal (locked)</span>
           </div>
+
+          {/* Capital Approval Queue */}
+          {(() => {
+            const pending = items.filter((p) => p.stage === "Under Review" || p.stage === "Submitted");
+            return (
+              <div className="mt-8">
+                <div className="mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-foreground">Approval Queue</h3>
+                  {pending.length > 0 && (
+                    <Badge className="bg-rag-amber/20 text-rag-amber border-rag-amber/30 text-[10px]">{pending.length} pending</Badge>
+                  )}
+                </div>
+                {pending.length === 0 ? (
+                  <div className="glass-card p-8 text-center text-sm text-muted-foreground">No items pending approval</div>
+                ) : (
+                  <div className="space-y-3">
+                    {pending.map((p) => {
+                      const history: RoleApproval[] = approvalHistory[p.id] ?? APPROVAL_ROLES.map((r) => ({ role: r, action: "Pending" as ApprovalAction }));
+                      return (
+                        <div key={p.id} className="glass-card overflow-hidden">
+                          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback className="bg-accent-dim text-xs text-accent">
+                                {p.submittedBy.split(" ").map((s) => s[0]).join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-foreground">{p.title}</div>
+                              <div className="text-xs text-muted-foreground">{p.submittedBy} · {p.date} · {p.pillar} · {p.roi}</div>
+                            </div>
+                            <span className={`num-mono rounded px-2 py-1 text-xs ${
+                              p.score >= 71 ? "bg-rag-green/10 text-rag-green" :
+                              p.score >= 41 ? "bg-rag-amber/10 text-rag-amber" :
+                                              "bg-rag-red/10 text-rag-red"
+                            }`}>Score {p.score}</span>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-accent" onClick={() => setDetailItem(p.id)}>
+                              <ExternalLink className="mr-1 h-3 w-3" />View
+                            </Button>
+                          </div>
+                          <div className="divide-y divide-border/40">
+                            {history.map((a) => (
+                              <div key={a.role} className="flex items-center gap-3 px-4 py-2.5">
+                                <div className={`h-2 w-2 shrink-0 rounded-full ${
+                                  a.action === "Approved" ? "bg-rag-green" :
+                                  a.action === "Rejected" ? "bg-rag-red" :
+                                  "bg-muted-foreground/40"
+                                }`} />
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-xs font-medium text-foreground">{a.role}</span>
+                                  {a.by && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      — {a.by} · {a.when}
+                                      {a.comment && <span className="ml-1 italic">"{a.comment}"</span>}
+                                    </span>
+                                  )}
+                                </div>
+                                {a.action === "Pending" ? (
+                                  <div className="flex gap-1.5">
+                                    <Button
+                                      size="sm"
+                                      className="h-6 bg-accent text-accent-foreground hover:bg-accent/90 px-2 text-xs disabled:opacity-40"
+                                      disabled={p.score < 71}
+                                      title={p.score < 71 ? `Score ${p.score} — min 71` : undefined}
+                                      onClick={() => { setRoleApproveDialog({ itemId: p.id, role: a.role }); setRoleNote(""); }}
+                                    >
+                                      <Check className="mr-1 h-3 w-3" />Approve
+                                    </Button>
+                                    <Button
+                                      size="sm" variant="outline"
+                                      className="h-6 px-2 text-xs"
+                                      onClick={() => { setRoleRejectDialog({ itemId: p.id, role: a.role }); setRoleReason(""); }}
+                                    >
+                                      <XIcon className="mr-1 h-3 w-3" />Reject
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Badge variant="outline" className={`text-[10px] ${
+                                    a.action === "Approved"
+                                      ? "border-rag-green/30 bg-rag-green/10 text-rag-green"
+                                      : "border-rag-red/30 bg-rag-red/10 text-rag-red"
+                                  }`}>{a.action}</Badge>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="commercial" className="mt-5">
           <CommercialBidsBoard />
-        </TabsContent>
-
-        <TabsContent value="queue" className="mt-5 space-y-3">
-          {items.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").length === 0 && (
-            <div className="glass-card p-8 text-center text-sm text-muted-foreground">No items pending approval</div>
-          )}
-          {items.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").map((p) => {
-            const history: RoleApproval[] = approvalHistory[p.id] ?? APPROVAL_ROLES.map((r) => ({ role: r, action: "Pending" as ApprovalAction }));
-            return (
-              <div key={p.id} className="glass-card overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-accent-dim text-xs text-accent">
-                      {p.submittedBy.split(" ").map((s) => s[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-foreground">{p.title}</div>
-                    <div className="text-xs text-muted-foreground">{p.submittedBy} · {p.date} · {p.pillar} · {p.roi}</div>
-                  </div>
-                  <span className={`num-mono rounded px-2 py-1 text-xs ${
-                    p.score >= 71 ? "bg-rag-green/10 text-rag-green" :
-                    p.score >= 41 ? "bg-rag-amber/10 text-rag-amber" :
-                                    "bg-rag-red/10 text-rag-red"
-                  }`}>Score {p.score}</span>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-accent" onClick={() => setDetailItem(p.id)}>
-                    <ExternalLink className="mr-1 h-3 w-3" />View
-                  </Button>
-                </div>
-
-                {/* Approval history rows */}
-                <div className="divide-y divide-border/40">
-                  {history.map((a) => (
-                    <div key={a.role} className="flex items-center gap-3 px-4 py-2.5">
-                      <div className={`h-2 w-2 shrink-0 rounded-full ${
-                        a.action === "Approved" ? "bg-rag-green" :
-                        a.action === "Rejected" ? "bg-rag-red" :
-                        "bg-muted-foreground/40"
-                      }`} />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-medium text-foreground">{a.role}</span>
-                        {a.by && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            — {a.by} · {a.when}
-                            {a.comment && <span className="ml-1 italic">"{a.comment}"</span>}
-                          </span>
-                        )}
-                      </div>
-                      {a.action === "Pending" ? (
-                        <div className="flex gap-1.5">
-                          <Button
-                            size="sm"
-                            className="h-6 bg-accent text-accent-foreground hover:bg-accent/90 px-2 text-xs disabled:opacity-40"
-                            disabled={p.score < 71}
-                            title={p.score < 71 ? `Score ${p.score} — min 71` : undefined}
-                            onClick={() => { setRoleApproveDialog({ itemId: p.id, role: a.role }); setRoleNote(""); }}
-                          >
-                            <Check className="mr-1 h-3 w-3" />Approve
-                          </Button>
-                          <Button
-                            size="sm" variant="outline"
-                            className="h-6 px-2 text-xs"
-                            onClick={() => { setRoleRejectDialog({ itemId: p.id, role: a.role }); setRoleReason(""); }}
-                          >
-                            <XIcon className="mr-1 h-3 w-3" />Reject
-                          </Button>
-                        </div>
-                      ) : (
-                        <Badge variant="outline" className={`text-[10px] ${
-                          a.action === "Approved"
-                            ? "border-rag-green/30 bg-rag-green/10 text-rag-green"
-                            : "border-rag-red/30 bg-rag-red/10 text-rag-red"
-                        }`}>{a.action}</Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
         </TabsContent>
       </Tabs>
 
@@ -773,10 +784,17 @@ const SEED_BIDS: Bid[] = [
 
 function CommercialBidsBoard() {
   const [bids, setBids] = useState<Bid[]>(SEED_BIDS);
+  const [awardTarget, setAwardTarget] = useState<string | null>(null);
+  const [lostTarget,  setLostTarget]  = useState<string | null>(null);
+  const [lostReason,  setLostReason]  = useState("");
+  const [commentTarget, setCommentTarget] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
 
   const totalPipeline = bids
     .filter((b) => b.stage !== "Lost")
     .reduce((s, b) => s + parseFloat(b.value.replace(/[$M]/g, "")), 0);
+
+  const pendingBids = bids.filter((b) => b.stage === "Evaluation");
 
   return (
     <div className="space-y-4">
@@ -832,6 +850,149 @@ function CommercialBidsBoard() {
           );
         })}
       </div>
+
+      {/* Commercial Approval Queue */}
+      <div className="mt-4">
+        <div className="mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-medium text-foreground">Approval Queue</h3>
+          {pendingBids.length > 0 && (
+            <Badge className="bg-rag-amber/20 text-rag-amber border-rag-amber/30 text-[10px]">{pendingBids.length} pending</Badge>
+          )}
+        </div>
+        {pendingBids.length === 0 ? (
+          <div className="glass-card p-8 text-center text-sm text-muted-foreground">No bids pending award decision</div>
+        ) : (
+          <div className="space-y-3">
+            {pendingBids.map((b) => (
+              <div key={b.id} className="glass-card overflow-hidden">
+                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-accent-dim text-xs text-accent">{b.owner}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-foreground">{b.title}</div>
+                    <div className="text-xs text-muted-foreground">{b.client} · Due {b.due} · {b.value}</div>
+                  </div>
+                  <span className={`num-mono rounded px-2 py-1 text-xs ${
+                    b.probability >= 80 ? "bg-rag-green/10 text-rag-green" :
+                    b.probability >= 50 ? "bg-rag-amber/10 text-rag-amber" :
+                                          "bg-rag-blue/10 text-rag-blue"
+                  }`}>{b.probability}% win</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-3">
+                  <Button
+                    size="sm"
+                    className="h-7 bg-accent text-accent-foreground hover:bg-accent/90 px-3 text-xs"
+                    onClick={() => setAwardTarget(b.id)}
+                  >
+                    <Check className="mr-1 h-3 w-3" />Award
+                  </Button>
+                  <Button
+                    size="sm" variant="outline"
+                    className="h-7 px-3 text-xs border-rag-red/40 text-rag-red hover:bg-rag-red/10"
+                    onClick={() => { setLostTarget(b.id); setLostReason(""); }}
+                  >
+                    <XIcon className="mr-1 h-3 w-3" />Mark Lost
+                  </Button>
+                  {commentTarget === b.id ? (
+                    <div className="flex flex-1 items-center gap-2">
+                      <Input
+                        className="h-7 text-xs flex-1"
+                        placeholder="Add a comment…"
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        className="h-7 bg-accent text-accent-foreground hover:bg-accent/90 px-3 text-xs"
+                        onClick={() => {
+                          if (commentText.trim()) toast.success("Comment posted");
+                          setCommentTarget(null);
+                          setCommentText("");
+                        }}
+                      >Post</Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setCommentTarget(null); setCommentText(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm" variant="ghost"
+                      className="h-7 px-3 text-xs text-muted-foreground"
+                      onClick={() => { setCommentTarget(b.id); setCommentText(""); }}
+                    >
+                      Comment
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Award confirmation dialog */}
+      <Dialog open={!!awardTarget} onOpenChange={(o) => { if (!o) setAwardTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Award bid</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-rag-green/20 bg-rag-green/5 p-3 text-sm">
+            <div className="font-medium text-foreground">{bids.find((b) => b.id === awardTarget)?.title}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              {bids.find((b) => b.id === awardTarget)?.client} · {bids.find((b) => b.id === awardTarget)?.value}
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">Awarding this bid will move it to Awarded and a Project Workspace will be created.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAwardTarget(null)}>Cancel</Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => {
+                setBids((prev) => prev.map((b) => b.id === awardTarget ? { ...b, stage: "Awarded" as BidStage } : b));
+                toast.success(`${bids.find((b) => b.id === awardTarget)?.title} awarded`);
+                setAwardTarget(null);
+              }}
+            >
+              <Check className="mr-1 h-3.5 w-3.5" />Confirm Award
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark Lost dialog */}
+      <Dialog open={!!lostTarget} onOpenChange={(o) => { if (!o) { setLostTarget(null); setLostReason(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Mark bid as Lost</DialogTitle></DialogHeader>
+          <div className="rounded-md border border-rag-red/20 bg-rag-red/5 p-3 text-sm">
+            <div className="font-medium text-foreground">{bids.find((b) => b.id === lostTarget)?.title}</div>
+          </div>
+          <div className="space-y-2">
+            <Label>Reason <span className="text-rag-red">*</span></Label>
+            <Textarea
+              placeholder="Why was this bid lost? (required)"
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+              rows={3}
+              className={!lostReason ? "border-rag-red/30" : ""}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setLostTarget(null); setLostReason(""); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!lostReason.trim()) { toast.error("Please enter a reason"); return; }
+                setBids((prev) => prev.map((b) => b.id === lostTarget ? { ...b, stage: "Lost" as BidStage } : b));
+                toast.info(`${bids.find((b) => b.id === lostTarget)?.title} marked as Lost`);
+                setLostTarget(null);
+                setLostReason("");
+              }}
+            >
+              <XIcon className="mr-1 h-3.5 w-3.5" />Confirm Lost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
