@@ -1,19 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { KpiCard } from "@/components/KpiCard";
-import { RagBadge } from "@/components/RagBadge";
+import { RagBadge, RagDot } from "@/components/RagBadge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowUpRight, AlertCircle, CheckCircle2, Clock, TrendingUp } from "lucide-react";
-import { portfolioSummary, projects, milestones, pipelineItems } from "@/lib/mock-data";
+import {
+  ArrowUpRight, AlertTriangle, CheckCircle2, Clock, TrendingUp,
+  Activity, Users, DollarSign, GanttChartSquare, Bell, Inbox, Sparkles,
+} from "lucide-react";
+import { milestones, pipelineItems, risks, resources, type Rag } from "@/lib/mock-data";
+import { useProjects, useNotifications, useResourceRequests } from "@/lib/projects-store";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
   head: () => ({
-    meta: [{ title: "Dashboard — Nexus PMO" }, { name: "description", content: "Role-adaptive PMO dashboard with portfolio health, approvals, risks, and capacity." }],
+    meta: [
+      { title: "Dashboard — Nexus PMO" },
+      { name: "description", content: "Role-adaptive PMO dashboard: portfolio health, approvals, risks, capacity, schedule." },
+    ],
   }),
 });
 
@@ -27,12 +33,18 @@ function Dashboard() {
     <div>
       <PageHeader
         title="Good morning, Aisha"
-        subtitle="Tuesday, May 20, 2026 · FY2026 portfolio overview"
+        subtitle="Saturday, June 6, 2026 · FY2026 portfolio overview"
         actions={
           <Tabs value={role} onValueChange={(v) => setRole(v as Role)}>
             <TabsList className="bg-secondary/40">
               {ROLES.map((r) => (
-                <TabsTrigger key={r} value={r} className="text-xs data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">{r}</TabsTrigger>
+                <TabsTrigger
+                  key={r}
+                  value={r}
+                  className="text-xs data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                >
+                  {r}
+                </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
@@ -49,323 +61,580 @@ function Dashboard() {
   );
 }
 
-function ExecutiveView() {
+// ── Shared helpers ─────────────────────────────────────────────────────────────
+
+function useLiveSummary() {
+  const { projects } = useProjects();
+  return useMemo(() => {
+    const counts: Record<Rag, number> = { green: 0, amber: 0, red: 0, blue: 0, grey: 0 };
+    let budgetUsed = 0, budgetTotal = 0, progressSum = 0;
+    for (const p of projects) {
+      counts[p.rag] += 1;
+      budgetUsed += p.budgetUsed;
+      budgetTotal += p.budgetTotal;
+      progressSum += p.progress;
+    }
+    return {
+      counts,
+      total: projects.length,
+      budgetUsed,
+      budgetTotal,
+      budgetPct: budgetTotal ? Math.round((budgetUsed / budgetTotal) * 100) : 0,
+      avgProgress: projects.length ? Math.round(progressSum / projects.length) : 0,
+      projects,
+    };
+  }, [projects]);
+}
+
+function Tile({
+  className = "",
+  eyebrow,
+  title,
+  right,
+  children,
+}: {
+  className?: string;
+  eyebrow?: string;
+  title?: string;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <div className="glass-card col-span-2 p-6">
-        <div className="flex items-baseline justify-between">
-          <div className="label-eyebrow">Portfolio Health</div>
-          <span className="text-xs text-muted-foreground">22 active · FY2026</span>
-        </div>
-        <div className="mt-4 space-y-3">
-          {[
-            { label: "On Track", count: portfolioSummary.onTrack, color: "rag-green", pct: 64 },
-            { label: "At Risk", count: portfolioSummary.atRisk, color: "rag-amber", pct: 23 },
-            { label: "Critical", count: portfolioSummary.critical, color: "rag-red", pct: 14, pulse: true },
-          ].map((r) => (
-            <div key={r.label}>
-              <div className="mb-1 flex justify-between text-sm">
-                <span className="flex items-center gap-2 text-foreground">
-                  <span className={`h-2 w-2 rounded-full bg-${r.color} ${r.pulse ? "pulse-dot" : ""}`} />
-                  {r.count} {r.label}
-                </span>
-                <span className="text-muted-foreground">{r.pct}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/50">
-                <div className={`h-full bg-${r.color}`} style={{ width: `${r.pct}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <Link to="/portfolio" className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline">
-          View full portfolio <ArrowUpRight className="h-3 w-3" />
-        </Link>
-      </div>
-
-      <KpiCard label="Budget Burn Rate" value={`$${portfolioSummary.budgetUsed.toFixed(1)}M`} sub={`of $${portfolioSummary.budgetTotal.toFixed(0)}M total · $4.2M / month`} accent="teal">
-        <Progress value={62} className="h-2" />
-        <div className="mt-2 text-xs text-rag-amber">▲ +8% vs last month</div>
-      </KpiCard>
-
-      <KpiCard label="Portfolio Risk Score" value="7.2" sub="3 critical risks require attention" accent="red" icon={<AlertCircle className="h-4 w-4" />} />
-
-      <div className="glass-card col-span-2 p-6">
-        <div className="label-eyebrow">Active projects by status</div>
-        <div className="mt-4 flex items-center gap-8">
-          <DonutChart />
-          <div className="space-y-2 text-sm">
-            {[
-              { label: "On Track", v: 14, c: "rag-green" },
-              { label: "At Risk", v: 5, c: "rag-amber" },
-              { label: "Critical", v: 3, c: "rag-red" },
-              { label: "Not Started", v: 2, c: "rag-blue" },
-              { label: "On Hold", v: 1, c: "rag-grey" },
-            ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full bg-${s.c}`} />
-                <span className="text-muted-foreground">{s.label}</span>
-                <span className="ml-auto font-medium text-foreground">{s.v}</span>
-              </div>
-            ))}
+    <section className={`glass-card p-5 ${className}`}>
+      {(eyebrow || title || right) && (
+        <header className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            {eyebrow && <div className="label-eyebrow">{eyebrow}</div>}
+            {title && <div className="mt-1 text-sm font-medium text-foreground">{title}</div>}
           </div>
-        </div>
-      </div>
+          {right}
+        </header>
+      )}
+      {children}
+    </section>
+  );
+}
 
-      <ActionItemsCard />
+function Stat({
+  label, value, sub, tone,
+}: { label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "red" | "amber" | "green" | "accent" }) {
+  const toneCls =
+    tone === "red" ? "text-rag-red" :
+    tone === "amber" ? "text-rag-amber" :
+    tone === "green" ? "text-rag-green" :
+    tone === "accent" ? "text-accent" : "text-foreground";
+  return (
+    <div>
+      <div className="label-eyebrow">{label}</div>
+      <div className={`mt-1 text-2xl font-medium num-mono ${toneCls}`}>{value}</div>
+      {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
     </div>
   );
 }
 
+// ── Director view (default) — bento ────────────────────────────────────────────
+
 function DirectorView() {
+  const s = useLiveSummary();
+  const { notifications, unreadCount } = useNotifications();
+  const { resourceRequests } = useResourceRequests();
+  const pendingReqs = resourceRequests.filter((r) => r.status === "Pending").length;
+  const overAllocated = resources.filter((r) => r.util > 100).length;
+  const topRisks = [...risks].sort((a, b) => b.score - a.score).slice(0, 4);
+
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <KpiCard label="Portfolio Health" value="22" sub="14 green · 5 amber · 3 red" accent="teal">
-        <PortfolioHealthChart />
-      </KpiCard>
-      <ApprovalQueueCard />
-      <EscalationsCard />
-      <MilestoneCalendar />
-      <KpiCard label="Budget Overview" value={`$${portfolioSummary.budgetUsed.toFixed(1)}M`} sub={`Spent of $${portfolioSummary.budgetTotal.toFixed(0)}M (62%)`} accent="teal">
-        <Progress value={62} className="h-2" />
-      </KpiCard>
-      <div className="md:col-span-3 glass-card p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="label-eyebrow">Cross-project dependency alerts</div>
-            <div className="mt-1 text-sm text-foreground">3 active dependency conflicts across Coastal Refinery, Substation Bravo, and LNG Refit — shared crew window in week 27.</div>
+    <div className="grid grid-cols-12 gap-4">
+      {/* Hero KPI band */}
+      <Tile className="col-span-12 lg:col-span-8" eyebrow="Portfolio Health" right={
+        <Link to="/portfolio" className="inline-flex items-center gap-1 text-xs text-accent hover:underline">
+          Open portfolio <ArrowUpRight className="h-3 w-3" />
+        </Link>
+      }>
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+          <Stat label="Active" value={s.total} sub="FY2026" tone="accent" />
+          <Stat label="On Track" value={s.counts.green} sub={`${Math.round((s.counts.green / s.total) * 100)}% of portfolio`} tone="green" />
+          <Stat label="At Risk" value={s.counts.amber} sub="Watch closely" tone="amber" />
+          <Stat label="Critical" value={s.counts.red} sub="Action required" tone="red" />
+        </div>
+        <div className="mt-5">
+          <HealthBar counts={s.counts} total={s.total} />
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
+          <MiniStat icon={<Activity className="h-3.5 w-3.5" />} label="Avg progress" value={`${s.avgProgress}%`} />
+          <MiniStat icon={<TrendingUp className="h-3.5 w-3.5" />} label="On-track trend" value="▼ 6% · 8w" tone="amber" />
+          <MiniStat icon={<AlertTriangle className="h-3.5 w-3.5" />} label="Open risks" value={String(risks.length)} tone="red" />
+        </div>
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-4" eyebrow="Budget Burn" right={<DollarSign className="h-4 w-4 text-muted-foreground" />}>
+        <div className="text-3xl font-medium num-mono text-foreground">
+          ${s.budgetUsed.toFixed(1)}<span className="text-base text-muted-foreground">M</span>
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">of ${s.budgetTotal.toFixed(0)}M · {s.budgetPct}% utilized</div>
+        <Progress value={s.budgetPct} className="mt-3 h-2" />
+        <div className="mt-3 flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">~ $4.2M / month</span>
+          <span className="text-rag-amber">▲ +8% MoM</span>
+        </div>
+        <Link to="/financials" className="mt-3 inline-flex items-center gap-1 text-xs text-accent hover:underline">
+          Open financials <ArrowUpRight className="h-3 w-3" />
+        </Link>
+      </Tile>
+
+      {/* Approval queue */}
+      <Tile className="col-span-12 md:col-span-6 lg:col-span-4" eyebrow="Approval Queue" right={
+        <Link to="/pipeline" className="text-xs text-accent hover:underline">View all</Link>
+      }>
+        <ul className="space-y-2">
+          {pipelineItems.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").slice(0, 3).map((p) => (
+            <li key={p.id} className="rounded-md border border-border bg-background/30 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">{p.title}</div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">{p.id} · {p.pillar} · {p.roi} ROI</div>
+                </div>
+                <span className="num-mono shrink-0 rounded bg-accent-dim px-1.5 py-0.5 text-[10px] text-accent">{p.score}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Button size="sm" className="h-7 bg-accent text-accent-foreground hover:bg-accent/90">Approve</Button>
+                <Button size="sm" variant="outline" className="h-7">Review</Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+
+      {/* Top risks */}
+      <Tile className="col-span-12 md:col-span-6 lg:col-span-4" eyebrow="Top Risks" right={
+        <Link to="/risks" className="text-xs text-accent hover:underline">RAID</Link>
+      }>
+        <ul className="space-y-2">
+          {topRisks.map((r) => (
+            <li key={r.id} className="flex items-start gap-3 rounded-md border border-border bg-background/30 p-2.5">
+              <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${r.score >= 16 ? "bg-rag-red pulse-dot" : r.score >= 12 ? "bg-rag-amber" : "bg-rag-blue"}`} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm text-foreground">{r.title}</div>
+                <div className="text-[11px] text-muted-foreground">{r.project} · {r.owner}</div>
+              </div>
+              <span className="num-mono shrink-0 text-xs text-muted-foreground">{r.score}</span>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+
+      {/* Action items */}
+      <Tile className="col-span-12 lg:col-span-4" eyebrow="My Action Items" right={<Inbox className="h-4 w-4 text-muted-foreground" />}>
+        <ul className="space-y-2 text-sm">
+          <li className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-accent" /> Approve BC-018 <span className="ml-auto text-xs text-muted-foreground">2d</span></li>
+          <li className="flex items-center gap-2 text-foreground"><AlertTriangle className="h-4 w-4 text-rag-red" /> Escalation: ERP UAT <span className="ml-auto text-xs text-rag-red">1d</span></li>
+          <li className="flex items-center gap-2 text-foreground"><TrendingUp className="h-4 w-4 text-rag-amber" /> Review Q3 forecast <span className="ml-auto text-xs text-muted-foreground">4d</span></li>
+          <li className="flex items-center gap-2 text-foreground"><Clock className="h-4 w-4 text-muted-foreground" /> Board prep deck <span className="ml-auto text-xs text-muted-foreground">6d</span></li>
+          <li className="flex items-center gap-2 text-foreground"><Users className="h-4 w-4 text-accent" /> {pendingReqs} resource requests pending <span className="ml-auto text-xs text-muted-foreground">today</span></li>
+        </ul>
+      </Tile>
+
+      {/* Milestones */}
+      <Tile className="col-span-12 lg:col-span-7" eyebrow="Milestones · next 30 days" right={
+        <Link to="/portfolio" className="text-xs text-accent hover:underline">All</Link>
+      }>
+        <ul className="divide-y divide-border text-sm">
+          {milestones.map((m) => (
+            <li key={m.name} className="flex items-center gap-3 py-2.5">
+              <RagBadge rag={m.status as Rag} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-foreground">{m.name}</div>
+                <div className="text-xs text-muted-foreground">{m.project}</div>
+              </div>
+              <div className="text-right text-xs">
+                <div className="text-foreground">{m.due}</div>
+                <div className="text-muted-foreground">in {m.in}d</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+
+      {/* Notifications */}
+      <Tile className="col-span-12 lg:col-span-5" eyebrow="Recent Activity" right={
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Bell className="h-3.5 w-3.5" /> {unreadCount} unread
+        </span>
+      }>
+        <ul className="space-y-2 text-sm">
+          {notifications.slice(0, 5).map((n) => (
+            <li key={n.id} className="flex items-start gap-2.5 rounded-md border border-border bg-background/30 p-2.5">
+              <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                n.tone === "red" ? "bg-rag-red pulse-dot" :
+                n.tone === "amber" ? "bg-rag-amber" :
+                n.tone === "green" ? "bg-rag-green" : "bg-rag-blue"
+              }`} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-foreground">{n.title}</div>
+                <div className="text-[11px] text-muted-foreground">{n.time}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+
+      {/* Capacity */}
+      <Tile className="col-span-12 lg:col-span-8" eyebrow="Team Utilization · next 6 weeks" right={
+        <Link to="/resources" className="text-xs text-accent hover:underline">Open resources</Link>
+      }>
+        <Heatmap />
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded bg-rag-green/40" /> Healthy</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded bg-rag-amber" /> High</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded bg-orange-500" /> Stretched</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded bg-rag-red" /> Over-allocated</span>
+          <span className="ml-auto text-rag-red">{overAllocated} over-allocated</span>
+        </div>
+      </Tile>
+
+      {/* Schedule shortcut */}
+      <Tile className="col-span-12 lg:col-span-4" eyebrow="Schedule" right={<GanttChartSquare className="h-4 w-4 text-muted-foreground" />}>
+        <div className="text-sm text-foreground">Critical path projects</div>
+        <ul className="mt-2 space-y-2">
+          {s.projects.filter((p) => p.rag === "red").slice(0, 3).map((p) => (
+            <li key={p.id} className="rounded-md border border-border bg-background/30 p-2.5">
+              <Link to="/portfolio/$projectId" params={{ projectId: p.id }} className="flex items-center gap-2">
+                <RagDot rag={p.rag} />
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground hover:text-accent">{p.name}</span>
+                <span className="num-mono text-xs text-muted-foreground">{p.progress}%</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Link to="/portfolio" className="mt-3 inline-flex items-center gap-1 text-xs text-accent hover:underline">
+          Open Gantt view <ArrowUpRight className="h-3 w-3" />
+        </Link>
+      </Tile>
+
+      {/* Cross-project dep banner */}
+      <Tile className="col-span-12" eyebrow="Cross-project Dependencies">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <Sparkles className="mt-0.5 h-4 w-4 text-accent" />
+            <div className="text-sm text-foreground">
+              3 active dependency conflicts across <span className="text-accent">Coastal Refinery</span>, <span className="text-accent">Substation Bravo</span>, and <span className="text-accent">LNG Refit</span> — shared crew window in week 27.
+            </div>
           </div>
           <Button variant="outline" size="sm" className="border-accent/40 text-accent">Review</Button>
         </div>
-      </div>
+      </Tile>
     </div>
   );
 }
 
-function ResourceView() {
-  return (
-    <div className="space-y-4">
-      <div className="glass-card p-5">
-        <div className="label-eyebrow mb-3">Team utilization heatmap · next 6 weeks</div>
-        <Heatmap />
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <KpiCard label="Over-allocated" value="3" sub="John Smith 110% · Priya Iyer 102% · …" accent="red" />
-        <KpiCard label="Skill Demand" value="Solution Arch ×4" sub="High demand next 3 sprints" accent="amber" />
-        <KpiCard label="Upcoming Capacity Gaps" value="5" sub="Roles unstaffed weeks 24–28" accent="amber" />
-      </div>
-    </div>
-  );
-}
+// ── Executive view ─────────────────────────────────────────────────────────────
 
-function PMView() {
-  const mine = projects.slice(0, 4);
+function ExecutiveView() {
+  const s = useLiveSummary();
+  const stages = ["Initiation", "Planning", "Execution", "Monitoring", "Closure"] as const;
+  const byStage = stages.map((st) => ({ st, n: s.projects.filter((p) => p.stage === st).length }));
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <div className="glass-card col-span-2 p-5">
-        <div className="label-eyebrow">My projects</div>
-        <div className="mt-3 space-y-3">
-          {mine.map((p) => (
-            <Link to="/portfolio/$projectId" params={{ projectId: p.id }} key={p.id} className="flex items-center gap-3 rounded-md border border-border bg-background/30 p-3 hover:border-accent/40">
-              <RagBadge rag={p.rag} />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-foreground">{p.name}</div>
-                <div className="text-xs text-muted-foreground">{p.businessLine} · {p.endDate}</div>
+    <div className="grid grid-cols-12 gap-4">
+      <Tile className="col-span-12 md:col-span-3" eyebrow="Active Projects">
+        <div className="text-4xl font-medium num-mono text-foreground">{s.total}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{s.counts.green} green · {s.counts.amber} amber · {s.counts.red} red</div>
+      </Tile>
+      <Tile className="col-span-12 md:col-span-3" eyebrow="Budget Utilized">
+        <div className="text-4xl font-medium num-mono text-accent">${s.budgetUsed.toFixed(1)}M</div>
+        <div className="mt-1 text-xs text-muted-foreground">of ${s.budgetTotal.toFixed(0)}M · {s.budgetPct}%</div>
+        <Progress value={s.budgetPct} className="mt-3 h-1.5" />
+      </Tile>
+      <Tile className="col-span-12 md:col-span-3" eyebrow="Risk Score">
+        <div className="text-4xl font-medium num-mono text-rag-red">7.2</div>
+        <div className="mt-1 text-xs text-muted-foreground">{risks.filter((r) => r.score >= 16).length} critical risks</div>
+      </Tile>
+      <Tile className="col-span-12 md:col-span-3" eyebrow="Avg Progress">
+        <div className="text-4xl font-medium num-mono text-foreground">{s.avgProgress}%</div>
+        <div className="mt-1 text-xs text-muted-foreground">Across {s.total} projects</div>
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-7" eyebrow="Portfolio Mix by Stage">
+        <div className="space-y-2.5">
+          {byStage.map((b) => (
+            <div key={b.st}>
+              <div className="mb-1 flex justify-between text-sm">
+                <span className="text-foreground">{b.st}</span>
+                <span className="num-mono text-muted-foreground">{b.n}</span>
               </div>
-              <div className="w-32"><Progress value={p.progress} className="h-1.5" /></div>
-              <span className="num-mono w-10 text-right text-xs text-muted-foreground">{p.progress}%</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-      <div className="glass-card p-5">
-        <div className="label-eyebrow">Open RAID (7)</div>
-        <ul className="mt-3 space-y-2 text-sm">
-          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rag-red pulse-dot" />Vendor delivery delay</li>
-          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rag-amber" />Scope creep risk</li>
-          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-rag-amber" />Key resource gap</li>
-        </ul>
-      </div>
-      <div className="glass-card col-span-2 p-5">
-        <div className="label-eyebrow">Milestone tracker · next 4 weeks</div>
-        <MilestoneStrip />
-      </div>
-      <div className="glass-card p-5">
-        <div className="label-eyebrow">Status report due</div>
-        <div className="mt-2 text-sm text-foreground">Week 21 — submit by 5pm Friday</div>
-        <Button size="sm" className="mt-3 bg-accent text-accent-foreground hover:bg-accent/90">Open draft</Button>
-      </div>
-    </div>
-  );
-}
-
-function FinanceView() {
-  return (
-    <div className="grid gap-4 md:grid-cols-4">
-      <div className="glass-card md:col-span-4 p-5">
-        <div className="label-eyebrow">Portfolio budget summary</div>
-        <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
-          {[
-            { l: "Total Budget", v: "$68.0M" },
-            { l: "Total Spent", v: "$42.3M" },
-            { l: "Remaining", v: "$25.7M" },
-            { l: "Burn / mo", v: "$4.2M" },
-            { l: "Over budget", v: "2", a: "red" as const },
-          ].map((m) => (
-            <div key={m.l}>
-              <div className="label-eyebrow">{m.l}</div>
-              <div className={`mt-1 text-2xl font-medium num-mono ${m.a === "red" ? "text-rag-red" : "text-foreground"}`}>{m.v}</div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/50">
+                <div className="h-full bg-accent" style={{ width: `${(b.n / s.total) * 100}%` }} />
+              </div>
             </div>
           ))}
         </div>
-      </div>
-      <div className="glass-card md:col-span-2 p-5">
-        <div className="label-eyebrow">Top 5 variance projects</div>
-        <ul className="mt-3 divide-y divide-border text-sm">
-          {projects.filter((p) => p.rag === "red" || p.rag === "amber").slice(0, 5).map((p) => (
-            <li key={p.id} className="flex items-center justify-between py-2">
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-5" eyebrow="Top Pipeline Bets" right={<Link to="/pipeline" className="text-xs text-accent hover:underline">All</Link>}>
+        <ul className="space-y-2 text-sm">
+          {[...pipelineItems].sort((a, b) => b.score - a.score).slice(0, 4).map((p) => (
+            <li key={p.id} className="flex items-center gap-2 rounded-md border border-border bg-background/30 p-2.5">
+              <span className="num-mono rounded bg-accent-dim px-1.5 py-0.5 text-[10px] text-accent">{p.score}</span>
+              <span className="min-w-0 flex-1 truncate text-foreground">{p.title}</span>
+              <span className="text-xs text-muted-foreground">{p.roi}</span>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+    </div>
+  );
+}
+
+// ── Resource Mgr view ──────────────────────────────────────────────────────────
+
+function ResourceView() {
+  const { resourceRequests } = useResourceRequests();
+  const pending = resourceRequests.filter((r) => r.status === "Pending");
+  const over = resources.filter((r) => r.util > 100);
+  return (
+    <div className="grid grid-cols-12 gap-4">
+      <Tile className="col-span-12 md:col-span-4" eyebrow="Over-allocated" right={<Users className="h-4 w-4 text-muted-foreground" />}>
+        <div className="text-3xl font-medium num-mono text-rag-red">{over.length}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{over.map((o) => `${o.name.split(" ")[0]} ${o.util}%`).join(" · ")}</div>
+      </Tile>
+      <Tile className="col-span-12 md:col-span-4" eyebrow="Pending Requests">
+        <div className="text-3xl font-medium num-mono text-rag-amber">{pending.length}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{pending.filter((r) => r.priority === "Critical").length} critical</div>
+      </Tile>
+      <Tile className="col-span-12 md:col-span-4" eyebrow="Capacity Gaps · 6w">
+        <div className="text-3xl font-medium num-mono text-rag-amber">5</div>
+        <div className="mt-1 text-xs text-muted-foreground">Roles unstaffed weeks 24–28</div>
+      </Tile>
+
+      <Tile className="col-span-12" eyebrow="Team Utilization Heatmap · next 6 weeks">
+        <Heatmap />
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-7" eyebrow="Open Resource Requests" right={<Link to="/resources" className="text-xs text-accent hover:underline">Manage</Link>}>
+        <ul className="divide-y divide-border text-sm">
+          {pending.map((r) => (
+            <li key={r.id} className="flex items-center gap-3 py-2.5">
+              <Avatar className="h-7 w-7"><AvatarFallback className="bg-accent-dim text-[10px] text-accent">{r.submittedBy.split(" ").map((x) => x[0]).join("")}</AvatarFallback></Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-foreground">{r.role} <span className="text-muted-foreground">· {r.skill} · {r.fte} FTE</span></div>
+                <div className="text-xs text-muted-foreground">{r.project} · {r.from} → {r.until}</div>
+              </div>
+              <span className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-medium ${
+                r.priority === "Critical" ? "bg-rag-red/10 text-rag-red" :
+                r.priority === "High" ? "bg-rag-amber/10 text-rag-amber" :
+                "bg-secondary text-muted-foreground"
+              }`}>{r.priority}</span>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-5" eyebrow="Skill Demand · next 3 sprints">
+        <ul className="space-y-2 text-sm">
+          {[
+            { skill: "Solution Architect", n: 4, tone: "red" as const },
+            { skill: "Data Engineer", n: 3, tone: "amber" as const },
+            { skill: "Security Lead", n: 2, tone: "amber" as const },
+            { skill: "Field Engineer", n: 2, tone: "green" as const },
+          ].map((row) => (
+            <li key={row.skill} className="flex items-center gap-3 rounded-md border border-border bg-background/30 p-2.5">
+              <span className="flex-1 text-foreground">{row.skill}</span>
+              <span className={`num-mono text-xs ${row.tone === "red" ? "text-rag-red" : row.tone === "amber" ? "text-rag-amber" : "text-rag-green"}`}>×{row.n}</span>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+    </div>
+  );
+}
+
+// ── PM view ────────────────────────────────────────────────────────────────────
+
+function PMView() {
+  const { projects } = useProjects();
+  const mine = projects.slice(0, 5);
+  const openRisks = risks.filter((r) => r.status === "Open").length;
+  return (
+    <div className="grid grid-cols-12 gap-4">
+      <Tile className="col-span-12 lg:col-span-8" eyebrow="My Projects">
+        <ul className="space-y-2">
+          {mine.map((p) => (
+            <Link key={p.id} to="/portfolio/$projectId" params={{ projectId: p.id }}
+              className="flex items-center gap-3 rounded-md border border-border bg-background/30 p-3 transition-colors hover:border-accent/40">
+              <RagBadge rag={p.rag} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-foreground">{p.name}</div>
+                <div className="text-xs text-muted-foreground">{p.businessLine} · ends {p.endDate}</div>
+              </div>
+              <div className="hidden w-40 md:block"><Progress value={p.progress} className="h-1.5" /></div>
+              <span className="num-mono w-10 text-right text-xs text-muted-foreground">{p.progress}%</span>
+            </Link>
+          ))}
+        </ul>
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-4" eyebrow={`Open RAID (${openRisks})`}>
+        <ul className="space-y-2 text-sm">
+          {risks.slice(0, 5).map((r) => (
+            <li key={r.id} className="flex items-start gap-2">
+              <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${r.score >= 16 ? "bg-rag-red pulse-dot" : "bg-rag-amber"}`} />
+              <span className="text-foreground">{r.title}</span>
+            </li>
+          ))}
+        </ul>
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-8" eyebrow="Milestone Tracker · next 4 weeks">
+        <MilestoneStrip />
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-4" eyebrow="Status Report Due">
+        <div className="text-sm text-foreground">Week 23 — submit by Friday 5pm</div>
+        <Button size="sm" className="mt-3 bg-accent text-accent-foreground hover:bg-accent/90">Open draft</Button>
+      </Tile>
+    </div>
+  );
+}
+
+// ── Finance view ───────────────────────────────────────────────────────────────
+
+function FinanceView() {
+  const s = useLiveSummary();
+  const variance = s.projects.filter((p) => p.rag === "red" || p.rag === "amber").slice(0, 5);
+  return (
+    <div className="grid grid-cols-12 gap-4">
+      <Tile className="col-span-12" eyebrow="Portfolio Budget Summary">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+          <Stat label="Total Budget" value={`$${s.budgetTotal.toFixed(0)}M`} />
+          <Stat label="Total Spent" value={`$${s.budgetUsed.toFixed(1)}M`} tone="accent" />
+          <Stat label="Remaining" value={`$${(s.budgetTotal - s.budgetUsed).toFixed(1)}M`} />
+          <Stat label="Burn / mo" value="$4.2M" />
+          <Stat label="Over Budget" value="2" tone="red" />
+        </div>
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-7" eyebrow="Top Variance Projects">
+        <ul className="divide-y divide-border text-sm">
+          {variance.map((p) => (
+            <li key={p.id} className="flex items-center justify-between py-2.5">
               <span className="flex items-center gap-2"><RagBadge rag={p.rag} />{p.name}</span>
               <span className="num-mono text-muted-foreground">+{Math.round((p.budgetUsed / p.budgetTotal) * 100 - 60)}%</span>
             </li>
           ))}
         </ul>
-      </div>
-      <KpiCard label="CapEx / OpEx split" value="64 / 36" sub="CapEx vs OpEx ratio" accent="teal" />
-      <KpiCard label="Pending CRs" value="4" sub="Awaiting Finance sign-off" accent="amber" icon={<Clock className="h-4 w-4" />} />
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-5" eyebrow="CapEx / OpEx Split">
+        <div className="flex items-end gap-4">
+          <div>
+            <div className="text-3xl font-medium num-mono text-accent">64 / 36</div>
+            <div className="text-xs text-muted-foreground">CapEx vs OpEx</div>
+          </div>
+          <div className="flex-1">
+            <div className="flex h-3 overflow-hidden rounded-full bg-secondary/50">
+              <div className="bg-accent" style={{ width: "64%" }} />
+              <div className="bg-rag-blue" style={{ width: "36%" }} />
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <span className="text-foreground">Pending Change Requests</span>
+          <span className="num-mono rounded bg-rag-amber/10 px-2 py-0.5 text-rag-amber">4</span>
+        </div>
+      </Tile>
     </div>
   );
 }
 
-const MY_TASKS = ["Review test cases — ERP UAT", "Update sprint board", "Sync with vendor (10:30)", "Submit timesheet"];
+// ── Team Member view ───────────────────────────────────────────────────────────
+
+const MY_TASKS = [
+  "Review test cases — ERP UAT",
+  "Update sprint board",
+  "Sync with vendor (10:30)",
+  "Submit timesheet",
+];
 
 function TeamMemberView() {
   const [done, setDone] = useState<string[]>([]);
-
+  const { notifications } = useNotifications();
   function toggle(t: string) {
-    setDone((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+    setDone((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
   }
-
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <div className="glass-card col-span-2 p-5">
-        <div className="flex items-center justify-between">
-          <div className="label-eyebrow">My tasks today</div>
-          <span className="text-xs text-muted-foreground num-mono">{done.length}/{MY_TASKS.length} done</span>
-        </div>
-        <ul className="mt-3 space-y-2 text-sm">
+    <div className="grid grid-cols-12 gap-4">
+      <Tile className="col-span-12 lg:col-span-8" eyebrow="My Tasks Today" right={
+        <span className="num-mono text-xs text-muted-foreground">{done.length}/{MY_TASKS.length} done</span>
+      }>
+        <ul className="space-y-2 text-sm">
           {MY_TASKS.map((t) => (
-            <li key={t}
-              className={`flex items-center gap-2 rounded-md border border-border bg-background/30 p-2 cursor-pointer transition-opacity ${done.includes(t) ? "opacity-50" : ""}`}
+            <li
+              key={t}
               onClick={() => toggle(t)}
+              className={`flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background/30 p-2.5 transition-opacity ${done.includes(t) ? "opacity-50" : ""}`}
             >
-              <input type="checkbox" className="accent-accent pointer-events-none" checked={done.includes(t)} readOnly />
-              <span className={`text-foreground ${done.includes(t) ? "line-through text-muted-foreground" : ""}`}>{t}</span>
+              <input type="checkbox" className="pointer-events-none accent-accent" checked={done.includes(t)} readOnly />
+              <span className={`text-foreground ${done.includes(t) ? "text-muted-foreground line-through" : ""}`}>{t}</span>
             </li>
           ))}
         </ul>
-      </div>
-      <KpiCard label="My project" value="ERP Upgrade" sub="Critical · 61%" accent="red" />
-      <div className="glass-card col-span-3 p-5">
-        <div className="label-eyebrow">Recent updates</div>
-        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-          <li>Sara closed milestone "Integration Layer Build"</li>
-          <li>Mei opened risk R-091 (Vendor delivery delay)</li>
-          <li>Finance approved CR-014 ($120K scope add)</li>
+      </Tile>
+
+      <Tile className="col-span-12 lg:col-span-4" eyebrow="My Project">
+        <div className="text-lg font-medium text-foreground">ERP Upgrade</div>
+        <div className="mt-1 text-xs text-rag-red">Critical · 61%</div>
+        <Progress value={61} className="mt-3 h-1.5" />
+      </Tile>
+
+      <Tile className="col-span-12" eyebrow="Recent Updates">
+        <ul className="space-y-2 text-sm">
+          {notifications.slice(0, 5).map((n) => (
+            <li key={n.id} className="flex items-center gap-2 text-muted-foreground">
+              <RagDot rag={(n.tone === "red" ? "red" : n.tone === "amber" ? "amber" : n.tone === "green" ? "green" : "blue") as Rag} />
+              {n.title}
+            </li>
+          ))}
         </ul>
-      </div>
+      </Tile>
     </div>
   );
 }
 
-function PortfolioHealthChart() {
-  const data = [
-    { label: "On Track", v: 14, c: "var(--rag-green)" },
-    { label: "At Risk", v: 5, c: "var(--rag-amber)" },
-    { label: "Critical", v: 3, c: "var(--rag-red)" },
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function HealthBar({ counts, total }: { counts: Record<Rag, number>; total: number }) {
+  const rows: { k: Rag; c: string; l: string }[] = [
+    { k: "green", c: "var(--rag-green)", l: "On Track" },
+    { k: "amber", c: "var(--rag-amber)", l: "At Risk" },
+    { k: "red",   c: "var(--rag-red)",   l: "Critical" },
+    { k: "blue",  c: "var(--rag-blue)",  l: "Not Started" },
+    { k: "grey",  c: "var(--rag-grey)",  l: "On Hold" },
   ];
-  const total = data.reduce((s, x) => s + x.v, 0);
-  // mini sparkline trend (last 8 weeks of "on track" share)
-  const trend = [70, 68, 72, 65, 60, 64, 66, 64];
-  const max = Math.max(...trend);
-  const min = Math.min(...trend);
-  const points = trend
-    .map((v, i) => {
-      const x = (i / (trend.length - 1)) * 100;
-      const y = 100 - ((v - min) / (max - min || 1)) * 100;
-      return `${x},${y}`;
-    })
-    .join(" ");
   return (
-    <div className="space-y-3">
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-secondary/40">
-        {data.map((d) => (
-          <div key={d.label} style={{ width: `${(d.v / total) * 100}%`, background: d.c }} />
-        ))}
+    <div>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-secondary/40">
+        {rows.map((r) =>
+          counts[r.k] ? <div key={r.k} style={{ width: `${(counts[r.k] / total) * 100}%`, background: r.c }} /> : null
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-2 text-[11px]">
-        {data.map((d) => (
-          <div key={d.label} className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: d.c }} />
-            <span className="text-muted-foreground">{d.label}</span>
-            <span className="ml-auto num-mono text-foreground">{d.v}</span>
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] sm:grid-cols-5">
+        {rows.map((r) => (
+          <div key={r.k} className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: r.c }} />
+            <span className="text-muted-foreground">{r.l}</span>
+            <span className="ml-auto num-mono text-foreground">{counts[r.k]}</span>
           </div>
         ))}
       </div>
-      <div>
-        <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-          <span>On-track trend · 8w</span>
-          <span className="text-rag-amber">▼ 6%</span>
-        </div>
-        <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="h-8 w-full">
-          <defs>
-            <linearGradient id="phFill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <polygon points={`0,28 ${points
-            .split(" ")
-            .map((p) => {
-              const [x, y] = p.split(",");
-              return `${x},${(Number(y) / 100) * 28}`;
-            })
-            .join(" ")} 100,28`} fill="url(#phFill)" />
-          <polyline
-            points={points
-              .split(" ")
-              .map((p) => {
-                const [x, y] = p.split(",");
-                return `${x},${(Number(y) / 100) * 28}`;
-              })
-              .join(" ")}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="1.2"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-      </div>
     </div>
   );
 }
 
-function DonutChart() {
-  const segments = [
-    { v: 14, c: "#10B981" }, { v: 5, c: "#F59E0B" }, { v: 3, c: "#EF4444" }, { v: 2, c: "#3B82F6" }, { v: 1, c: "#64748B" },
-  ];
-  const total = segments.reduce((s, x) => s + x.v, 0);
-  let offset = 0;
+function MiniStat({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone?: "amber" | "red" }) {
+  const t = tone === "red" ? "text-rag-red" : tone === "amber" ? "text-rag-amber" : "text-foreground";
   return (
-    <svg viewBox="0 0 42 42" className="h-32 w-32 -rotate-90">
-      <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-      {segments.map((s, i) => {
-        const dash = (s.v / total) * 100;
-        const el = <circle key={i} cx="21" cy="21" r="15.915" fill="transparent" stroke={s.c} strokeWidth="6"
-          strokeDasharray={`${dash} ${100 - dash}`} strokeDashoffset={-offset} />;
-        offset += dash;
-        return el;
-      })}
-      <text x="21" y="21" textAnchor="middle" dy=".35em" transform="rotate(90 21 21)" fill="#E2E8F0" fontSize="6" fontWeight="500">25</text>
-    </svg>
+    <div className="rounded-md border border-border bg-background/30 p-2.5">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">{icon}{label}</div>
+      <div className={`mt-1 text-sm font-medium ${t}`}>{value}</div>
+    </div>
   );
 }
 
@@ -380,7 +649,7 @@ function Heatmap() {
   return (
     <div className="space-y-1.5">
       <div className="ml-24 grid grid-cols-6 gap-1 text-[10px] text-muted-foreground">
-        {["W21", "W22", "W23", "W24", "W25", "W26"].map((w) => <div key={w} className="text-center">{w}</div>)}
+        {["W23", "W24", "W25", "W26", "W27", "W28"].map((w) => <div key={w} className="text-center">{w}</div>)}
       </div>
       {people.map((p, i) => (
         <div key={p} className="flex items-center gap-2">
@@ -392,102 +661,16 @@ function Heatmap() {
   );
 }
 
-function ApprovalQueueCard() {
-  return (
-    <div className="glass-card p-5">
-      <div className="flex items-center justify-between">
-        <div className="label-eyebrow">Approval Queue</div>
-        <Link to="/pipeline" className="text-xs text-accent hover:underline">View all</Link>
-      </div>
-      <ul className="mt-3 space-y-2">
-        {pipelineItems.slice(0, 3).map((p) => (
-          <li key={p.id} className="rounded-md border border-border bg-background/30 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">{p.title}</span>
-              <span className="num-mono rounded bg-accent-dim px-1.5 py-0.5 text-[10px] text-accent">{p.score}</span>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <Button size="sm" className="h-7 bg-accent text-accent-foreground hover:bg-accent/90">Approve</Button>
-              <Button size="sm" variant="outline" className="h-7">Review</Button>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function EscalationsCard() {
-  return (
-    <div className="glass-card p-5">
-      <div className="label-eyebrow">Escalations pending</div>
-      <ul className="mt-3 space-y-2 text-sm">
-        {[
-          { p: "ERP Upgrade", note: "Vendor SLA breach", days: 2 },
-          { p: "Security Hardening", note: "Pen-test overrun", days: 4 },
-          { p: "Wellhead Auto.", note: "Critical risk R-081", days: 1 },
-        ].map((e) => (
-          <li key={e.p} className="flex items-center justify-between rounded-md border border-border bg-background/30 p-2.5">
-            <div>
-              <div className="text-foreground">{e.p}</div>
-              <div className="text-xs text-muted-foreground">{e.note}</div>
-            </div>
-            <span className="text-xs text-rag-red">{e.days}d</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ActionItemsCard() {
-  return (
-    <div className="glass-card p-5">
-      <div className="label-eyebrow">My action items</div>
-      <ul className="mt-3 space-y-2 text-sm">
-        <li className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-accent" /> Approve BC-018 · 2d</li>
-        <li className="flex items-center gap-2 text-foreground"><AlertCircle className="h-4 w-4 text-rag-red" /> Escalation: ERP UAT · 1d</li>
-        <li className="flex items-center gap-2 text-foreground"><TrendingUp className="h-4 w-4 text-rag-amber" /> Review Q3 forecast · 4d</li>
-        <li className="flex items-center gap-2 text-foreground"><Clock className="h-4 w-4 text-muted-foreground" /> Board prep deck · 6d</li>
-      </ul>
-      <Link to="/pipeline" className="mt-3 inline-block text-xs text-accent hover:underline">View all (12)</Link>
-    </div>
-  );
-}
-
-function MilestoneCalendar() {
-  return (
-    <div className="glass-card md:col-span-2 p-5">
-      <div className="label-eyebrow">Milestones · next 30 days</div>
-      <ul className="mt-3 divide-y divide-border text-sm">
-        {milestones.map((m) => (
-          <li key={m.name} className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-3">
-              <RagBadge rag={m.status as any} />
-              <div>
-                <div className="text-foreground">{m.name}</div>
-                <div className="text-xs text-muted-foreground">{m.project}</div>
-              </div>
-            </div>
-            <div className="text-right text-xs">
-              <div className="text-foreground">{m.due}</div>
-              <div className="text-muted-foreground">in {m.in}d</div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function MilestoneStrip() {
   return (
-    <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
-      {["W21", "W22", "W23", "W24"].map((w, i) => (
+    <div className="mt-1 grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+      {["W23", "W24", "W25", "W26"].map((w, i) => (
         <div key={w} className="rounded-md border border-border bg-background/30 p-3">
           <div className="text-muted-foreground">{w}</div>
           <div className="mt-1 text-foreground">{["UAT Sign-off", "Integration", "Go-live cutover", "Stabilize"][i]}</div>
-          <Avatar className="mt-2 h-5 w-5"><AvatarFallback className="bg-accent-dim text-[10px] text-accent">{["SA","MC","OH","SA"][i]}</AvatarFallback></Avatar>
+          <Avatar className="mt-2 h-5 w-5">
+            <AvatarFallback className="bg-accent-dim text-[10px] text-accent">{["SA", "MC", "OH", "SA"][i]}</AvatarFallback>
+          </Avatar>
         </div>
       ))}
     </div>
