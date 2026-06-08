@@ -376,8 +376,9 @@ function PipelinePage() {
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground">
             <span className="font-medium text-foreground/70">Stage rules:</span>
             <span>Submitted → Under Review · Deferred · Rejected</span>
-            <span>Under Review → Approved (score ≥ 71) · Rejected · Closed · Deferred</span>
-            <span className="text-rag-red/70">Approved / Rejected / Closed = terminal (locked)</span>
+            <span>Under Review → Approved (score ≥ 71) · Rejected · Deferred</span>
+            <span className="text-rag-red/70">Approved / Rejected = terminal (locked)</span>
+
           </div>
 
           {/* Capital Approval Queue */}
