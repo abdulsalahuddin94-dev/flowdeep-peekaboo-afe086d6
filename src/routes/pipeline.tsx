@@ -466,7 +466,7 @@ function PipelinePage() {
                                             setRoleCommentText("");
                                           }}
                                         >
-                                          💬 Comment
+                                          Comment
                                         </Button>
                                       </div>
                                     ) : (
