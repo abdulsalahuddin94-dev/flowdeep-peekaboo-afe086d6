@@ -227,9 +227,10 @@ function PipelinePage() {
   }
 
   function confirmClose(id: string) {
-    commitMove(id, "Closed");
+    commitMove(id, "Rejected");
     setPendingClose(null); setCloseNote("");
   }
+
 
   // ── Column style ─────────────────────────────────────────────────────────────
   function colClass(stage: Stage) {
