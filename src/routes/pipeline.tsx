@@ -20,16 +20,15 @@ export const Route = createFileRoute("/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline — Nexus PMO" }, { name: "description", content: "Pre-approval funnel: business case intake, scoring, Kanban routing and DoA sign-off." }] }),
 });
 
-const STAGES = ["Submitted", "Under Review", "Approved", "Deferred", "Rejected", "Closed"] as const;
+const STAGES = ["Submitted", "Under Review", "Approved", "Deferred", "Rejected"] as const;
 type Stage = typeof STAGES[number];
 
 const VALID_TRANSITIONS: Record<Stage, Stage[]> = {
   "Submitted":    ["Under Review", "Deferred", "Rejected"],
-  "Under Review": ["Approved", "Rejected", "Closed", "Deferred"],
+  "Under Review": ["Approved", "Rejected", "Deferred"],
   "Approved":     [],
   "Rejected":     [],
   "Deferred":     ["Submitted", "Under Review"],
-  "Closed":       [],
 };
 
 const STAGE_STYLE: Record<Stage, string> = {
@@ -38,8 +37,8 @@ const STAGE_STYLE: Record<Stage, string> = {
   "Approved":     "border-rag-green/30 bg-rag-green/5",
   "Deferred":     "border-border bg-secondary/10",
   "Rejected":     "border-rag-red/30 bg-rag-red/5",
-  "Closed":       "border-border bg-secondary/20",
 };
+
 
 type Item = {
   id: string; title: string; stage: Stage;
@@ -201,7 +200,7 @@ function PipelinePage() {
 
     if (targetStage === "Approved") { setPendingApprove(draggingItem.id); return; }
     if (targetStage === "Rejected") { setPendingReject(draggingItem.id);  return; }
-    if (targetStage === "Closed")   { setPendingClose(draggingItem.id);   return; }
+
 
     commitMove(draggingItem.id, targetStage);
   }
@@ -229,9 +228,10 @@ function PipelinePage() {
   }
 
   function confirmClose(id: string) {
-    commitMove(id, "Closed");
+    commitMove(id, "Rejected");
     setPendingClose(null); setCloseNote("");
   }
+
 
   // ── Column style ─────────────────────────────────────────────────────────────
   function colClass(stage: Stage) {
@@ -406,8 +406,9 @@ function PipelinePage() {
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground">
             <span className="font-medium text-foreground/70">Stage rules:</span>
             <span>Submitted → Under Review · Deferred · Rejected</span>
-            <span>Under Review → Approved (score ≥ 71) · Rejected · Closed · Deferred</span>
-            <span className="text-rag-red/70">Approved / Rejected / Closed = terminal (locked)</span>
+            <span>Under Review → Approved (score ≥ 71) · Rejected · Deferred</span>
+            <span className="text-rag-red/70">Approved / Rejected = terminal (locked)</span>
+
           </div>
 
           {/* Capital Approval Queue */}
@@ -496,7 +497,7 @@ function PipelinePage() {
                                             setRoleCommentText("");
                                           }}
                                         >
-                                          💬 Comment
+                                          Comment
                                         </Button>
                                       </div>
                                     ) : (
