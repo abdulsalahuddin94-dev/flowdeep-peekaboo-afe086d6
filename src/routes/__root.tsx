@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet, Link, createRootRouteWithContext, useRouter,
-  HeadContent, Scripts,
+  HeadContent, Scripts, useNavigate, useRouterState,
 } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 import appCss from "../styles.css?url";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -11,6 +12,7 @@ import { AppTopbar } from "@/components/AppTopbar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProjectsProvider } from "@/lib/projects-store";
+import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -97,20 +99,55 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ProjectsProvider>
       <TooltipProvider delayDuration={120}>
-        <SidebarProvider defaultOpen>
-          <div className="flex min-h-screen w-full bg-background text-foreground">
-            <AppSidebar />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <AppTopbar />
-              <main className="flex-1 overflow-x-hidden px-6 py-6 md:px-10 md:py-8">
-                <Outlet />
-              </main>
+        <AuthGate>
+          <SidebarProvider defaultOpen>
+            <div className="flex min-h-screen w-full bg-background text-foreground">
+              <AppSidebar />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <AppTopbar />
+                <main className="flex-1 overflow-x-hidden px-6 py-6 md:px-10 md:py-8">
+                  <Outlet />
+                </main>
+              </div>
             </div>
-          </div>
-          <Toaster richColors theme="dark" position="bottom-right" />
-        </SidebarProvider>
+          </SidebarProvider>
+        </AuthGate>
+        <Toaster richColors theme="dark" position="bottom-right" />
       </TooltipProvider>
       </ProjectsProvider>
     </QueryClientProvider>
   );
+}
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [status, setStatus] = useState<"loading" | "in" | "out">("loading");
+
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setStatus(session ? "in" : "out");
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      setStatus(data.session ? "in" : "out");
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (status === "out" && pathname !== "/auth") {
+      navigate({ to: "/auth", replace: true });
+    }
+  }, [status, pathname, navigate]);
+
+  if (pathname === "/auth") return <Outlet />;
+
+  if (status !== "in") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+  return <>{children}</>;
 }
