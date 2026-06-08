@@ -43,7 +43,7 @@ const STAGE_STYLE: Record<Stage, string> = {
 
 type Item = {
   id: string; title: string; stage: Stage;
-  score: number; roi: string; submittedBy: string; date: string; pillar: string;
+  score: number; roi: string; submittedBy: string; sponsor: string; dept: string; date: string; pillar: string;
 };
 
 // ── Approval-queue types ──────────────────────────────────────────────────────
@@ -113,6 +113,7 @@ function PipelinePage() {
   const [queueApprove, setQueueApprove] = useState<string | null>(null);
   const [queueReject,  setQueueReject]  = useState<string | null>(null);
   const [newCase, setNewCase] = useState(false);
+  const [sortBy, setSortBy] = useState<"score" | "date" | "dept">("score");
 
   // ── Approval history ─────────────────────────────────────────────────────────
   const [approvalHistory, setApprovalHistory] = useState<ApprovalHistory>(() =>
@@ -285,9 +286,32 @@ function PipelinePage() {
         </TabsList>
 
         <TabsContent value="capital" className="mt-5">
+          {/* Sort bar */}
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Sort by:</span>
+            {(["score", "date", "dept"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSortBy(s)}
+                className={`rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
+                  sortBy === s
+                    ? "border-accent bg-accent-dim text-accent"
+                    : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s === "score" ? "Score ↓" : s === "date" ? "Date" : "Department"}
+              </button>
+            ))}
+          </div>
+
           <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-6">
             {STAGES.map((stage) => {
-              const stageItems = items.filter((i) => i.stage === stage);
+              const rawItems = items.filter((i) => i.stage === stage);
+              const stageItems = [...rawItems].sort((a, b) =>
+                sortBy === "score" ? b.score - a.score :
+                sortBy === "dept"  ? a.dept.localeCompare(b.dept) :
+                0
+              );
               const isValidTarget = !!dragging && validTargets.includes(stage);
               return (
                 <div
@@ -340,8 +364,11 @@ function PipelinePage() {
                             }
                           </div>
                           <div className="mt-1 text-sm font-medium text-foreground leading-snug">{b.title}</div>
-                          <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>{b.pillar}</span>
+                          <div className="mt-1.5 text-[10px] text-muted-foreground/70 truncate">
+                            Sponsor: {b.sponsor}
+                          </div>
+                          <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span>{b.dept}</span>
                             <span className={`num-mono rounded px-1.5 py-0.5 ${
                               b.score >= 71 ? "bg-rag-green/10 text-rag-green" :
                               b.score >= 41 ? "bg-rag-amber/10 text-rag-amber" :
@@ -349,11 +376,14 @@ function PipelinePage() {
                             }`}>{b.score}</span>
                           </div>
                           <div className="mt-2 flex items-center justify-between">
-                            <Avatar className="h-5 w-5">
-                              <AvatarFallback className="bg-accent-dim text-[10px] text-accent">
-                                {b.submittedBy.split(" ").map((s) => s[0]).join("")}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="flex items-center gap-1.5">
+                              <Avatar className="h-5 w-5">
+                                <AvatarFallback className="bg-accent-dim text-[10px] text-accent">
+                                  {b.submittedBy.split(" ").map((s) => s[0]).join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-[9px] text-muted-foreground/60">{b.date}</span>
+                            </div>
                             <span className="num-mono text-[10px] text-muted-foreground">{b.roi}</span>
                           </div>
                         </div>
@@ -407,7 +437,8 @@ function PipelinePage() {
                             </Avatar>
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-medium text-foreground">{p.title}</div>
-                              <div className="text-xs text-muted-foreground">{p.submittedBy} · {p.date} · {p.pillar} · {p.roi}</div>
+                              <div className="text-xs text-muted-foreground">{p.submittedBy} · {p.date} · {p.dept} · {p.roi}</div>
+                              <div className="text-[10px] text-muted-foreground/60 mt-0.5">Sponsor: {p.sponsor}</div>
                             </div>
                             <span className={`num-mono rounded px-2 py-1 text-xs ${
                               p.score >= 71 ? "bg-rag-green/10 text-rag-green" :
@@ -857,6 +888,10 @@ function CommercialBidsBoard() {
   const [declineTarget, setDeclineTarget] = useState<string | null>(null);
   const [declineReason, setDeclineReason] = useState("");
 
+  // No-Bid archive
+  const [noBidArchive, setNoBidArchive] = useState<{ id: string; title: string; client: string; value: string; reason: string; when: string }[]>([]);
+  const [showNoBidArchive, setShowNoBidArchive] = useState(false);
+
   // Comment (no-decision)
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [commentText,   setCommentText]   = useState("");
@@ -1037,6 +1072,38 @@ function CommercialBidsBoard() {
         )}
       </div>
 
+      {/* No-Bid Archive */}
+      {noBidArchive.length > 0 && (
+        <div className="mt-8">
+          <button
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setShowNoBidArchive((v) => !v)}
+          >
+            <span>{showNoBidArchive ? "▾" : "▸"}</span>
+            No-Bid Archive
+            <Badge variant="outline" className="border-border bg-secondary/40 text-[10px]">{noBidArchive.length}</Badge>
+          </button>
+          {showNoBidArchive && (
+            <div className="mt-3 space-y-2">
+              {noBidArchive.map((a) => (
+                <div key={a.id} className="glass-card overflow-hidden border-border/50 opacity-70">
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <Badge variant="outline" className="border-rag-red/30 bg-rag-red/10 text-rag-red text-[10px]">No-Bid</Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-foreground">{a.title}</div>
+                      <div className="text-xs text-muted-foreground">{a.client} · {a.value} · {a.when}</div>
+                    </div>
+                  </div>
+                  <div className="border-t border-border/40 px-4 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/70">Reason: </span>{a.reason}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Dialog: Mark RFP Received (In Pursuit → RFP Issued) */}
       <Dialog open={!!rfpTarget} onOpenChange={(o) => { if (!o) setRfpTarget(null); }}>
         <DialogContent className="max-w-md">
@@ -1133,9 +1200,15 @@ function CommercialBidsBoard() {
               variant="destructive"
               onClick={() => {
                 if (!declineReason.trim()) { toast.error("Reason is required"); return; }
-                const name = bids.find((b) => b.id === declineTarget)?.title;
+                const bid = bids.find((b) => b.id === declineTarget);
+                if (bid) {
+                  setNoBidArchive((prev) => [
+                    { id: bid.id, title: bid.title, client: bid.client, value: bid.value, reason: declineReason.trim(), when: "Just now" },
+                    ...prev,
+                  ]);
+                }
                 moveBid(declineTarget!, "Lost");
-                toast.info(`${name} — bid declined`);
+                toast.info(`${bid?.title} — bid declined`);
                 setDeclineTarget(null);
                 setDeclineReason("");
               }}

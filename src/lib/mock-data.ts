@@ -132,14 +132,14 @@ export const vendors = [
 ];
 
 export const pipelineItems = [
-  { id: "BC-2026-018", title: "AI-driven Predictive Maintenance", stage: "Under Review", score: 84, roi: "$3.2M", submittedBy: "Sara Al-Rashid", date: "3d ago", pillar: "Innovation" },
-  { id: "BC-2026-017", title: "Coastal Wind Farm Phase 2", stage: "Submitted", score: 71, roi: "$12.4M", submittedBy: "John Smith", date: "5d ago", pillar: "Growth" },
-  { id: "BC-2026-016", title: "Internal Audit Tooling", stage: "Revision Requested", score: 52, roi: "$0.8M", submittedBy: "Mei Chen", date: "1w ago", pillar: "Compliance" },
-  { id: "BC-2026-015", title: "Customer Loyalty Platform", stage: "Approved", score: 88, roi: "$5.6M", submittedBy: "Priya Iyer", date: "2w ago", pillar: "Growth" },
-  { id: "BC-2026-014", title: "Legacy Decommissioning", stage: "Deferred", score: 38, roi: "$1.1M", submittedBy: "Liam Walker", date: "3w ago", pillar: "Efficiency" },
-  { id: "BC-2026-013", title: "Remote Operations Center", stage: "Under Review", score: 76, roi: "$4.0M", submittedBy: "Omar Haddad", date: "4d ago", pillar: "Operations" },
-  { id: "BC-2026-012", title: "Carbon Tracking System", stage: "Submitted", score: 64, roi: "$2.2M", submittedBy: "Hana Tanaka", date: "6d ago", pillar: "ESG" },
-  { id: "BC-2026-011", title: "Field Engineer App Refresh", stage: "Rejected", score: 31, roi: "$0.4M", submittedBy: "Diego Ortiz", date: "1mo ago", pillar: "Efficiency" },
+  { id: "BC-2026-018", title: "AI-driven Predictive Maintenance", stage: "Under Review", score: 84, roi: "$3.2M", submittedBy: "Sara Al-Rashid", sponsor: "Ahmed Al-Mansouri", dept: "Innovation", date: "3d ago", pillar: "Innovation" },
+  { id: "BC-2026-017", title: "Coastal Wind Farm Phase 2", stage: "Submitted", score: 71, roi: "$12.4M", submittedBy: "John Smith", sponsor: "Khalid Al-Farsi", dept: "Engineering", date: "5d ago", pillar: "Growth" },
+  { id: "BC-2026-016", title: "Internal Audit Tooling", stage: "Revision Requested", score: 52, roi: "$0.8M", submittedBy: "Mei Chen", sponsor: "Nora Hassan", dept: "IT & Digital", date: "1w ago", pillar: "Compliance" },
+  { id: "BC-2026-015", title: "Customer Loyalty Platform", stage: "Approved", score: 88, roi: "$5.6M", submittedBy: "Priya Iyer", sponsor: "Layla Mahmoud", dept: "Growth", date: "2w ago", pillar: "Growth" },
+  { id: "BC-2026-014", title: "Legacy Decommissioning", stage: "Deferred", score: 38, roi: "$1.1M", submittedBy: "Liam Walker", sponsor: "Youssef Barakat", dept: "Operations", date: "3w ago", pillar: "Efficiency" },
+  { id: "BC-2026-013", title: "Remote Operations Center", stage: "Under Review", score: 76, roi: "$4.0M", submittedBy: "Omar Haddad", sponsor: "Ahmed Al-Mansouri", dept: "Operations", date: "4d ago", pillar: "Operations" },
+  { id: "BC-2026-012", title: "Carbon Tracking System", stage: "Submitted", score: 64, roi: "$2.2M", submittedBy: "Hana Tanaka", sponsor: "Reem Al-Dosari", dept: "ESG", date: "6d ago", pillar: "ESG" },
+  { id: "BC-2026-011", title: "Field Engineer App Refresh", stage: "Rejected", score: 31, roi: "$0.4M", submittedBy: "Diego Ortiz", sponsor: "Khalid Al-Farsi", dept: "Engineering", date: "1mo ago", pillar: "Efficiency" },
 ];
 
 export const risks = [

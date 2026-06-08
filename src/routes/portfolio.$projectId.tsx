@@ -880,10 +880,13 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
       { task: "RAID log up to date", role: "Project Manager", done: false },
     ]},
     { name: "Closure", items: [
+      { task: "All deliverables accepted by client / sponsor", role: "Executive Sponsor", done: false },
+      { task: "Project documentation complete and filed", role: "Project Manager", done: false },
       { task: "Lessons learned documented", role: "Project Manager", done: false },
       { task: "Final financial report approved", role: "Finance Manager", done: false },
       { task: "Stakeholder sign-off obtained", role: "Executive Sponsor", done: false },
-      { task: "Project archived", role: "Project Manager", done: false },
+      { task: "All contracts closed and vendors notified", role: "Procurement Lead", done: false },
+      { task: "Project archived in system", role: "Project Manager", done: false },
     ]},
   ]);
 
@@ -2520,26 +2523,47 @@ function StageGatesDialog({
 }
 
 // ── Lessons Learned tab ───────────────────────────────────────────────────────
+const LESSON_CATS = ["What Went Well", "Challenges", "Recommendations", "Process", "People", "Tech", "Governance", "Risk", "Communication", "Planning"] as const;
+type LessonCat = typeof LESSON_CATS[number];
+
+const LESSON_CAT_STYLE: Record<string, string> = {
+  "What Went Well":  "border-rag-green/40 bg-rag-green/10 text-rag-green",
+  "Challenges":      "border-rag-red/40 bg-rag-red/10 text-rag-red",
+  "Recommendations": "border-rag-amber/40 bg-rag-amber/10 text-rag-amber",
+};
+
 function LessonsTab({ project }: { project: typeof projects[number] }) {
   const [items, setItems] = useState<Lesson[]>([
-    { tag: "Process", text: "Earlier vendor SLA reviews surface delays sooner.", by: project.pm, when: "May 18" },
-    { tag: "People", text: "Pair architect with junior dev for knowledge transfer.", by: "Mei Chen", when: "May 14" },
-    { tag: "Tech", text: "Use staging mirror to validate integration before UAT.", by: "Priya Iyer", when: "May 11" },
+    { tag: "What Went Well", text: "Early stakeholder alignment on scope prevented scope creep.", by: project.pm, when: "May 20" },
+    { tag: "Challenges", text: "Vendor delivery delay on Oracle ERP — impacted integration milestone by 2 weeks.", by: "Mei Chen", when: "May 18" },
+    { tag: "Recommendations", text: "Run UAT in parallel with integration build on future projects — saves 1 sprint.", by: "Priya Iyer", when: "May 15" },
+    { tag: "Process", text: "Earlier vendor SLA reviews surface delays sooner.", by: project.pm, when: "May 14" },
+    { tag: "People", text: "Pair architect with junior dev for knowledge transfer.", by: "Mei Chen", when: "May 11" },
     { tag: "Governance", text: "Bi-weekly steering tempo too slow for critical phase.", by: project.pm, when: "May 09" },
   ]);
   const [open, setOpen] = useState(false);
-  const [tag, setTag] = useState("Process");
+  const [tag, setTag] = useState<LessonCat>("What Went Well");
   const [text, setText] = useState("");
+  const [filterCat, setFilterCat] = useState<LessonCat | "All">("All");
 
   function submit() {
     if (!text.trim()) { toast.error("Lesson text is required"); return; }
     setItems((prev) => [{ tag, text: text.trim(), by: project.pm, when: "Just now" }, ...prev]);
     toast.success("Lesson recorded");
-    setOpen(false); setText(""); setTag("Process");
+    setOpen(false); setText(""); setTag("What Went Well");
   }
 
+  const displayed = filterCat === "All" ? items : items.filter((l) => l.tag === filterCat);
+
+  const grouped = [
+    { label: "What Went Well", items: displayed.filter((l) => l.tag === "What Went Well") },
+    { label: "Challenges",     items: displayed.filter((l) => l.tag === "Challenges") },
+    { label: "Recommendations",items: displayed.filter((l) => l.tag === "Recommendations") },
+    { label: "Other",          items: displayed.filter((l) => !["What Went Well","Challenges","Recommendations"].includes(l.tag)) },
+  ].filter((g) => g.items.length > 0);
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="label-eyebrow">{items.length} lessons recorded</div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -2551,16 +2575,31 @@ function LessonsTab({ project }: { project: typeof projects[number] }) {
             <div className="grid gap-3">
               <div>
                 <Label>Category</Label>
-                <Select value={tag} onValueChange={setTag}>
+                <Select value={tag} onValueChange={(v) => setTag(v as LessonCat)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {["Process", "People", "Tech", "Governance", "Risk", "Communication", "Planning"].map((c) => (
+                    {LESSON_CATS.map((c) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Lesson</Label><Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="What did we learn? What would we do differently?" /></div>
+              <div>
+                <Label>
+                  {tag === "What Went Well" ? "What worked? What would you repeat?" :
+                   tag === "Challenges"     ? "What was difficult or went wrong?" :
+                   tag === "Recommendations"? "What should future projects do differently?" :
+                   "Lesson"}
+                </Label>
+                <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)}
+                  placeholder={
+                    tag === "What Went Well" ? "e.g. Early stakeholder buy-in avoided scope disputes later…" :
+                    tag === "Challenges"     ? "e.g. Vendor SLA breach caused 2-week delay on milestone 3…" :
+                    tag === "Recommendations"? "e.g. Run UAT in parallel with integration build to save 1 sprint…" :
+                    "What did we learn?"
+                  }
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -2569,20 +2608,73 @@ function LessonsTab({ project }: { project: typeof projects[number] }) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {items.map((l, i) => (
-          <div key={i} className="glass-card p-4 text-sm">
-            <div className="flex items-center justify-between">
-              <Badge variant="outline" className="border-accent/40 bg-accent-dim text-accent">{l.tag}</Badge>
-              <span className="text-xs text-muted-foreground">{l.when}</span>
-            </div>
-            <p className="mt-2 text-foreground">{l.text}</p>
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <MessageSquare className="h-3 w-3" /> by {l.by}
-            </div>
-          </div>
+
+      {/* Filter chips */}
+      <div className="flex flex-wrap gap-2">
+        {(["All", "What Went Well", "Challenges", "Recommendations", "Process", "People", "Tech", "Governance"] as const).map((c) => (
+          <button
+            key={c}
+            onClick={() => setFilterCat(c as LessonCat | "All")}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              filterCat === c
+                ? c === "What Went Well"  ? "border-rag-green/50 bg-rag-green/15 text-rag-green"
+                : c === "Challenges"      ? "border-rag-red/50 bg-rag-red/15 text-rag-red"
+                : c === "Recommendations" ? "border-rag-amber/50 bg-rag-amber/15 text-rag-amber"
+                : "border-accent/40 bg-accent-dim text-accent"
+                : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {c} {c !== "All" && <span className="ml-1 opacity-60">{items.filter((l) => l.tag === c).length}</span>}
+          </button>
         ))}
       </div>
+
+      {/* Grouped display */}
+      {filterCat === "All" ? (
+        <div className="space-y-5">
+          {grouped.map((g) => (
+            <div key={g.label}>
+              <div className={`mb-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${LESSON_CAT_STYLE[g.label] ?? "border-border bg-secondary/30 text-muted-foreground"}`}>
+                {g.label === "What Went Well" ? "✓" : g.label === "Challenges" ? "⚠" : g.label === "Recommendations" ? "→" : "·"} {g.label}
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {g.items.map((l, i) => (
+                  <div key={i} className="glass-card p-4 text-sm">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className={`text-[10px] ${LESSON_CAT_STYLE[l.tag] ?? "border-accent/40 bg-accent-dim text-accent"}`}>{l.tag}</Badge>
+                      <span className="text-xs text-muted-foreground">{l.when}</span>
+                    </div>
+                    <p className="mt-2 text-foreground">{l.text}</p>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <MessageSquare className="h-3 w-3" /> by {l.by}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {displayed.map((l, i) => (
+            <div key={i} className="glass-card p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className={`text-[10px] ${LESSON_CAT_STYLE[l.tag] ?? "border-accent/40 bg-accent-dim text-accent"}`}>{l.tag}</Badge>
+                <span className="text-xs text-muted-foreground">{l.when}</span>
+              </div>
+              <p className="mt-2 text-foreground">{l.text}</p>
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <MessageSquare className="h-3 w-3" /> by {l.by}
+              </div>
+            </div>
+          ))}
+          {displayed.length === 0 && (
+            <div className="col-span-2 glass-card p-8 text-center text-sm text-muted-foreground">
+              No {filterCat} lessons recorded yet
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
