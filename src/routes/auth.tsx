@@ -53,17 +53,23 @@ function AuthPage() {
     }
     setBusy(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+      // Try sign-in first; if the account doesn't exist, auto-create it.
+      const { error: signInErr } = await supabase.auth.signInWithPassword(parsed.data);
+      if (!signInErr) {
+        // signed in
+      } else if (signInErr.message.toLowerCase().includes("invalid login credentials") || mode === "signup") {
+        const { error: signUpErr } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
-        if (error) throw error;
-        toast.success("Account created — you're signed in");
+        if (signUpErr) throw signUpErr;
+        // Auto-confirm is on, so sign in immediately
+        const { error: retry } = await supabase.auth.signInWithPassword(parsed.data);
+        if (retry) throw retry;
+        toast.success("Account created — welcome!");
       } else {
-        const { error } = await supabase.auth.signInWithPassword(parsed.data);
-        if (error) throw error;
+        throw signInErr;
       }
     } catch (err) {
       toast.error((err as Error).message);
