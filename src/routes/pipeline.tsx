@@ -20,16 +20,15 @@ export const Route = createFileRoute("/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline — Nexus PMO" }, { name: "description", content: "Pre-approval funnel: business case intake, scoring, Kanban routing and DoA sign-off." }] }),
 });
 
-const STAGES = ["Submitted", "Under Review", "Approved", "Deferred", "Rejected", "Closed"] as const;
+const STAGES = ["Submitted", "Under Review", "Approved", "Deferred", "Rejected"] as const;
 type Stage = typeof STAGES[number];
 
 const VALID_TRANSITIONS: Record<Stage, Stage[]> = {
   "Submitted":    ["Under Review", "Deferred", "Rejected"],
-  "Under Review": ["Approved", "Rejected", "Closed", "Deferred"],
+  "Under Review": ["Approved", "Rejected", "Deferred"],
   "Approved":     [],
   "Rejected":     [],
   "Deferred":     ["Submitted", "Under Review"],
-  "Closed":       [],
 };
 
 const STAGE_STYLE: Record<Stage, string> = {
@@ -38,8 +37,8 @@ const STAGE_STYLE: Record<Stage, string> = {
   "Approved":     "border-rag-green/30 bg-rag-green/5",
   "Deferred":     "border-border bg-secondary/10",
   "Rejected":     "border-rag-red/30 bg-rag-red/5",
-  "Closed":       "border-border bg-secondary/20",
 };
+
 
 type Item = {
   id: string; title: string; stage: Stage;
