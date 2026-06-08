@@ -120,8 +120,10 @@ function PipelinePage() {
   );
   const [roleApproveDialog, setRoleApproveDialog] = useState<{ itemId: string; role: string } | null>(null);
   const [roleRejectDialog,  setRoleRejectDialog]  = useState<{ itemId: string; role: string } | null>(null);
-  const [roleNote,   setRoleNote]   = useState("");
-  const [roleReason, setRoleReason] = useState("");
+  const [roleCommentTarget, setRoleCommentTarget] = useState<{ itemId: string; role: string } | null>(null);
+  const [roleNote,        setRoleNote]        = useState("");
+  const [roleReason,      setRoleReason]      = useState("");
+  const [roleCommentText, setRoleCommentText] = useState("");
 
   const draggingItem = items.find((i) => i.id === dragging) ?? null;
   const validTargets: Stage[] = draggingItem ? VALID_TRANSITIONS[draggingItem.stage] : [];
@@ -417,50 +419,106 @@ function PipelinePage() {
                             </Button>
                           </div>
                           <div className="divide-y divide-border/40">
-                            {history.map((a) => (
-                              <div key={a.role} className="flex items-center gap-3 px-4 py-2.5">
-                                <div className={`h-2 w-2 shrink-0 rounded-full ${
-                                  a.action === "Approved" ? "bg-rag-green" :
-                                  a.action === "Rejected" ? "bg-rag-red" :
-                                  "bg-muted-foreground/40"
-                                }`} />
-                                <div className="min-w-0 flex-1">
-                                  <span className="text-xs font-medium text-foreground">{a.role}</span>
-                                  {a.by && (
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      — {a.by} · {a.when}
-                                      {a.comment && <span className="ml-1 italic">"{a.comment}"</span>}
-                                    </span>
+                            {history.map((a) => {
+                              const isCommentingThis =
+                                roleCommentTarget?.itemId === p.id && roleCommentTarget?.role === a.role;
+                              return (
+                                <div key={a.role} className="flex flex-col px-4 py-2.5 gap-2">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`h-2 w-2 shrink-0 rounded-full ${
+                                      a.action === "Approved" ? "bg-rag-green" :
+                                      a.action === "Rejected" ? "bg-rag-red" :
+                                      "bg-muted-foreground/40"
+                                    }`} />
+                                    <div className="min-w-0 flex-1">
+                                      <span className="text-xs font-medium text-foreground">{a.role}</span>
+                                      {a.by && (
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                          — {a.by} · {a.when}
+                                          {a.comment && <span className="ml-1 italic">"{a.comment}"</span>}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {a.action === "Pending" ? (
+                                      <div className="flex gap-1.5">
+                                        <Button
+                                          size="sm"
+                                          className="h-6 bg-accent text-accent-foreground hover:bg-accent/90 px-2 text-xs disabled:opacity-40"
+                                          disabled={p.score < 71}
+                                          title={p.score < 71 ? `Score ${p.score} — min 71` : undefined}
+                                          onClick={() => { setRoleApproveDialog({ itemId: p.id, role: a.role }); setRoleNote(""); }}
+                                        >
+                                          <Check className="mr-1 h-3 w-3" />Approve
+                                        </Button>
+                                        <Button
+                                          size="sm" variant="outline"
+                                          className="h-6 px-2 text-xs"
+                                          onClick={() => { setRoleRejectDialog({ itemId: p.id, role: a.role }); setRoleReason(""); }}
+                                        >
+                                          <XIcon className="mr-1 h-3 w-3" />Reject
+                                        </Button>
+                                        <Button
+                                          size="sm" variant="ghost"
+                                          className="h-6 px-2 text-xs text-muted-foreground"
+                                          onClick={() => {
+                                            setRoleCommentTarget(isCommentingThis ? null : { itemId: p.id, role: a.role });
+                                            setRoleCommentText("");
+                                          }}
+                                        >
+                                          💬 Comment
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline" className={`text-[10px] ${
+                                        a.action === "Approved"
+                                          ? "border-rag-green/30 bg-rag-green/10 text-rag-green"
+                                          : "border-rag-red/30 bg-rag-red/10 text-rag-red"
+                                      }`}>{a.action}</Badge>
+                                    )}
+                                  </div>
+                                  {isCommentingThis && (
+                                    <div className="flex items-center gap-2 pl-5">
+                                      <Input
+                                        className="h-7 text-xs flex-1"
+                                        placeholder="Add a comment (no decision required)…"
+                                        value={roleCommentText}
+                                        onChange={(e) => setRoleCommentText(e.target.value)}
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" && roleCommentText.trim()) {
+                                            addNotification({ tone: "blue", title: `Comment on "${p.title}" from ${a.role}`, time: "Just now" });
+                                            toast.success("Comment posted");
+                                            setRoleCommentTarget(null);
+                                            setRoleCommentText("");
+                                          }
+                                          if (e.key === "Escape") { setRoleCommentTarget(null); setRoleCommentText(""); }
+                                        }}
+                                      />
+                                      <Button
+                                        size="sm"
+                                        className="h-7 bg-accent text-accent-foreground hover:bg-accent/90 px-3 text-xs"
+                                        onClick={() => {
+                                          if (!roleCommentText.trim()) return;
+                                          addNotification({ tone: "blue", title: `Comment on "${p.title}" from ${a.role}`, time: "Just now" });
+                                          toast.success("Comment posted");
+                                          setRoleCommentTarget(null);
+                                          setRoleCommentText("");
+                                        }}
+                                      >
+                                        Post
+                                      </Button>
+                                      <Button
+                                        size="sm" variant="ghost"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => { setRoleCommentTarget(null); setRoleCommentText(""); }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
                                   )}
                                 </div>
-                                {a.action === "Pending" ? (
-                                  <div className="flex gap-1.5">
-                                    <Button
-                                      size="sm"
-                                      className="h-6 bg-accent text-accent-foreground hover:bg-accent/90 px-2 text-xs disabled:opacity-40"
-                                      disabled={p.score < 71}
-                                      title={p.score < 71 ? `Score ${p.score} — min 71` : undefined}
-                                      onClick={() => { setRoleApproveDialog({ itemId: p.id, role: a.role }); setRoleNote(""); }}
-                                    >
-                                      <Check className="mr-1 h-3 w-3" />Approve
-                                    </Button>
-                                    <Button
-                                      size="sm" variant="outline"
-                                      className="h-6 px-2 text-xs"
-                                      onClick={() => { setRoleRejectDialog({ itemId: p.id, role: a.role }); setRoleReason(""); }}
-                                    >
-                                      <XIcon className="mr-1 h-3 w-3" />Reject
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Badge variant="outline" className={`text-[10px] ${
-                                    a.action === "Approved"
-                                      ? "border-rag-green/30 bg-rag-green/10 text-rag-green"
-                                      : "border-rag-red/30 bg-rag-red/10 text-rag-red"
-                                  }`}>{a.action}</Badge>
-                                )}
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
