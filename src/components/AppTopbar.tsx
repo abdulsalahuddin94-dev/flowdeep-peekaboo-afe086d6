@@ -252,11 +252,3 @@ function SignOutButton() {
     </Button>
   );
 }
-function _AppTopbarEnd() {
-  return null;
-}
-function _Original_End() {
-      </div>
-    </header>
-  );
-}
