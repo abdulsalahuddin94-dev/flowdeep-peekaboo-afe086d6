@@ -285,7 +285,7 @@ function PipelinePage() {
         </TabsList>
 
         <TabsContent value="capital" className="mt-5">
-          <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-5">
             {STAGES.map((stage) => {
               const stageItems = items.filter((i) => i.stage === stage);
               const isValidTarget = !!dragging && validTargets.includes(stage);
