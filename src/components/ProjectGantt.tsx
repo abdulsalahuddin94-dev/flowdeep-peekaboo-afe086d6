@@ -85,12 +85,20 @@ export function ProjectGantt({ projectId, defaultAssignee }: { projectId: string
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUserId(s?.user?.id ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const weekEnd = days[6];
 
   const { data: dbTasks = [], isLoading } = useQuery({
-    queryKey: ["project_tasks", projectId],
+    queryKey: ["project_tasks", projectId, userId],
+    enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_tasks")
@@ -103,17 +111,25 @@ export function ProjectGantt({ projectId, defaultAssignee }: { projectId: string
     },
   });
 
-  const tasks = useMemo(
-    () => (!isLoading && dbTasks.length === 0 ? makeDemoTasks(projectId, today) : dbTasks),
-    [dbTasks, isLoading, projectId, today]
-  );
+  // Auto-seed demo tasks for this user the first time their project is empty
+  useEffect(() => {
+    if (!userId || isLoading || dbTasks.length > 0) return;
+    const seed = makeDemoTasks(projectId, today).map(({ id: _id, ...rest }) => ({ ...rest, user_id: userId }));
+    supabase.from("project_tasks").insert(seed).then(({ error }) => {
+      if (!error) qc.invalidateQueries({ queryKey: ["project_tasks", projectId, userId] });
+    });
+  }, [userId, isLoading, dbTasks.length, projectId, today, qc]);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["project_tasks", projectId] });
+  const tasks = dbTasks;
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["project_tasks", projectId, userId] });
 
   const createMut = useMutation({
     mutationFn: async (input: Omit<Task, "id" | "sort_order"> & { sort_order?: number }) => {
+      if (!userId) throw new Error("Not signed in");
       const { error } = await supabase.from("project_tasks").insert({
         ...input,
+        user_id: userId,
         sort_order: input.sort_order ?? (tasks.length ? Math.max(...tasks.map((t) => t.sort_order)) + 1 : 0),
       });
       if (error) throw error;

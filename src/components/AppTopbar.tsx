@@ -20,6 +20,8 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { pipelineItems, resources } from "@/lib/mock-data";
 import { useProjects, useNotifications } from "@/lib/projects-store";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const RAG_DOT: Record<string, string> = {
   green: "bg-rag-green", amber: "bg-rag-amber",
@@ -228,7 +230,25 @@ export function AppTopbar() {
         <Badge variant="outline" className="border-role-director/40 bg-role-director/10 text-[10px] text-role-director">
           Director Mode
         </Badge>
+
+        <SignOutButton />
       </div>
     </header>
+  );
+}
+
+function SignOutButton() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  async function handle() {
+    await qc.cancelQueries();
+    qc.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+  return (
+    <Button variant="outline" size="sm" onClick={handle}>
+      Sign out
+    </Button>
   );
 }

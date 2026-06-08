@@ -27,6 +27,7 @@ export type Database = {
           sort_order: number
           start_date: string
           updated_at: string
+          user_id: string
         }
         Insert: {
           assignee?: string | null
@@ -40,6 +41,7 @@ export type Database = {
           sort_order?: number
           start_date: string
           updated_at?: string
+          user_id: string
         }
         Update: {
           assignee?: string | null
@@ -53,6 +55,7 @@ export type Database = {
           sort_order?: number
           start_date?: string
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
