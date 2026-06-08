@@ -199,7 +199,7 @@ function PipelinePage() {
 
     if (targetStage === "Approved") { setPendingApprove(draggingItem.id); return; }
     if (targetStage === "Rejected") { setPendingReject(draggingItem.id);  return; }
-    if (targetStage === "Closed")   { setPendingClose(draggingItem.id);   return; }
+
 
     commitMove(draggingItem.id, targetStage);
   }
