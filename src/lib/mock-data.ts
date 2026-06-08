@@ -140,6 +140,12 @@ export const pipelineItems = [
   { id: "BC-2026-013", title: "Remote Operations Center", stage: "Under Review", score: 76, roi: "$4.0M", submittedBy: "Omar Haddad", date: "4d ago", pillar: "Operations" },
   { id: "BC-2026-012", title: "Carbon Tracking System", stage: "Submitted", score: 64, roi: "$2.2M", submittedBy: "Hana Tanaka", date: "6d ago", pillar: "ESG" },
   { id: "BC-2026-011", title: "Field Engineer App Refresh", stage: "Rejected", score: 31, roi: "$0.4M", submittedBy: "Diego Ortiz", date: "1mo ago", pillar: "Efficiency" },
+  { id: "BC-2026-010", title: "Smart Grid Analytics", stage: "Approved", score: 82, roi: "$7.8M", submittedBy: "Mei Chen", date: "3w ago", pillar: "Innovation" },
+  { id: "BC-2026-009", title: "Subsea Pipeline Inspection Drones", stage: "Approved", score: 79, roi: "$3.4M", submittedBy: "Omar Haddad", date: "1mo ago", pillar: "Operations" },
+  { id: "BC-2026-008", title: "HR Self-Service Portal", stage: "Deferred", score: 45, roi: "$0.6M", submittedBy: "Hana Tanaka", date: "1mo ago", pillar: "Efficiency" },
+  { id: "BC-2026-007", title: "On-site Solar Microgrid", stage: "Deferred", score: 58, roi: "$2.9M", submittedBy: "Sara Al-Rashid", date: "5w ago", pillar: "ESG" },
+  { id: "BC-2026-006", title: "Crypto Treasury Pilot", stage: "Rejected", score: 22, roi: "$0.2M", submittedBy: "Liam Walker", date: "6w ago", pillar: "Finance" },
+  { id: "BC-2026-005", title: "Office VR Training Lab", stage: "Rejected", score: 28, roi: "$0.3M", submittedBy: "Priya Iyer", date: "2mo ago", pillar: "Innovation" },
 ];
 
 export const risks = [
