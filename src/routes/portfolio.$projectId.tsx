@@ -796,7 +796,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
     { label: "Objectives & scope defined", done: true },
     { label: "Milestone schedule created", done: true },
     { label: "Manpower requirements submitted", done: true },
-    { label: "Subcontracted packages identified", done: false },
     { label: "Business trips planned", done: false },
     { label: "Budget plan approved", done: false },
     { label: "Charter approved", done: false },
