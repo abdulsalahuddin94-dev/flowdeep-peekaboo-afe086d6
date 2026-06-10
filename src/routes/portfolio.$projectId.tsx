@@ -1631,6 +1631,43 @@ function AddMilestoneDialog({ defaultOwner, packages, onAdd }: { defaultOwner: s
           </div>
           <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
 
+          <div className="rounded-md border border-border p-3 space-y-2">
+            <Label className="text-sm">Payment link</Label>
+            <p className="text-xs text-muted-foreground">Connect this {kind.toLowerCase()} to a client revenue event or a working-package (contract) payment milestone.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Type</Label>
+                <Select value={payKind} onValueChange={(v) => setPayKind(v as PaymentLinkKind)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="None">None</SelectItem>
+                    <SelectItem value="Client Revenue">Client revenue (main client)</SelectItem>
+                    <SelectItem value="Package Cost">Working package cost (contract payment)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {payKind !== "None" && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Amount</Label>
+                  <Input value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="e.g. $120K" />
+                </div>
+              )}
+            </div>
+            {payKind === "Package Cost" && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Working package</Label>
+                <Select value={payPackage} onValueChange={setPayPackage}>
+                  <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                  <SelectContent>
+                    {packages.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.id} · {p.scope} ({p.est})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
           <div className="rounded-md border border-border p-3">
             <div className="mb-2 flex items-center justify-between">
               <Label className="text-sm">Roles required</Label>
