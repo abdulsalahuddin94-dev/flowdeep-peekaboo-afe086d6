@@ -924,7 +924,7 @@ function CommercialBidsBoard() {
       </div>
 
       {/* Kanban */}
-      <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         {BID_STAGES.map((stage) => {
           const stageBids = bids.filter((b) => b.stage === stage);
           return (
