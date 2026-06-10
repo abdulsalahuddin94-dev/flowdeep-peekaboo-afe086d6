@@ -99,7 +99,6 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ProjectsProvider>
       <TooltipProvider delayDuration={120}>
-        <AuthGate>
           <SidebarProvider defaultOpen>
             <div className="flex min-h-screen w-full bg-background text-foreground">
               <AppSidebar />
@@ -111,7 +110,6 @@ function RootComponent() {
               </div>
             </div>
           </SidebarProvider>
-        </AuthGate>
         <Toaster richColors theme="dark" position="bottom-right" />
       </TooltipProvider>
       </ProjectsProvider>
