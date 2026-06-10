@@ -1580,21 +1580,30 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
   const [owner, setOwner] = useState(defaultOwner);
   const [status, setStatus] = useState("Not Started");
   const [dep, setDep] = useState("");
+  const [roles, setRoles] = useState<RoleReq[]>([]);
+  const [roleDraft, setRoleDraft] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
+  const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
+  function addRole() {
+    if (!roleDraft.role.trim()) { toast.error("Role is required"); return; }
+    setRoles((prev) => [...prev, { ...roleDraft, role: roleDraft.role.trim(), fte: Number(roleDraft.fte) || 0 }]);
+    setRoleDraft({ role: "", skill: "Mid", fte: 1 });
+  }
+  function removeRole(idx: number) { setRoles((prev) => prev.filter((_, i) => i !== idx)); }
   function submit() {
     if (!name.trim()) { toast.error("Name is required"); return; }
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
     if (endDate < startDate) { toast.error("End date must be on or after start date"); return; }
-    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep });
+    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep, roles });
     toast.success(`${kind} added`);
-    setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+    setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep(""); setRoles([]);
   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Activity</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add {kind}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
           <div>
@@ -1629,6 +1638,47 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
             </div>
           </div>
           <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
+
+          <div className="rounded-md border border-border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <Label className="text-sm">Roles required</Label>
+              <span className="text-xs text-muted-foreground">{roles.length} role{roles.length === 1 ? "" : "s"}</span>
+            </div>
+            {roles.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                {roles.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-md bg-secondary/40 px-2 py-1.5 text-xs">
+                    <span className="text-foreground"><span className="font-medium">{r.role}</span> · {r.skill} · {r.fte} FTE</span>
+                    <button type="button" onClick={() => removeRole(i)} className="text-muted-foreground hover:text-rag-red"><XCircle className="h-4 w-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-[1fr_110px_80px_auto] gap-2 items-end">
+              <div>
+                <Label className="text-xs text-muted-foreground">Role</Label>
+                <Input list="role-suggestions" value={roleDraft.role} onChange={(e) => setRoleDraft((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
+                <datalist id="role-suggestions">{roleSuggestions.map((r) => <option key={r} value={r} />)}</datalist>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Skill</Label>
+                <Select value={roleDraft.skill} onValueChange={(v) => setRoleDraft((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Junior">Junior</SelectItem>
+                    <SelectItem value="Mid">Mid</SelectItem>
+                    <SelectItem value="Senior">Senior</SelectItem>
+                    <SelectItem value="Lead">Lead</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">FTE</Label>
+                <Input type="number" min="0" step="0.5" value={roleDraft.fte} onChange={(e) => setRoleDraft((d) => ({ ...d, fte: Number(e.target.value) }))} />
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addRole}><Plus className="h-4 w-4" /></Button>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
