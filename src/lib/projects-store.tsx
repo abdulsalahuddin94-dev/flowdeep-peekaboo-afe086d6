@@ -162,3 +162,11 @@ export function useResourceRequests() {
   const { resourceRequests, addResourceRequest, updateResourceRequest } = useAppContext();
   return { resourceRequests, addResourceRequest, updateResourceRequest };
 }
+
+export function useTags() {
+  const { tags, addTag } = useAppContext();
+  return { tags, addTag };
+}
+  const { resourceRequests, addResourceRequest, updateResourceRequest } = useAppContext();
+  return { resourceRequests, addResourceRequest, updateResourceRequest };
+}
