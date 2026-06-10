@@ -833,15 +833,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
     { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT", roles: [] },
   ]);
 
-  // Subcontracted packages (v11)
-  const [subs, setSubs] = useState<SubPackage[]>([
-    { id: "SUB-001", scope: "Civil works & site prep", vendor: "Acme Construction", value: "$420K", period: "Jun–Jul", rag: "green", status: "Awarded" },
-    { id: "SUB-002", scope: "Integration testing", vendor: "TestLabs Co.", value: "$180K", period: "Jul–Aug", rag: "green", status: "Awarded" },
-    { id: "SUB-003", scope: "Training rollout (40 staff)", vendor: "LearnSphere", value: "$95K", period: "Aug", rag: "green", status: "Awarded" },
-    { id: "SUB-004", scope: "Network cabling", vendor: "—", value: "$220K", period: "Jun", rag: "amber", status: "In tender" },
-    { id: "SUB-005", scope: "Security audit & pen-test", vendor: "—", value: "$140K", period: "Sep", rag: "amber", status: "In tender" },
-    { id: "SUB-006", scope: "Go-live support (8 wks)", vendor: "—", value: "$785K", period: "Sep–Oct", rag: "blue", status: "Planned" },
-  ]);
 
   // Business trips (v11)
   const [trips, setTrips] = useState<Trip[]>([
