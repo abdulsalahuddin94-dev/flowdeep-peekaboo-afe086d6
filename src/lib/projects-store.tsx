@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { projects as initialProjects, rfps as initialRfps, type Project } from "./mock-data";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { projects as initialProjects, rfps as initialRfps, orgTags as initialTags, type Project } from "./mock-data";
+
+export type OrgTag = { name: string; color: string };
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -66,6 +68,9 @@ type AppContextValue = {
   resourceRequests: ResourceRequest[];
   addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => void;
   updateResourceRequest: (id: string, patch: Partial<ResourceRequest>) => void;
+  // Tags
+  tags: (OrgTag & { usage: number })[];
+  addTag: (tag: OrgTag, projectIds: string[]) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -77,6 +82,22 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>(SEED_NOTIFS);
   const [rfps, setRfps] = useState<RfpEntry[]>(SEED_RFPS);
   const [resourceRequests, setResourceRequests] = useState<ResourceRequest[]>(SEED_RESOURCE_REQUESTS);
+  const [tagList, setTagList] = useState<OrgTag[]>(initialTags.map(({ name, color }) => ({ name, color })));
+
+  const tags = useMemo(
+    () => tagList.map((t) => ({ ...t, usage: projects.filter((p) => p.tags.includes(t.name)).length })),
+    [tagList, projects],
+  );
+
+  function addTag(tag: OrgTag, projectIds: string[]) {
+    setTagList((prev) => prev.some((t) => t.name.toLowerCase() === tag.name.toLowerCase()) ? prev : [...prev, tag]);
+    if (projectIds.length) {
+      setProjects((prev) => prev.map((p) =>
+        projectIds.includes(p.id) && !p.tags.includes(tag.name) ? { ...p, tags: [...p.tags, tag.name] } : p,
+      ));
+    }
+  }
+
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -110,6 +131,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       notifications, unreadCount, addNotification, markAllRead,
       rfps, addRfp,
       resourceRequests, addResourceRequest, updateResourceRequest,
+      tags, addTag,
     }}>
       {children}
     </AppContext.Provider>
@@ -139,4 +161,9 @@ export function useRfps() {
 export function useResourceRequests() {
   const { resourceRequests, addResourceRequest, updateResourceRequest } = useAppContext();
   return { resourceRequests, addResourceRequest, updateResourceRequest };
+}
+
+export function useTags() {
+  const { tags, addTag } = useAppContext();
+  return { tags, addTag };
 }
