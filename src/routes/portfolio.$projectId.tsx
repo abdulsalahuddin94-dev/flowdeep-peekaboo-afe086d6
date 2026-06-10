@@ -60,6 +60,14 @@ function ProjectDetail() {
   ]);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [reqResourceOpen, setReqResourceOpen] = useState(false);
+  const [milestones, setMilestones] = useState<Milestone[]>([
+    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Client Revenue", amount: "$120K" }, progress: 100 },
+    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery complete", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }, { role: "Integration Dev", skill: "Mid", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-001", amount: "$220K" }, progress: 65 },
+    { name: "Backend API", kind: "Task", startDate: "2025-05-05", endDate: "2025-06-10", owner: "Diego", rag: "green", dep: "—", roles: [{ role: "Integration Dev", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 80, parent: "Build phase 1" },
+    { name: "Frontend UI", kind: "Task", startDate: "2025-05-20", endDate: "2025-06-30", owner: "Priya", rag: "amber", dep: "Backend API", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 55, parent: "Build phase 1" },
+    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build phase 1", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 25 },
+    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT Sign-off", roles: [], payment: { kind: "Client Revenue", amount: "$500K" }, progress: 0 },
+  ]);
   const [reports, setReports] = useState<StatusReport[]>(() => [
     { week: 18, by: project.pm, when: "3 days ago", rag: project.rag, text: "Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet." },
     { week: 17, by: project.pm, when: "10 days ago", rag: "amber", text: "Vendor SOW reviewed. Two open RAID items remain; mitigations scheduled this sprint." },
