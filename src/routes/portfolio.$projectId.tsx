@@ -1042,7 +1042,7 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
           </div>
           <div className="glass-card overflow-hidden">
             <Table>
-              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
               <TableBody>{milestones.map((m) => (
                 <TableRow key={m.name}>
                   <TableCell className="font-medium text-foreground">{m.name}</TableCell>
@@ -1051,6 +1051,17 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
                   <TableCell>{m.endDate || "—"}</TableCell>
                   <TableCell>{m.owner}</TableCell>
                   <TableCell><RagBadge rag={m.rag} /></TableCell>
+                  <TableCell>
+                    {m.roles.length === 0 ? <span className="text-xs text-muted-foreground">—</span> : (
+                      <div className="flex flex-wrap gap-1">
+                        {m.roles.map((r, i) => (
+                          <Badge key={i} variant="outline" className="border-accent/40 bg-accent-dim text-accent text-[10px]">
+                            {r.role} · {r.skill} · {r.fte} FTE
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
                 </TableRow>
               ))}</TableBody>
