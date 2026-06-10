@@ -829,10 +829,10 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
 
   // Milestones & Activities (v11)
   const [milestones, setMilestones] = useState<Milestone[]>([
-    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—" },
-    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery" },
-    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
-    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT" },
+    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }] },
+    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }, { role: "Integration Dev", skill: "Mid", fte: 2 }] },
+    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }] },
+    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT", roles: [] },
   ]);
 
   // Subcontracted packages (v11)
@@ -1042,7 +1042,7 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
           </div>
           <div className="glass-card overflow-hidden">
             <Table>
-              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
               <TableBody>{milestones.map((m) => (
                 <TableRow key={m.name}>
                   <TableCell className="font-medium text-foreground">{m.name}</TableCell>
@@ -1051,6 +1051,17 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
                   <TableCell>{m.endDate || "—"}</TableCell>
                   <TableCell>{m.owner}</TableCell>
                   <TableCell><RagBadge rag={m.rag} /></TableCell>
+                  <TableCell>
+                    {m.roles.length === 0 ? <span className="text-xs text-muted-foreground">—</span> : (
+                      <div className="flex flex-wrap gap-1">
+                        {m.roles.map((r, i) => (
+                          <Badge key={i} variant="outline" className="border-accent/40 bg-accent-dim text-accent text-[10px]">
+                            {r.role} · {r.skill} · {r.fte} FTE
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
                 </TableRow>
               ))}</TableBody>
@@ -1555,7 +1566,8 @@ function PlanningField({ label, value, multiline }: { label: string; value: stri
 
 // ── v11 Types ─────────────────────────────────────────────────────────────────
 type ItemKind = "Milestone" | "Activity" | "Task";
-type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string };
+type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
+type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[] };
 type SubPackage = { id: string; scope: string; vendor: string; value: string; period: string; rag: Rag; status: string };
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
@@ -1579,21 +1591,30 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
   const [owner, setOwner] = useState(defaultOwner);
   const [status, setStatus] = useState("Not Started");
   const [dep, setDep] = useState("");
+  const [roles, setRoles] = useState<RoleReq[]>([]);
+  const [roleDraft, setRoleDraft] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
+  const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
+  function addRole() {
+    if (!roleDraft.role.trim()) { toast.error("Role is required"); return; }
+    setRoles((prev) => [...prev, { ...roleDraft, role: roleDraft.role.trim(), fte: Number(roleDraft.fte) || 0 }]);
+    setRoleDraft({ role: "", skill: "Mid", fte: 1 });
+  }
+  function removeRole(idx: number) { setRoles((prev) => prev.filter((_, i) => i !== idx)); }
   function submit() {
     if (!name.trim()) { toast.error("Name is required"); return; }
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
     if (endDate < startDate) { toast.error("End date must be on or after start date"); return; }
-    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep });
+    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep, roles });
     toast.success(`${kind} added`);
-    setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+    setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep(""); setRoles([]);
   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Activity</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add {kind}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
           <div>
@@ -1628,6 +1649,47 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
             </div>
           </div>
           <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
+
+          <div className="rounded-md border border-border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <Label className="text-sm">Roles required</Label>
+              <span className="text-xs text-muted-foreground">{roles.length} role{roles.length === 1 ? "" : "s"}</span>
+            </div>
+            {roles.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                {roles.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-md bg-secondary/40 px-2 py-1.5 text-xs">
+                    <span className="text-foreground"><span className="font-medium">{r.role}</span> · {r.skill} · {r.fte} FTE</span>
+                    <button type="button" onClick={() => removeRole(i)} className="text-muted-foreground hover:text-rag-red"><XCircle className="h-4 w-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-[1fr_110px_80px_auto] gap-2 items-end">
+              <div>
+                <Label className="text-xs text-muted-foreground">Role</Label>
+                <Input list="role-suggestions" value={roleDraft.role} onChange={(e) => setRoleDraft((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
+                <datalist id="role-suggestions">{roleSuggestions.map((r) => <option key={r} value={r} />)}</datalist>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Skill</Label>
+                <Select value={roleDraft.skill} onValueChange={(v) => setRoleDraft((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Junior">Junior</SelectItem>
+                    <SelectItem value="Mid">Mid</SelectItem>
+                    <SelectItem value="Senior">Senior</SelectItem>
+                    <SelectItem value="Lead">Lead</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">FTE</Label>
+                <Input type="number" min="0" step="0.5" value={roleDraft.fte} onChange={(e) => setRoleDraft((d) => ({ ...d, fte: Number(e.target.value) }))} />
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addRole}><Plus className="h-4 w-4" /></Button>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
