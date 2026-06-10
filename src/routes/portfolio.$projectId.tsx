@@ -1037,52 +1037,8 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
           />
         </TabsContent>
 
-        <TabsContent value="ms" className="mt-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="label-eyebrow">{milestones.length} items</div>
-            <AddMilestoneDialog defaultOwner={project.pm} packages={packages} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
-          </div>
-          <div className="glass-card overflow-hidden">
-            <Table>
-              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Payment link</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
-              <TableBody>{milestones.map((m) => (
-                <TableRow key={m.name}>
-                  <TableCell className="font-medium text-foreground">{m.name}</TableCell>
-                  <TableCell><span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{m.kind}</span></TableCell>
-                  <TableCell>{m.startDate || "—"}</TableCell>
-                  <TableCell>{m.endDate || "—"}</TableCell>
-                  <TableCell>{m.owner}</TableCell>
-                  <TableCell><RagBadge rag={m.rag} /></TableCell>
-                  <TableCell>
-                    {m.roles.length === 0 ? <span className="text-xs text-muted-foreground">—</span> : (
-                      <div className="flex flex-wrap gap-1">
-                        {m.roles.map((r, i) => (
-                          <Badge key={i} variant="outline" className="border-accent/40 bg-accent-dim text-accent text-[10px]">
-                            {r.role} · {r.skill} · {r.fte} FTE
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {!m.payment || m.payment.kind === "None" ? (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    ) : m.payment.kind === "Client Revenue" ? (
-                      <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]">
-                        Client revenue · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
-                        {m.payment.packageId || "Package"} cost · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
-                </TableRow>
-              ))}</TableBody>
-            </Table>
-          </div>
-        </TabsContent>
+
+
 
         <TabsContent value="manpower" className="mt-5 space-y-4">
           <div className="flex items-center justify-between">
