@@ -461,10 +461,10 @@ export function ProjectSchedule({
                 <svg className="absolute inset-0 pointer-events-none" width={chartWidth} height={visibleRows.length * ROW_H}>
                   <defs>
                     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                      <path d="M0,0 L10,5 L0,10 z" fill="hsl(var(--muted-foreground))" />
+                      <path d="M0,0 L10,5 L0,10 z" fill="#94A3B8" />
                     </marker>
                     <marker id="arr-crit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                      <path d="M0,0 L10,5 L0,10 z" fill="hsl(var(--rag-red, 0 84% 60%))" />
+                      <path d="M0,0 L10,5 L0,10 z" fill="#EF4444" />
                     </marker>
                   </defs>
                   {visibleRows.map(({ item }, toIdx) => {
@@ -480,7 +480,7 @@ export function ProjectSchedule({
                     const x2 = xForDate(toStart);
                     const y2 = toIdx * ROW_H + ROW_H / 2;
                     const isCrit = criticalSet.has(item.name) && criticalSet.has(from.name);
-                    const stroke = isCrit ? "hsl(var(--rag-red))" : "hsl(var(--muted-foreground))";
+                    const stroke = isCrit ? "#EF4444" : "#94A3B8";
                     const midX = Math.max(x1 + 8, x2 - 8);
                     const d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
                     return (
