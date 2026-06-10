@@ -1655,64 +1655,6 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
   );
 }
 
-// ── Add Package dialog ────────────────────────────────────────────────────────
-function AddPackageDialog({ onAdd }: { onAdd: (s: Omit<SubPackage, "id">) => void }) {
-  const [open, setOpen] = useState(false);
-  const [scope, setScope] = useState(""); const [vendor, setVendor] = useState("");
-  const [value, setValue] = useState(""); const [period, setPeriod] = useState("");
-  const [status, setStatus] = useState("Planned");
-  const ragMap: Record<string, Rag> = { Planned: "blue", "In Tender": "amber", Awarded: "green" };
-  function submit() {
-    if (!scope.trim()) { toast.error("Scope is required"); return; }
-    onAdd({ scope: scope.trim(), vendor: vendor || "—", value: value || "TBD", period: period || "—", rag: ragMap[status] ?? "blue", status });
-    toast.success("Subcontracted package added");
-    setOpen(false); setScope(""); setVendor(""); setValue(""); setPeriod(""); setStatus("Planned");
-  }
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Package</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Add Subcontracted Package</DialogTitle></DialogHeader>
-        <div className="grid gap-3">
-          <div><Label>Scope</Label><Input value={scope} onChange={(e) => setScope(e.target.value)} placeholder="e.g. Network cabling" /></div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Vendor</Label>
-              <Select value={vendor || "__tbd__"} onValueChange={(v) => setVendor(v === "__tbd__" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Select vendor…" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__tbd__">— TBD —</SelectItem>
-                  {vendorList.map((v) => (
-                    <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Est. Value</Label><Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="$120K" /></div>
-            <div><Label>Period</Label><Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="Jul–Aug" /></div>
-            <div>
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Planned">Planned</SelectItem>
-                  <SelectItem value="In Tender">In Tender</SelectItem>
-                  <SelectItem value="Awarded">Awarded</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Package</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ── Log Trip dialog ───────────────────────────────────────────────────────────
 function LogTripDialog({ onAdd, teamMembers }: { onAdd: (t: Omit<Trip, "id">) => void; teamMembers: string[] }) {
