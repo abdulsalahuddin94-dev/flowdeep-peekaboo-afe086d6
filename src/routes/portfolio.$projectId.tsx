@@ -39,7 +39,7 @@ export const Route = createFileRoute("/portfolio/$projectId")({
 });
 
 const TABS = [
-  "Overview", "Project Charter", "Planning", "Gantt", "Team & Allocation", "Financials",
+  "Overview", "Project Charter", "Planning", "Project Schedule", "Team & Allocation", "Financials",
   "Risks & Issues", "Documents", "Status Reports", "Change Requests",
   "Procurement", "Stakeholders", "Lessons Learned",
 ];
