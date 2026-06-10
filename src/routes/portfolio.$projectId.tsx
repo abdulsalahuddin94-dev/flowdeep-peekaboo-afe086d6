@@ -807,7 +807,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
     { v: "init", l: "Stage Gate" },
     { v: "ms", l: "Milestones & Activities" },
     { v: "manpower", l: "Manpower Requirements" },
-    { v: "subs", l: "Subcontracted Packages" },
     { v: "trips", l: "Business Trips Plan" },
     { v: "fin", l: "Financial Planning" },
     { v: "tender", l: "Tender Packages" },
