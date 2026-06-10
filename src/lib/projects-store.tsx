@@ -82,6 +82,22 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>(SEED_NOTIFS);
   const [rfps, setRfps] = useState<RfpEntry[]>(SEED_RFPS);
   const [resourceRequests, setResourceRequests] = useState<ResourceRequest[]>(SEED_RESOURCE_REQUESTS);
+  const [tagList, setTagList] = useState<OrgTag[]>(initialTags.map(({ name, color }) => ({ name, color })));
+
+  const tags = useMemo(
+    () => tagList.map((t) => ({ ...t, usage: projects.filter((p) => p.tags.includes(t.name)).length })),
+    [tagList, projects],
+  );
+
+  function addTag(tag: OrgTag, projectIds: string[]) {
+    setTagList((prev) => prev.some((t) => t.name.toLowerCase() === tag.name.toLowerCase()) ? prev : [...prev, tag]);
+    if (projectIds.length) {
+      setProjects((prev) => prev.map((p) =>
+        projectIds.includes(p.id) && !p.tags.includes(tag.name) ? { ...p, tags: [...p.tags, tag.name] } : p,
+      ));
+    }
+  }
+
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
