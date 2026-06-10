@@ -1552,7 +1552,7 @@ type Stakeholder = { name: string; org: string; influence: "High" | "Medium" | "
 type Lesson = { tag: string; text: string; by: string; when: string };
 
 // ── Add Milestone / Activity / Task dialog ───────────────────────────────────
-function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onAdd: (m: Milestone) => void }) {
+function AddMilestoneDialog({ defaultOwner, packages, onAdd }: { defaultOwner: string; packages: TenderPackage[]; onAdd: (m: Milestone) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [kind, setKind] = useState<ItemKind>("Activity");
@@ -1563,6 +1563,9 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
   const [dep, setDep] = useState("");
   const [roles, setRoles] = useState<RoleReq[]>([]);
   const [roleDraft, setRoleDraft] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
+  const [payKind, setPayKind] = useState<PaymentLinkKind>("None");
+  const [payAmount, setPayAmount] = useState("");
+  const [payPackage, setPayPackage] = useState<string>("");
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
   const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
   function addRole() {
@@ -1575,9 +1578,17 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
     if (!name.trim()) { toast.error("Name is required"); return; }
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
     if (endDate < startDate) { toast.error("End date must be on or after start date"); return; }
-    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep, roles });
+    if (payKind === "Package Cost" && !payPackage) { toast.error("Select a working package"); return; }
+    const payment: PaymentLink =
+      payKind === "None"
+        ? { kind: "None", amount: "" }
+        : payKind === "Client Revenue"
+        ? { kind: "Client Revenue", amount: payAmount.trim() }
+        : { kind: "Package Cost", packageId: payPackage, amount: payAmount.trim() };
+    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep, roles, payment });
     toast.success(`${kind} added`);
     setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep(""); setRoles([]);
+    setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
