@@ -843,13 +843,8 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
   const [newPkgOpen, setNewPkgOpen] = useState(false);
   const [newScope, setNewScope] = useState("");
 
-  // Milestones & Activities (v11)
-  const [milestones, setMilestones] = useState<Milestone[]>([
-    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Client Revenue", amount: "$120K" } },
-    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }, { role: "Integration Dev", skill: "Mid", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-001", amount: "$220K" } },
-    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" } },
-    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT", roles: [], payment: { kind: "Client Revenue", amount: "$500K" } },
-  ]);
+
+
 
 
   // Business trips (v11)
