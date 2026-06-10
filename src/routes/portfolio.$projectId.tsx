@@ -806,7 +806,7 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
 
   const subTabs = [
     { v: "init", l: "Stage Gate" },
-    { v: "ms", l: "Milestones & Dependencies" },
+    { v: "ms", l: "Milestones & Activities" },
     { v: "manpower", l: "Manpower Requirements" },
     { v: "subs", l: "Subcontracted Packages" },
     { v: "trips", l: "Business Trips Plan" },
@@ -827,12 +827,12 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
   const [newPkgOpen, setNewPkgOpen] = useState(false);
   const [newScope, setNewScope] = useState("");
 
-  // Milestones (v11)
+  // Milestones & Activities (v11)
   const [milestones, setMilestones] = useState<Milestone[]>([
-    { name: "Discovery complete", date: "May 02", owner: "Sara", rag: "green", dep: "—" },
-    { name: "Build phase 1", date: "Jun 30", owner: "Mei", rag: "amber", dep: "Discovery" },
-    { name: "UAT Sign-off", date: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
-    { name: "Go-live", date: "Sep 14", owner: project.pm, rag: "blue", dep: "UAT" },
+    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—" },
+    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery" },
+    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1" },
+    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT" },
   ]);
 
   // Subcontracted packages (v11)
@@ -1037,16 +1037,18 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
 
         <TabsContent value="ms" className="mt-5 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="label-eyebrow">{milestones.length} milestones</div>
+            <div className="label-eyebrow">{milestones.length} items</div>
             <AddMilestoneDialog defaultOwner={project.pm} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
           </div>
           <div className="glass-card overflow-hidden">
             <Table>
-              <TableHeader><TableRow><TableHead>Milestone</TableHead><TableHead>Due</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
               <TableBody>{milestones.map((m) => (
                 <TableRow key={m.name}>
                   <TableCell className="font-medium text-foreground">{m.name}</TableCell>
-                  <TableCell>{m.date}</TableCell>
+                  <TableCell><span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{m.kind}</span></TableCell>
+                  <TableCell>{m.startDate || "—"}</TableCell>
+                  <TableCell>{m.endDate || "—"}</TableCell>
                   <TableCell>{m.owner}</TableCell>
                   <TableCell><RagBadge rag={m.rag} /></TableCell>
                   <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
@@ -1552,7 +1554,8 @@ function PlanningField({ label, value, multiline }: { label: string; value: stri
 }
 
 // ── v11 Types ─────────────────────────────────────────────────────────────────
-type Milestone = { name: string; date: string; owner: string; rag: Rag; dep: string };
+type ItemKind = "Milestone" | "Activity" | "Task";
+type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string };
 type SubPackage = { id: string; scope: string; vendor: string; value: string; period: string; rag: Rag; status: string };
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
@@ -1566,35 +1569,51 @@ type ChangeReq = { id: string; title: string; impact: string; timeline: string; 
 type Stakeholder = { name: string; org: string; influence: "High" | "Medium" | "Low"; interest: "High" | "Medium" | "Low"; strategy: string };
 type Lesson = { tag: string; text: string; by: string; when: string };
 
-// ── Add Milestone dialog ──────────────────────────────────────────────────────
+// ── Add Milestone / Activity / Task dialog ───────────────────────────────────
 function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onAdd: (m: Milestone) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [date, setDate] = useState("");
+  const [kind, setKind] = useState<ItemKind>("Activity");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [owner, setOwner] = useState(defaultOwner);
   const [status, setStatus] = useState("Not Started");
   const [dep, setDep] = useState("");
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
   function submit() {
-    if (!name.trim()) { toast.error("Milestone name is required"); return; }
-    onAdd({ name: name.trim(), date: date || "TBD", owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep });
-    toast.success("Milestone added");
-    setOpen(false); setName(""); setDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+    if (!name.trim()) { toast.error("Name is required"); return; }
+    if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
+    if (endDate < startDate) { toast.error("End date must be on or after start date"); return; }
+    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep });
+    toast.success(`${kind} added`);
+    setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Milestone</Button>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Activity</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Add Milestone</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Add {kind}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
-          <div><Label>Milestone name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. UAT Sign-off" /></div>
+          <div>
+            <Label>Type</Label>
+            <Select value={kind} onValueChange={(v) => setKind(v as ItemKind)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Activity">Activity</SelectItem>
+                <SelectItem value="Task">Task</SelectItem>
+                <SelectItem value="Milestone">Milestone</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. UAT Sign-off" /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label>Due date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-            <div><Label>Owner</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} /></div>
+            <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+            <div><Label>End date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
+            <div><Label>Owner</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} /></div>
             <div>
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
@@ -1607,12 +1626,12 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
           </div>
+          <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Milestone</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add {kind}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
