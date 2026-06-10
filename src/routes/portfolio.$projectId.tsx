@@ -824,7 +824,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
 
   const subTabs = [
     { v: "init", l: "Stage Gate" },
-    { v: "ms", l: "Milestones & Activities" },
     { v: "manpower", l: "Manpower Requirements" },
     { v: "trips", l: "Business Trips Plan" },
     { v: "fin", l: "Financial Planning" },
