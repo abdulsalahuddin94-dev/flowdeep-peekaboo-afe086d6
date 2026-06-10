@@ -535,8 +535,9 @@ export function ProjectSchedule({
                     return (
                       <div key={item.name} className="absolute" style={{ left: x, top: barTop, width: w, height: barH }}>
                         <div className={`relative h-full w-full ${isCrit ? "bg-rag-red" : "bg-foreground"} opacity-80 rounded-sm`}>
-                          <div className="absolute left-0 top-full h-2 w-2 -translate-x-0 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: isCrit ? "hsl(var(--rag-red))" : "hsl(var(--foreground))" }} />
-                          <div className="absolute right-0 top-full h-2 w-2 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: isCrit ? "hsl(var(--rag-red))" : "hsl(var(--foreground))" }} />
+                          <div className="absolute left-0 top-full h-2 w-2 -translate-x-0 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: isCrit ? "#EF4444" : "currentColor" }} />
+                          <div className="absolute right-0 top-full h-2 w-2 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: isCrit ? "#EF4444" : "currentColor" }} />
+
                         </div>
                       </div>
                     );
