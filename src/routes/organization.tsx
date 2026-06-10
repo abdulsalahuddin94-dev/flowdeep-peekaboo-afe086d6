@@ -177,18 +177,89 @@ function AddDepartmentDialog() {
 
 function AddTagDialog() {
   const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#51CAAD");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const { addTag } = useTags();
+  const { projects } = useProjects();
+
+  const filtered = projects.filter((p) =>
+    !search.trim() || p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function toggle(id: string) {
+    setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
+  function reset() {
+    setName(""); setColor("#51CAAD"); setSearch(""); setSelected([]);
+  }
+
+  function save() {
+    const trimmed = name.trim();
+    if (!trimmed) { toast.error("Tag name is required"); return; }
+    addTag({ name: trimmed, color }, selected);
+    toast.success(
+      selected.length
+        ? `Tag "${trimmed}" created and assigned to ${selected.length} project${selected.length === 1 ? "" : "s"}`
+        : `Tag "${trimmed}" created`
+    );
+    reset();
+    setOpen(false);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild><Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Tag</Button></DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>New Tag</DialogTitle></DialogHeader>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>New Tag</DialogTitle>
+          <DialogDescription>Create a tag and optionally assign it to existing projects.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
-          <div><Label>Tag name</Label><Input placeholder="e.g. Sustainability" /></div>
-          <div><Label>Color (optional)</Label><Input type="color" defaultValue="#51CAAD" className="h-10 w-20" /></div>
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <div>
+              <Label>Tag name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sustainability" />
+            </div>
+            <div>
+              <Label>Color</Label>
+              <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-20" />
+            </div>
+          </div>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <Label>Assign to projects {selected.length > 0 && <span className="ml-1 text-xs text-muted-foreground">({selected.length} selected)</span>}</Label>
+              {selected.length > 0 && (
+                <button type="button" onClick={() => setSelected([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+              )}
+            </div>
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects…" className="mb-2" />
+            <ScrollArea className="h-56 rounded-md border border-border">
+              <div className="divide-y divide-border/60">
+                {filtered.length === 0 && (
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">No projects match</div>
+                )}
+                {filtered.map((p) => {
+                  const checked = selected.includes(p.id);
+                  return (
+                    <label key={p.id} className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-secondary/40">
+                      <Checkbox checked={checked} onCheckedChange={() => toggle(p.id)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm text-foreground">{p.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">{p.businessLine} · {p.department}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground" onClick={() => { toast.success("Tag created"); setOpen(false); }}>Save</Button>
+          <Button className="bg-accent text-accent-foreground" onClick={save}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
