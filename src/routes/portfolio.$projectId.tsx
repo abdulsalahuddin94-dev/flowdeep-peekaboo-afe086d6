@@ -1555,7 +1555,8 @@ function PlanningField({ label, value, multiline }: { label: string; value: stri
 
 // ── v11 Types ─────────────────────────────────────────────────────────────────
 type ItemKind = "Milestone" | "Activity" | "Task";
-type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string };
+type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
+type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[] };
 type SubPackage = { id: string; scope: string; vendor: string; value: string; period: string; rag: Rag; status: string };
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
