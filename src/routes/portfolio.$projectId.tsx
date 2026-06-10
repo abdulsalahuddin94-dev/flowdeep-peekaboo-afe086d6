@@ -827,10 +827,10 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
 
   // Milestones & Activities (v11)
   const [milestones, setMilestones] = useState<Milestone[]>([
-    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }] },
-    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }, { role: "Integration Dev", skill: "Mid", fte: 2 }] },
-    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }] },
-    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT", roles: [] },
+    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Client Revenue", amount: "$120K" } },
+    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }, { role: "Integration Dev", skill: "Mid", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-001", amount: "$220K" } },
+    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" } },
+    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT", roles: [], payment: { kind: "Client Revenue", amount: "$500K" } },
   ]);
 
 
@@ -1027,11 +1027,11 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
         <TabsContent value="ms" className="mt-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="label-eyebrow">{milestones.length} items</div>
-            <AddMilestoneDialog defaultOwner={project.pm} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
+            <AddMilestoneDialog defaultOwner={project.pm} packages={packages} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
           </div>
           <div className="glass-card overflow-hidden">
             <Table>
-              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Payment link</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
               <TableBody>{milestones.map((m) => (
                 <TableRow key={m.name}>
                   <TableCell className="font-medium text-foreground">{m.name}</TableCell>
@@ -1049,6 +1049,19 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
                           </Badge>
                         ))}
                       </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!m.payment || m.payment.kind === "None" ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : m.payment.kind === "Client Revenue" ? (
+                      <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]">
+                        Client revenue · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
+                        {m.payment.packageId || "Package"} cost · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
@@ -1522,7 +1535,9 @@ function PlanningField({ label, value, multiline }: { label: string; value: stri
 // ── v11 Types ─────────────────────────────────────────────────────────────────
 type ItemKind = "Milestone" | "Activity" | "Task";
 type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
-type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[] };
+type PaymentLinkKind = "None" | "Client Revenue" | "Package Cost";
+type PaymentLink = { kind: PaymentLinkKind; amount: string; packageId?: string };
+type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[]; payment?: PaymentLink };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
@@ -1537,7 +1552,7 @@ type Stakeholder = { name: string; org: string; influence: "High" | "Medium" | "
 type Lesson = { tag: string; text: string; by: string; when: string };
 
 // ── Add Milestone / Activity / Task dialog ───────────────────────────────────
-function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onAdd: (m: Milestone) => void }) {
+function AddMilestoneDialog({ defaultOwner, packages, onAdd }: { defaultOwner: string; packages: TenderPackage[]; onAdd: (m: Milestone) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [kind, setKind] = useState<ItemKind>("Activity");
@@ -1548,6 +1563,9 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
   const [dep, setDep] = useState("");
   const [roles, setRoles] = useState<RoleReq[]>([]);
   const [roleDraft, setRoleDraft] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
+  const [payKind, setPayKind] = useState<PaymentLinkKind>("None");
+  const [payAmount, setPayAmount] = useState("");
+  const [payPackage, setPayPackage] = useState<string>("");
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
   const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
   function addRole() {
@@ -1560,9 +1578,17 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
     if (!name.trim()) { toast.error("Name is required"); return; }
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
     if (endDate < startDate) { toast.error("End date must be on or after start date"); return; }
-    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep, roles });
+    if (payKind === "Package Cost" && !payPackage) { toast.error("Select a working package"); return; }
+    const payment: PaymentLink =
+      payKind === "None"
+        ? { kind: "None", amount: "" }
+        : payKind === "Client Revenue"
+        ? { kind: "Client Revenue", amount: payAmount.trim() }
+        : { kind: "Package Cost", packageId: payPackage, amount: payAmount.trim() };
+    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep, roles, payment });
     toast.success(`${kind} added`);
     setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep(""); setRoles([]);
+    setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -1604,6 +1630,43 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
             </div>
           </div>
           <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
+
+          <div className="rounded-md border border-border p-3 space-y-2">
+            <Label className="text-sm">Payment link</Label>
+            <p className="text-xs text-muted-foreground">Connect this {kind.toLowerCase()} to a client revenue event or a working-package (contract) payment milestone.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Type</Label>
+                <Select value={payKind} onValueChange={(v) => setPayKind(v as PaymentLinkKind)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="None">None</SelectItem>
+                    <SelectItem value="Client Revenue">Client revenue (main client)</SelectItem>
+                    <SelectItem value="Package Cost">Working package cost (contract payment)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {payKind !== "None" && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Amount</Label>
+                  <Input value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="e.g. $120K" />
+                </div>
+              )}
+            </div>
+            {payKind === "Package Cost" && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Working package</Label>
+                <Select value={payPackage} onValueChange={setPayPackage}>
+                  <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                  <SelectContent>
+                    {packages.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.id} · {p.scope} ({p.est})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
 
           <div className="rounded-md border border-border p-3">
             <div className="mb-2 flex items-center justify-between">
