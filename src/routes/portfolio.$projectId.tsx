@@ -1027,11 +1027,11 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
         <TabsContent value="ms" className="mt-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="label-eyebrow">{milestones.length} items</div>
-            <AddMilestoneDialog defaultOwner={project.pm} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
+            <AddMilestoneDialog defaultOwner={project.pm} packages={packages} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
           </div>
           <div className="glass-card overflow-hidden">
             <Table>
-              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Payment link</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
               <TableBody>{milestones.map((m) => (
                 <TableRow key={m.name}>
                   <TableCell className="font-medium text-foreground">{m.name}</TableCell>
@@ -1049,6 +1049,19 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
                           </Badge>
                         ))}
                       </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!m.payment || m.payment.kind === "None" ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : m.payment.kind === "Client Revenue" ? (
+                      <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]">
+                        Client revenue · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
+                        {m.payment.packageId || "Package"} cost · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
