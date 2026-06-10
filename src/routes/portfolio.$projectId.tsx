@@ -127,8 +127,17 @@ function ProjectDetail() {
           <PlanningTab project={project} addRfp={addRfp} addResourceRequest={addResourceRequest} />
         </TabsContent>
 
-        <TabsContent value="Gantt" className="mt-5">
-          <ProjectGantt projectId={project.id} defaultAssignee={project.pm} />
+        <TabsContent value="Project Schedule" className="mt-5">
+          <ProjectSchedule
+            items={milestones}
+            AddItemSlot={
+              <AddMilestoneDialog
+                defaultOwner={project.pm}
+                packages={SEED_PACKAGES}
+                onAdd={(m) => setMilestones((prev) => [...prev, m])}
+              />
+            }
+          />
         </TabsContent>
 
 
