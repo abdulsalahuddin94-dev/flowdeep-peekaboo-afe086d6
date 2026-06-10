@@ -81,25 +81,34 @@ function OrganizationPage() {
         </TabsContent>
 
         <TabsContent value="tags" className="mt-5">
-          <SectionHeader title="Tags & Classifications" desc="Customizable labels applied to business cases and projects."
-            cta={<AddTagDialog />} />
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {orgTags.map((t) => (
-              <div key={t.name} className="glass-card flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <span className="h-3 w-3 rounded-full" style={{ background: t.color }} />
-                  <div>
-                    <div className="font-medium text-foreground">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">Used by {t.usage} projects</div>
-                  </div>
-                </div>
-                <RowActions />
-              </div>
-            ))}
-          </div>
+          <TagsTab />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function TagsTab() {
+  const { tags } = useTags();
+  return (
+    <>
+      <SectionHeader title="Tags & Classifications" desc="Customizable labels applied to business cases and projects."
+        cta={<AddTagDialog />} />
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {tags.map((t) => (
+          <div key={t.name} className="glass-card flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <span className="h-3 w-3 rounded-full" style={{ background: t.color }} />
+              <div>
+                <div className="font-medium text-foreground">{t.name}</div>
+                <div className="text-xs text-muted-foreground">Used by {t.usage} projects</div>
+              </div>
+            </div>
+            <RowActions />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
