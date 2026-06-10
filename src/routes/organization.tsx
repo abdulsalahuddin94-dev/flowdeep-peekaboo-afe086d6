@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { businessLines, departments, orgTags } from "@/lib/mock-data";
+import { businessLines, departments } from "@/lib/mock-data";
+import { useTags, useProjects } from "@/lib/projects-store";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/organization")({
