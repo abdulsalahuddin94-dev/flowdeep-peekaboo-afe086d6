@@ -68,6 +68,9 @@ type AppContextValue = {
   resourceRequests: ResourceRequest[];
   addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => void;
   updateResourceRequest: (id: string, patch: Partial<ResourceRequest>) => void;
+  // Tags
+  tags: (OrgTag & { usage: number })[];
+  addTag: (tag: OrgTag, projectIds: string[]) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
