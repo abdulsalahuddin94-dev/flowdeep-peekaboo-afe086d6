@@ -131,6 +131,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       notifications, unreadCount, addNotification, markAllRead,
       rfps, addRfp,
       resourceRequests, addResourceRequest, updateResourceRequest,
+      tags, addTag,
     }}>
       {children}
     </AppContext.Provider>
