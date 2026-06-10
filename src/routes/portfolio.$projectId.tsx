@@ -1547,7 +1547,7 @@ type ItemKind = "Milestone" | "Activity" | "Task";
 type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 type PaymentLinkKind = "None" | "Client Revenue" | "Package Cost";
 type PaymentLink = { kind: PaymentLinkKind; amount: string; packageId?: string };
-type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[]; payment?: PaymentLink };
+type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[]; payment?: PaymentLink; progress?: number; parent?: string };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
