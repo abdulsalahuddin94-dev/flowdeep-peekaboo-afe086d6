@@ -796,7 +796,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
     { label: "Objectives & scope defined", done: true },
     { label: "Milestone schedule created", done: true },
     { label: "Manpower requirements submitted", done: true },
-    { label: "Subcontracted packages identified", done: false },
     { label: "Business trips planned", done: false },
     { label: "Budget plan approved", done: false },
     { label: "Charter approved", done: false },
@@ -808,7 +807,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
     { v: "init", l: "Stage Gate" },
     { v: "ms", l: "Milestones & Activities" },
     { v: "manpower", l: "Manpower Requirements" },
-    { v: "subs", l: "Subcontracted Packages" },
     { v: "trips", l: "Business Trips Plan" },
     { v: "fin", l: "Financial Planning" },
     { v: "tender", l: "Tender Packages" },
@@ -835,15 +833,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
     { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT", roles: [] },
   ]);
 
-  // Subcontracted packages (v11)
-  const [subs, setSubs] = useState<SubPackage[]>([
-    { id: "SUB-001", scope: "Civil works & site prep", vendor: "Acme Construction", value: "$420K", period: "Jun–Jul", rag: "green", status: "Awarded" },
-    { id: "SUB-002", scope: "Integration testing", vendor: "TestLabs Co.", value: "$180K", period: "Jul–Aug", rag: "green", status: "Awarded" },
-    { id: "SUB-003", scope: "Training rollout (40 staff)", vendor: "LearnSphere", value: "$95K", period: "Aug", rag: "green", status: "Awarded" },
-    { id: "SUB-004", scope: "Network cabling", vendor: "—", value: "$220K", period: "Jun", rag: "amber", status: "In tender" },
-    { id: "SUB-005", scope: "Security audit & pen-test", vendor: "—", value: "$140K", period: "Sep", rag: "amber", status: "In tender" },
-    { id: "SUB-006", scope: "Go-live support (8 wks)", vendor: "—", value: "$785K", period: "Sep–Oct", rag: "blue", status: "Planned" },
-  ]);
 
   // Business trips (v11)
   const [trips, setTrips] = useState<Trip[]>([
@@ -1104,40 +1093,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
           </div>
         </TabsContent>
 
-        <TabsContent value="subs" className="mt-5 space-y-4">
-          <div className="grid gap-3 md:grid-cols-4">
-            {[
-              { l: "Total Packages", v: String(subs.length) },
-              { l: "Awarded", v: String(subs.filter((s) => s.status === "Awarded").length), c: "text-rag-green" },
-              { l: "In Tender", v: String(subs.filter((s) => s.status === "In tender").length), c: "text-rag-amber" },
-              { l: "Total Value", v: "$1.84M" },
-            ].map((k) => (
-              <div key={k.l} className="glass-card p-4">
-                <div className="label-eyebrow">{k.l}</div>
-                <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="label-eyebrow">Packages</div>
-            <AddPackageDialog onAdd={(s) => setSubs((prev) => [...prev, { ...s, id: `SUB-${String(prev.length + 1).padStart(3, "0")}` }])} />
-          </div>
-          <div className="glass-card overflow-hidden">
-            <Table>
-              <TableHeader><TableRow><TableHead>Package</TableHead><TableHead>Scope</TableHead><TableHead>Vendor</TableHead><TableHead>Value</TableHead><TableHead>Period</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{subs.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">{r.id}</TableCell>
-                  <TableCell>{r.scope}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.vendor}</TableCell>
-                  <TableCell className="num-mono">{r.value}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.period}</TableCell>
-                  <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
-                </TableRow>
-              ))}</TableBody>
-            </Table>
-          </div>
-        </TabsContent>
 
         <TabsContent value="trips" className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
@@ -1568,7 +1523,7 @@ function PlanningField({ label, value, multiline }: { label: string; value: stri
 type ItemKind = "Milestone" | "Activity" | "Task";
 type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[] };
-type SubPackage = { id: string; scope: string; vendor: string; value: string; period: string; rag: Rag; status: string };
+
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
 type RevEntry = { ms: string; evt: string; plan: number; date: string; s: string; sl: string; act: number | null };
@@ -1700,64 +1655,6 @@ function AddMilestoneDialog({ defaultOwner, onAdd }: { defaultOwner: string; onA
   );
 }
 
-// ── Add Package dialog ────────────────────────────────────────────────────────
-function AddPackageDialog({ onAdd }: { onAdd: (s: Omit<SubPackage, "id">) => void }) {
-  const [open, setOpen] = useState(false);
-  const [scope, setScope] = useState(""); const [vendor, setVendor] = useState("");
-  const [value, setValue] = useState(""); const [period, setPeriod] = useState("");
-  const [status, setStatus] = useState("Planned");
-  const ragMap: Record<string, Rag> = { Planned: "blue", "In Tender": "amber", Awarded: "green" };
-  function submit() {
-    if (!scope.trim()) { toast.error("Scope is required"); return; }
-    onAdd({ scope: scope.trim(), vendor: vendor || "—", value: value || "TBD", period: period || "—", rag: ragMap[status] ?? "blue", status });
-    toast.success("Subcontracted package added");
-    setOpen(false); setScope(""); setVendor(""); setValue(""); setPeriod(""); setStatus("Planned");
-  }
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Package</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Add Subcontracted Package</DialogTitle></DialogHeader>
-        <div className="grid gap-3">
-          <div><Label>Scope</Label><Input value={scope} onChange={(e) => setScope(e.target.value)} placeholder="e.g. Network cabling" /></div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Vendor</Label>
-              <Select value={vendor || "__tbd__"} onValueChange={(v) => setVendor(v === "__tbd__" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Select vendor…" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__tbd__">— TBD —</SelectItem>
-                  {vendorList.map((v) => (
-                    <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Est. Value</Label><Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="$120K" /></div>
-            <div><Label>Period</Label><Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="Jul–Aug" /></div>
-            <div>
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Planned">Planned</SelectItem>
-                  <SelectItem value="In Tender">In Tender</SelectItem>
-                  <SelectItem value="Awarded">Awarded</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add Package</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ── Log Trip dialog ───────────────────────────────────────────────────────────
 function LogTripDialog({ onAdd, teamMembers }: { onAdd: (t: Omit<Trip, "id">) => void; teamMembers: string[] }) {
