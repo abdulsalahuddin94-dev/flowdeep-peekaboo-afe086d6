@@ -20,6 +20,8 @@ import { projects, vendors as vendorList, resources as resourcePool } from "@/li
 import { useProjects, useNotifications, useRfps, useResourceRequests, type RfpEntry, type ResourceRequest } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { ProjectGantt } from "@/components/ProjectGantt";
+import { ProjectSchedule } from "@/components/ProjectSchedule";
+void ProjectGantt;
 
 export const Route = createFileRoute("/portfolio/$projectId")({
   component: ProjectDetail,
@@ -37,7 +39,7 @@ export const Route = createFileRoute("/portfolio/$projectId")({
 });
 
 const TABS = [
-  "Overview", "Project Charter", "Planning", "Gantt", "Team & Allocation", "Financials",
+  "Overview", "Project Charter", "Planning", "Project Schedule", "Team & Allocation", "Financials",
   "Risks & Issues", "Documents", "Status Reports", "Change Requests",
   "Procurement", "Stakeholders", "Lessons Learned",
 ];
@@ -58,6 +60,14 @@ function ProjectDetail() {
   ]);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [reqResourceOpen, setReqResourceOpen] = useState(false);
+  const [milestones, setMilestones] = useState<Milestone[]>([
+    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Client Revenue", amount: "$120K" }, progress: 100 },
+    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery complete", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }, { role: "Integration Dev", skill: "Mid", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-001", amount: "$220K" }, progress: 65 },
+    { name: "Backend API", kind: "Task", startDate: "2025-05-05", endDate: "2025-06-10", owner: "Diego", rag: "green", dep: "—", roles: [{ role: "Integration Dev", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 80, parent: "Build phase 1" },
+    { name: "Frontend UI", kind: "Task", startDate: "2025-05-20", endDate: "2025-06-30", owner: "Priya", rag: "amber", dep: "Backend API", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 55, parent: "Build phase 1" },
+    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build phase 1", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 25 },
+    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT Sign-off", roles: [], payment: { kind: "Client Revenue", amount: "$500K" }, progress: 0 },
+  ]);
   const [reports, setReports] = useState<StatusReport[]>(() => [
     { week: 18, by: project.pm, when: "3 days ago", rag: project.rag, text: "Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet." },
     { week: 17, by: project.pm, when: "10 days ago", rag: "amber", text: "Vendor SOW reviewed. Two open RAID items remain; mitigations scheduled this sprint." },
@@ -117,8 +127,17 @@ function ProjectDetail() {
           <PlanningTab project={project} addRfp={addRfp} addResourceRequest={addResourceRequest} />
         </TabsContent>
 
-        <TabsContent value="Gantt" className="mt-5">
-          <ProjectGantt projectId={project.id} defaultAssignee={project.pm} />
+        <TabsContent value="Project Schedule" className="mt-5">
+          <ProjectSchedule
+            items={milestones}
+            AddItemSlot={
+              <AddMilestoneDialog
+                defaultOwner={project.pm}
+                packages={SEED_PACKAGES}
+                onAdd={(m) => setMilestones((prev) => [...prev, m])}
+              />
+            }
+          />
         </TabsContent>
 
 
@@ -805,7 +824,6 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
 
   const subTabs = [
     { v: "init", l: "Stage Gate" },
-    { v: "ms", l: "Milestones & Activities" },
     { v: "manpower", l: "Manpower Requirements" },
     { v: "trips", l: "Business Trips Plan" },
     { v: "fin", l: "Financial Planning" },
@@ -825,13 +843,8 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
   const [newPkgOpen, setNewPkgOpen] = useState(false);
   const [newScope, setNewScope] = useState("");
 
-  // Milestones & Activities (v11)
-  const [milestones, setMilestones] = useState<Milestone[]>([
-    { name: "Discovery complete", kind: "Milestone", startDate: "2025-04-15", endDate: "2025-05-02", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Client Revenue", amount: "$120K" } },
-    { name: "Build phase 1", kind: "Activity", startDate: "2025-05-05", endDate: "2025-06-30", owner: "Mei", rag: "amber", dep: "Discovery", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }, { role: "Integration Dev", skill: "Mid", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-001", amount: "$220K" } },
-    { name: "UAT Sign-off", kind: "Task", startDate: "2025-07-01", endDate: project.endDate, owner: project.pm, rag: project.rag === "red" ? "red" : "amber", dep: "Build P1", roles: [{ role: "QA Engineer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" } },
-    { name: "Go-live", kind: "Milestone", startDate: "2025-09-14", endDate: "2025-09-14", owner: project.pm, rag: "blue", dep: "UAT", roles: [], payment: { kind: "Client Revenue", amount: "$500K" } },
-  ]);
+
+
 
 
   // Business trips (v11)
@@ -1024,52 +1037,8 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
           />
         </TabsContent>
 
-        <TabsContent value="ms" className="mt-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="label-eyebrow">{milestones.length} items</div>
-            <AddMilestoneDialog defaultOwner={project.pm} packages={packages} onAdd={(m) => setMilestones((prev) => [...prev, m])} />
-          </div>
-          <div className="glass-card overflow-hidden">
-            <Table>
-              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead><TableHead>Roles required</TableHead><TableHead>Payment link</TableHead><TableHead>Depends on</TableHead></TableRow></TableHeader>
-              <TableBody>{milestones.map((m) => (
-                <TableRow key={m.name}>
-                  <TableCell className="font-medium text-foreground">{m.name}</TableCell>
-                  <TableCell><span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{m.kind}</span></TableCell>
-                  <TableCell>{m.startDate || "—"}</TableCell>
-                  <TableCell>{m.endDate || "—"}</TableCell>
-                  <TableCell>{m.owner}</TableCell>
-                  <TableCell><RagBadge rag={m.rag} /></TableCell>
-                  <TableCell>
-                    {m.roles.length === 0 ? <span className="text-xs text-muted-foreground">—</span> : (
-                      <div className="flex flex-wrap gap-1">
-                        {m.roles.map((r, i) => (
-                          <Badge key={i} variant="outline" className="border-accent/40 bg-accent-dim text-accent text-[10px]">
-                            {r.role} · {r.skill} · {r.fte} FTE
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {!m.payment || m.payment.kind === "None" ? (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    ) : m.payment.kind === "Client Revenue" ? (
-                      <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]">
-                        Client revenue · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
-                        {m.payment.packageId || "Package"} cost · <span className="num-mono ml-1">{m.payment.amount || "—"}</span>
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{m.dep || "—"}</TableCell>
-                </TableRow>
-              ))}</TableBody>
-            </Table>
-          </div>
-        </TabsContent>
+
+
 
         <TabsContent value="manpower" className="mt-5 space-y-4">
           <div className="flex items-center justify-between">
@@ -1537,7 +1506,7 @@ type ItemKind = "Milestone" | "Activity" | "Task";
 type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 type PaymentLinkKind = "None" | "Client Revenue" | "Package Cost";
 type PaymentLink = { kind: PaymentLinkKind; amount: string; packageId?: string };
-type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[]; payment?: PaymentLink };
+type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[]; payment?: PaymentLink; progress?: number; parent?: string };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
