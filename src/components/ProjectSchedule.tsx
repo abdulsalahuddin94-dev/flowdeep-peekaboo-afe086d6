@@ -375,6 +375,15 @@ export function ProjectSchedule({
                     {colVisible("owner") && (
                       <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 110 }}>{item.owner}</div>
                     )}
+                    {colVisible("assignee") && (
+                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 130 }}>
+                        {item.assignee ? (
+                          <span className="truncate">{item.assignee}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    )}
                     {colVisible("status") && (
                       <div className="flex items-center border-l border-border/60 px-3" style={{ width: 110 }}>
                         <RagBadge rag={item.rag} label={statusText[item.rag]} />
