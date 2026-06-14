@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight, Columns3, Diamond } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // ── Shared types (mirror parent file) ────────────────────────────────────────
 export type ItemKind = "Milestone" | "Activity" | "Task";
