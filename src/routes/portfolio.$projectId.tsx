@@ -1554,57 +1554,51 @@ function minISO(arr: (string | undefined)[]): string | undefined {
 function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Milestone[] {
   const out = items.map((it) => ({ ...it }));
 
-  // Task: assignee from any fulfilled request, endDate from duration if provided
+  // Task: derive endDate from duration; assignee from fulfilled requests or "Waiting"
   for (const it of out) {
     if (it.kind !== "Task") continue;
-    if (it.resourceRequestIds?.length) {
-      const names = it.resourceRequestIds
-        .map((id) => reqs.find((r) => r.id === id)?.assignedTo)
-        .filter(Boolean) as string[];
-      if (names.length) it.assignee = Array.from(new Set(names)).join(", ");
-    }
     if (it.durationValue && it.startDate) {
       const days = it.durationUnit === "hours"
         ? Math.max(1, Math.ceil(it.durationValue / 8))
         : Math.max(1, it.durationValue);
       it.endDate = addDaysISO(it.startDate, days - 1);
     }
+    if (it.resourceRequestIds?.length) {
+      const linked = it.resourceRequestIds
+        .map((id) => reqs.find((r) => r.id === id))
+        .filter(Boolean) as ResourceRequest[];
+      const fulfilled = linked
+        .filter((r) => r.status === "Fulfilled" && r.assignedTo)
+        .map((r) => r.assignedTo!) as string[];
+      if (fulfilled.length) it.assignee = Array.from(new Set(fulfilled)).join(", ");
+      else if (linked.length) it.assignee = "Waiting";
+    }
   }
 
-  // Activity: duration = sum of non-parallel task hours; end from startDate
+  // Activity: start = min(task.start), end = max(stored end, max(task.end))
+  // (overlap is naturally handled — duration spans first start to last end)
   for (const it of out) {
     if (it.kind !== "Activity") continue;
     const tasks = out.filter((t) => t.kind === "Task" && t.parent === it.name);
     if (!tasks.length) continue;
-    const hours = tasks.reduce((s, t) => {
-      if (t.isParallel) return s;
-      const v = t.durationValue ?? 0;
-      return s + (t.durationUnit === "days" ? v * 8 : v);
-    }, 0);
-    if (!it.startDate) {
-      const ms = minISO(tasks.map((t) => t.startDate));
-      if (ms) it.startDate = ms;
-    }
-    if (hours > 0 && it.startDate) {
-      const days = Math.max(1, Math.ceil(hours / 8));
-      it.endDate = addDaysISO(it.startDate, days - 1);
-    } else {
-      const me = maxISO(tasks.map((t) => t.endDate));
-      if (me) it.endDate = me;
-    }
+    const ts = minISO(tasks.map((t) => t.startDate));
+    const te = maxISO(tasks.map((t) => t.endDate));
+    if (!it.startDate && ts) it.startDate = ts;
+    if (te && (!it.endDate || te > it.endDate)) it.endDate = te;
   }
 
-  // Milestone: end = max child end + lag; render as diamond (start = end)
+  // Milestone: end = max(stored end, max child end) + lag; diamond (start = end)
   for (const it of out) {
     if (it.kind !== "Milestone") continue;
     const children = out.filter((c) => c.parent === it.name);
     if (children.length) {
       const me = maxISO(children.map((c) => c.endDate));
-      if (me) it.endDate = addDaysISO(me, it.lagDays ?? 0);
-    } else if (it.endDate && it.lagDays) {
-      // standalone milestone: lag is just informational
+      if (me) {
+        const withLag = addDaysISO(me, it.lagDays ?? 0);
+        if (!it.endDate || withLag > it.endDate) it.endDate = withLag;
+      }
     }
-    it.startDate = it.endDate;
+    if (it.endDate) it.startDate = it.endDate;
   }
 
   return out;
