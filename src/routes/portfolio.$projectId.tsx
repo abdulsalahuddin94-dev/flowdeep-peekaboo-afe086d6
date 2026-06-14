@@ -1941,10 +1941,7 @@ function AddMilestoneDialog({
                   </Select>
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox checked={isParallel} onCheckedChange={(v) => setIsParallel(Boolean(v))} />
-                Runs in parallel (exclude from activity duration total)
-              </label>
+              <p className="text-[11px] text-muted-foreground">If multiple tasks in this activity share dates, the overlapping period is counted once toward the activity's duration.</p>
             </>
           )}
 
