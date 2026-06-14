@@ -66,7 +66,7 @@ type AppContextValue = {
   addRfp: (r: RfpEntry) => void;
   // Resource requests
   resourceRequests: ResourceRequest[];
-  addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => void;
+  addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => string;
   updateResourceRequest: (id: string, patch: Partial<ResourceRequest>) => void;
   // Tags
   tags: (OrgTag & { usage: number })[];
@@ -114,12 +114,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   function addRfp(r: RfpEntry) { setRfps((prev) => [r, ...prev]); }
 
   function addResourceRequest(r: Omit<ResourceRequest, "id" | "date" | "status">) {
+    const id = `RR-${String(Date.now()).slice(-4)}-${Math.floor(Math.random() * 1000)}`;
     setResourceRequests((prev) => [{
       ...r,
-      id: `RR-${String(Date.now()).slice(-4)}`,
+      id,
       date: "Just now",
       status: "Pending",
     }, ...prev]);
+    return id;
   }
   function updateResourceRequest(id: string, patch: Partial<ResourceRequest>) {
     setResourceRequests((prev) => prev.map((r) => r.id === id ? { ...r, ...patch } : r));

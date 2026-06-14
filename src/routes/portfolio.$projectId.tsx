@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState, Fragment } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RagBadge } from "@/components/RagBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,7 +49,7 @@ function ProjectDetail() {
   const { projects: liveProjects, updateProject } = useProjects();
   const { addNotification } = useNotifications();
   const { addRfp } = useRfps();
-  const { addResourceRequest } = useResourceRequests();
+  const { addResourceRequest, resourceRequests } = useResourceRequests();
   const project = liveProjects.find((p) => p.id === loaderProject.id) ?? loaderProject;
   const [reportOpen, setReportOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState([
@@ -129,12 +129,15 @@ function ProjectDetail() {
 
         <TabsContent value="Project Schedule" className="mt-5">
           <ProjectSchedule
-            items={milestones}
+            items={useMemo(() => computeDerivedSchedule(milestones, resourceRequests), [milestones, resourceRequests])}
             AddItemSlot={
               <AddMilestoneDialog
                 defaultOwner={project.pm}
                 packages={SEED_PACKAGES}
-                onAdd={(m) => setMilestones((prev) => [...prev, m])}
+                items={milestones}
+                projectName={project.name}
+                addResourceRequest={addResourceRequest}
+                onAdd={(newItems) => setMilestones((prev) => [...prev, ...newItems])}
               />
             }
           />
@@ -1506,7 +1509,17 @@ type ItemKind = "Milestone" | "Activity" | "Task";
 type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 type PaymentLinkKind = "None" | "Client Revenue" | "Package Cost";
 type PaymentLink = { kind: PaymentLinkKind; amount: string; packageId?: string };
-type Milestone = { name: string; kind: ItemKind; startDate: string; endDate: string; owner: string; rag: Rag; dep: string; roles: RoleReq[]; payment?: PaymentLink; progress?: number; parent?: string };
+type Milestone = {
+  name: string; kind: ItemKind; startDate: string; endDate: string;
+  owner: string; rag: Rag; dep: string; roles: RoleReq[];
+  payment?: PaymentLink; progress?: number; parent?: string;
+  assignee?: string;
+  lagDays?: number;              // milestone only — buffer added after last child
+  durationValue?: number;        // task only
+  durationUnit?: "hours" | "days"; // task only
+  isParallel?: boolean;          // task only — excluded from activity sum
+  resourceRequestIds?: string[]; // task only — fulfilled requests set assignee
+};
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
 type CostEntry = { c: string; b: number; a: number; color: string };
@@ -1520,49 +1533,256 @@ type ChangeReq = { id: string; title: string; impact: string; timeline: string; 
 type Stakeholder = { name: string; org: string; influence: "High" | "Medium" | "Low"; interest: "High" | "Medium" | "Low"; strategy: string };
 type Lesson = { tag: string; text: string; by: string; when: string };
 
+// ── Derivation: end dates / durations / assignees ────────────────────────────
+function addDaysISO(iso: string, n: number) {
+  if (!iso) return iso;
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+function maxISO(arr: (string | undefined)[]): string | undefined {
+  const v = arr.filter(Boolean) as string[];
+  if (!v.length) return undefined;
+  return v.slice().sort().pop();
+}
+function minISO(arr: (string | undefined)[]): string | undefined {
+  const v = arr.filter(Boolean) as string[];
+  if (!v.length) return undefined;
+  return v.slice().sort()[0];
+}
+function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Milestone[] {
+  const out = items.map((it) => ({ ...it }));
+
+  // Task: assignee from any fulfilled request, endDate from duration if provided
+  for (const it of out) {
+    if (it.kind !== "Task") continue;
+    if (it.resourceRequestIds?.length) {
+      const names = it.resourceRequestIds
+        .map((id) => reqs.find((r) => r.id === id)?.assignedTo)
+        .filter(Boolean) as string[];
+      if (names.length) it.assignee = Array.from(new Set(names)).join(", ");
+    }
+    if (it.durationValue && it.startDate) {
+      const days = it.durationUnit === "hours"
+        ? Math.max(1, Math.ceil(it.durationValue / 8))
+        : Math.max(1, it.durationValue);
+      it.endDate = addDaysISO(it.startDate, days - 1);
+    }
+  }
+
+  // Activity: duration = sum of non-parallel task hours; end from startDate
+  for (const it of out) {
+    if (it.kind !== "Activity") continue;
+    const tasks = out.filter((t) => t.kind === "Task" && t.parent === it.name);
+    if (!tasks.length) continue;
+    const hours = tasks.reduce((s, t) => {
+      if (t.isParallel) return s;
+      const v = t.durationValue ?? 0;
+      return s + (t.durationUnit === "days" ? v * 8 : v);
+    }, 0);
+    if (!it.startDate) {
+      const ms = minISO(tasks.map((t) => t.startDate));
+      if (ms) it.startDate = ms;
+    }
+    if (hours > 0 && it.startDate) {
+      const days = Math.max(1, Math.ceil(hours / 8));
+      it.endDate = addDaysISO(it.startDate, days - 1);
+    } else {
+      const me = maxISO(tasks.map((t) => t.endDate));
+      if (me) it.endDate = me;
+    }
+  }
+
+  // Milestone: end = max child end + lag; render as diamond (start = end)
+  for (const it of out) {
+    if (it.kind !== "Milestone") continue;
+    const children = out.filter((c) => c.parent === it.name);
+    if (children.length) {
+      const me = maxISO(children.map((c) => c.endDate));
+      if (me) it.endDate = addDaysISO(me, it.lagDays ?? 0);
+    } else if (it.endDate && it.lagDays) {
+      // standalone milestone: lag is just informational
+    }
+    it.startDate = it.endDate;
+  }
+
+  return out;
+}
+
 // ── Add Milestone / Activity / Task dialog ───────────────────────────────────
-function AddMilestoneDialog({ defaultOwner, packages, onAdd }: { defaultOwner: string; packages: TenderPackage[]; onAdd: (m: Milestone) => void }) {
+function AddMilestoneDialog({
+  defaultOwner, packages, items, projectName, addResourceRequest, onAdd,
+}: {
+  defaultOwner: string;
+  packages: TenderPackage[];
+  items: Milestone[];
+  projectName: string;
+  addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => string;
+  onAdd: (m: Milestone[]) => void;
+}) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
   const [kind, setKind] = useState<ItemKind>("Activity");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [name, setName] = useState("");
   const [owner, setOwner] = useState(defaultOwner);
   const [status, setStatus] = useState("Not Started");
   const [dep, setDep] = useState("");
+
+  // Milestone-specific
+  const [endDate, setEndDate] = useState("");
+  const [lagDays, setLagDays] = useState<number>(0);
+
+  // Activity-specific
+  const [startDate, setStartDate] = useState("");
+  const [parentMilestone, setParentMilestone] = useState<string>("__none__");
+  const [newMilestoneName, setNewMilestoneName] = useState("");
+  const [newMilestoneEnd, setNewMilestoneEnd] = useState("");
+
+  // Task-specific
+  const [parentActivity, setParentActivity] = useState<string>("__none__");
+  const [newActivityName, setNewActivityName] = useState("");
+  const [newActivityStart, setNewActivityStart] = useState("");
+  const [newActivityParentMs, setNewActivityParentMs] = useState<string>("__none__");
+  const [durationValue, setDurationValue] = useState<number>(1);
+  const [durationUnit, setDurationUnit] = useState<"hours" | "days">("days");
+  const [isParallel, setIsParallel] = useState(false);
+
+  // Roles + payment (shared)
   const [roles, setRoles] = useState<RoleReq[]>([]);
   const [roleDraft, setRoleDraft] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
   const [payKind, setPayKind] = useState<PaymentLinkKind>("None");
   const [payAmount, setPayAmount] = useState("");
   const [payPackage, setPayPackage] = useState<string>("");
+
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
   const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
+
+  const milestoneOptions = items.filter((i) => i.kind === "Milestone");
+  const activityOptions = items.filter((i) => i.kind === "Activity");
+
   function addRole() {
     if (!roleDraft.role.trim()) { toast.error("Role is required"); return; }
     setRoles((prev) => [...prev, { ...roleDraft, role: roleDraft.role.trim(), fte: Number(roleDraft.fte) || 0 }]);
     setRoleDraft({ role: "", skill: "Mid", fte: 1 });
   }
   function removeRole(idx: number) { setRoles((prev) => prev.filter((_, i) => i !== idx)); }
-  function submit() {
-    if (!name.trim()) { toast.error("Name is required"); return; }
-    if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
-    if (endDate < startDate) { toast.error("End date must be on or after start date"); return; }
-    if (payKind === "Package Cost" && !payPackage) { toast.error("Select a working package"); return; }
-    const payment: PaymentLink =
-      payKind === "None"
-        ? { kind: "None", amount: "" }
-        : payKind === "Client Revenue"
-        ? { kind: "Client Revenue", amount: payAmount.trim() }
-        : { kind: "Package Cost", packageId: payPackage, amount: payAmount.trim() };
-    onAdd({ name: name.trim(), kind, startDate, endDate, owner: owner || defaultOwner, rag: ragMap[status] ?? "blue", dep, roles, payment });
-    toast.success(`${kind} added`);
-    setOpen(false); setName(""); setKind("Activity"); setStartDate(""); setEndDate(""); setOwner(defaultOwner); setStatus("Not Started"); setDep(""); setRoles([]);
+
+  function reset() {
+    setKind("Activity"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+    setEndDate(""); setLagDays(0);
+    setStartDate(""); setParentMilestone("__none__"); setNewMilestoneName(""); setNewMilestoneEnd("");
+    setParentActivity("__none__"); setNewActivityName(""); setNewActivityStart(""); setNewActivityParentMs("__none__");
+    setDurationValue(1); setDurationUnit("days"); setIsParallel(false);
+    setRoles([]); setRoleDraft({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
+
+  function buildPayment(): PaymentLink {
+    if (payKind === "None") return { kind: "None", amount: "" };
+    if (payKind === "Client Revenue") return { kind: "Client Revenue", amount: payAmount.trim() };
+    return { kind: "Package Cost", packageId: payPackage, amount: payAmount.trim() };
+  }
+
+  function submit() {
+    if (!name.trim()) { toast.error("Name is required"); return; }
+    const rag = ragMap[status] ?? "blue";
+    const newItems: Milestone[] = [];
+
+    if (kind === "Milestone") {
+      if (!endDate) { toast.error("End date is required"); return; }
+      newItems.push({
+        name: name.trim(), kind: "Milestone",
+        startDate: endDate, endDate, owner: owner || defaultOwner, rag, dep,
+        roles: [], payment: buildPayment(), progress: 0, lagDays: Number(lagDays) || 0,
+      });
+    }
+
+    if (kind === "Activity") {
+      if (!startDate) { toast.error("Start date is required"); return; }
+      let parent: string | undefined;
+      if (parentMilestone === "__new__") {
+        if (!newMilestoneName.trim() || !newMilestoneEnd) {
+          toast.error("New milestone name and end date are required"); return;
+        }
+        newItems.push({
+          name: newMilestoneName.trim(), kind: "Milestone",
+          startDate: newMilestoneEnd, endDate: newMilestoneEnd,
+          owner: owner || defaultOwner, rag: "blue", dep: "",
+          roles: [], payment: { kind: "None", amount: "" }, progress: 0, lagDays: 0,
+        });
+        parent = newMilestoneName.trim();
+      } else if (parentMilestone !== "__none__") {
+        parent = parentMilestone;
+      }
+      newItems.push({
+        name: name.trim(), kind: "Activity",
+        startDate, endDate: startDate, owner: owner || defaultOwner, rag, dep,
+        roles, payment: buildPayment(), progress: 0, parent,
+      });
+    }
+
+    if (kind === "Task") {
+      let parent: string | undefined;
+      if (parentActivity === "__new__") {
+        if (!newActivityName.trim() || !newActivityStart) {
+          toast.error("New activity name and start date are required"); return;
+        }
+        let actParent: string | undefined;
+        if (newActivityParentMs !== "__none__") actParent = newActivityParentMs;
+        newItems.push({
+          name: newActivityName.trim(), kind: "Activity",
+          startDate: newActivityStart, endDate: newActivityStart,
+          owner: owner || defaultOwner, rag: "blue", dep: "",
+          roles: [], payment: { kind: "None", amount: "" }, progress: 0, parent: actParent,
+        });
+        parent = newActivityName.trim();
+      } else if (parentActivity !== "__none__") {
+        parent = parentActivity;
+      }
+      if (!startDate) { toast.error("Start date is required"); return; }
+      if (!durationValue || durationValue <= 0) { toast.error("Duration must be > 0"); return; }
+
+      // Each skill/role creates a pending resource request
+      const requestIds: string[] = [];
+      const fromMonth = startDate.slice(0, 7);
+      for (const r of roles) {
+        const id = addResourceRequest({
+          project: projectName,
+          role: r.role,
+          skill: r.skill,
+          fte: r.fte,
+          from: fromMonth,
+          until: fromMonth,
+          priority: "Medium",
+          submittedBy: owner || defaultOwner,
+          notes: `Auto-requested for task "${name.trim()}"`,
+        });
+        requestIds.push(id);
+      }
+
+      newItems.push({
+        name: name.trim(), kind: "Task",
+        startDate, endDate: startDate, owner: owner || defaultOwner, rag, dep,
+        roles, payment: buildPayment(), progress: 0, parent,
+        durationValue: Number(durationValue), durationUnit, isParallel,
+        resourceRequestIds: requestIds.length ? requestIds : undefined,
+      });
+
+      if (requestIds.length) {
+        toast.success(`${requestIds.length} resource request${requestIds.length === 1 ? "" : "s"} sent`);
+      }
+    }
+
+    onAdd(newItems);
+    toast.success(`${kind} added`);
+    setOpen(false);
+    reset();
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Activity</Button>
+        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Item</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add {kind}</DialogTitle></DialogHeader>
@@ -1572,17 +1792,113 @@ function AddMilestoneDialog({ defaultOwner, packages, onAdd }: { defaultOwner: s
             <Select value={kind} onValueChange={(v) => setKind(v as ItemKind)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="Milestone">Milestone</SelectItem>
                 <SelectItem value="Activity">Activity</SelectItem>
                 <SelectItem value="Task">Task</SelectItem>
-                <SelectItem value="Milestone">Milestone</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. UAT Sign-off" /></div>
-          <div className="grid grid-cols-2 gap-2">
-            <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-            <div><Label>End date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
-          </div>
+
+          {/* MILESTONE: only end date + lag */}
+          {kind === "Milestone" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>End date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+              <div>
+                <Label>Lag (days)</Label>
+                <Input type="number" min="0" value={lagDays} onChange={(e) => setLagDays(Number(e.target.value))} />
+                <p className="mt-1 text-[10px] text-muted-foreground">Buffer added after the last child activity ends.</p>
+              </div>
+            </div>
+          )}
+
+          {/* ACTIVITY: parent milestone + start date */}
+          {kind === "Activity" && (
+            <>
+              <div>
+                <Label>Parent milestone</Label>
+                <Select value={parentMilestone} onValueChange={setParentMilestone}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {milestoneOptions.map((m) => (
+                      <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
+                    ))}
+                    <SelectItem value="__new__">+ Create new milestone…</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {parentMilestone === "__new__" && (
+                <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-border p-2">
+                  <div className="col-span-2 text-[11px] text-muted-foreground">New milestone</div>
+                  <div><Label className="text-xs">Name</Label><Input value={newMilestoneName} onChange={(e) => setNewMilestoneName(e.target.value)} /></div>
+                  <div><Label className="text-xs">End date</Label><Input type="date" value={newMilestoneEnd} onChange={(e) => setNewMilestoneEnd(e.target.value)} /></div>
+                </div>
+              )}
+              <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+              <p className="text-[11px] text-muted-foreground">End date is calculated from the total hours of tasks (parallel tasks excluded).</p>
+            </>
+          )}
+
+          {/* TASK: parent activity, duration, parallel */}
+          {kind === "Task" && (
+            <>
+              <div>
+                <Label>Parent activity</Label>
+                <Select value={parentActivity} onValueChange={setParentActivity}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {activityOptions.map((a) => (
+                      <SelectItem key={a.name} value={a.name}>{a.name}</SelectItem>
+                    ))}
+                    <SelectItem value="__new__">+ Create new activity…</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {parentActivity === "__new__" && (
+                <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-border p-2">
+                  <div className="col-span-2 text-[11px] text-muted-foreground">New activity</div>
+                  <div><Label className="text-xs">Name</Label><Input value={newActivityName} onChange={(e) => setNewActivityName(e.target.value)} /></div>
+                  <div><Label className="text-xs">Start date</Label><Input type="date" value={newActivityStart} onChange={(e) => setNewActivityStart(e.target.value)} /></div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">Parent milestone</Label>
+                    <Select value={newActivityParentMs} onValueChange={setNewActivityParentMs}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— None —</SelectItem>
+                        {milestoneOptions.map((m) => (
+                          <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+                <div>
+                  <Label>Duration</Label>
+                  <Input type="number" min="0" step="0.5" value={durationValue} onChange={(e) => setDurationValue(Number(e.target.value))} />
+                </div>
+                <div>
+                  <Label>Unit</Label>
+                  <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as "hours" | "days")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hours">Hours</SelectItem>
+                      <SelectItem value="days">Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox checked={isParallel} onCheckedChange={(v) => setIsParallel(Boolean(v))} />
+                Runs in parallel (exclude from activity duration total)
+              </label>
+            </>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             <div><Label>Owner</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} /></div>
             <div>
@@ -1600,83 +1916,88 @@ function AddMilestoneDialog({ defaultOwner, packages, onAdd }: { defaultOwner: s
           </div>
           <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
 
-          <div className="rounded-md border border-border p-3 space-y-2">
-            <Label className="text-sm">Payment link</Label>
-            <p className="text-xs text-muted-foreground">Connect this {kind.toLowerCase()} to a client revenue event or a working-package (contract) payment milestone.</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs text-muted-foreground">Type</Label>
-                <Select value={payKind} onValueChange={(v) => setPayKind(v as PaymentLinkKind)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="None">None</SelectItem>
-                    <SelectItem value="Client Revenue">Client revenue (main client)</SelectItem>
-                    <SelectItem value="Package Cost">Working package cost (contract payment)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {payKind !== "None" && (
+          {kind !== "Milestone" && (
+            <div className="rounded-md border border-border p-3 space-y-2">
+              <Label className="text-sm">Payment link</Label>
+              <p className="text-xs text-muted-foreground">Connect this {kind.toLowerCase()} to a client revenue event or a working-package (contract) payment milestone.</p>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Amount</Label>
-                  <Input value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="e.g. $120K" />
+                  <Label className="text-xs text-muted-foreground">Type</Label>
+                  <Select value={payKind} onValueChange={(v) => setPayKind(v as PaymentLinkKind)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="None">None</SelectItem>
+                      <SelectItem value="Client Revenue">Client revenue (main client)</SelectItem>
+                      <SelectItem value="Package Cost">Working package cost (contract payment)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {payKind !== "None" && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Amount</Label>
+                    <Input value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="e.g. $120K" />
+                  </div>
+                )}
+              </div>
+              {payKind === "Package Cost" && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Working package</Label>
+                  <Select value={payPackage} onValueChange={setPayPackage}>
+                    <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                    <SelectContent>
+                      {packages.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.id} · {p.scope} ({p.est})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
-            {payKind === "Package Cost" && (
-              <div>
-                <Label className="text-xs text-muted-foreground">Working package</Label>
-                <Select value={payPackage} onValueChange={setPayPackage}>
-                  <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
-                  <SelectContent>
-                    {packages.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.id} · {p.scope} ({p.est})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          )}
 
-          <div className="rounded-md border border-border p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <Label className="text-sm">Roles required</Label>
-              <span className="text-xs text-muted-foreground">{roles.length} role{roles.length === 1 ? "" : "s"}</span>
+          {kind === "Task" && (
+            <div className="rounded-md border border-border p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <Label className="text-sm">Skills required</Label>
+                <span className="text-xs text-muted-foreground">{roles.length} skill{roles.length === 1 ? "" : "s"} · sent as resource request{roles.length === 1 ? "" : "s"}</span>
+              </div>
+              {roles.length > 0 && (
+                <div className="mb-3 space-y-1.5">
+                  {roles.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-md bg-secondary/40 px-2 py-1.5 text-xs">
+                      <span className="text-foreground"><span className="font-medium">{r.role}</span> · {r.skill} · {r.fte} FTE</span>
+                      <button type="button" onClick={() => removeRole(i)} className="text-muted-foreground hover:text-rag-red"><XCircle className="h-4 w-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="grid grid-cols-[1fr_110px_80px_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Skill / Role</Label>
+                  <Input list="role-suggestions" value={roleDraft.role} onChange={(e) => setRoleDraft((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
+                  <datalist id="role-suggestions">{roleSuggestions.map((r) => <option key={r} value={r} />)}</datalist>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Level</Label>
+                  <Select value={roleDraft.skill} onValueChange={(v) => setRoleDraft((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Junior">Junior</SelectItem>
+                      <SelectItem value="Mid">Mid</SelectItem>
+                      <SelectItem value="Senior">Senior</SelectItem>
+                      <SelectItem value="Lead">Lead</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">FTE</Label>
+                  <Input type="number" min="0" step="0.5" value={roleDraft.fte} onChange={(e) => setRoleDraft((d) => ({ ...d, fte: Number(e.target.value) }))} />
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={addRole}><Plus className="h-4 w-4" /></Button>
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground">Assignee fills automatically once the request is fulfilled in Resources.</p>
             </div>
-            {roles.length > 0 && (
-              <div className="mb-3 space-y-1.5">
-                {roles.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-md bg-secondary/40 px-2 py-1.5 text-xs">
-                    <span className="text-foreground"><span className="font-medium">{r.role}</span> · {r.skill} · {r.fte} FTE</span>
-                    <button type="button" onClick={() => removeRole(i)} className="text-muted-foreground hover:text-rag-red"><XCircle className="h-4 w-4" /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="grid grid-cols-[1fr_110px_80px_auto] gap-2 items-end">
-              <div>
-                <Label className="text-xs text-muted-foreground">Role</Label>
-                <Input list="role-suggestions" value={roleDraft.role} onChange={(e) => setRoleDraft((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
-                <datalist id="role-suggestions">{roleSuggestions.map((r) => <option key={r} value={r} />)}</datalist>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Skill</Label>
-                <Select value={roleDraft.skill} onValueChange={(v) => setRoleDraft((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Junior">Junior</SelectItem>
-                    <SelectItem value="Mid">Mid</SelectItem>
-                    <SelectItem value="Senior">Senior</SelectItem>
-                    <SelectItem value="Lead">Lead</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">FTE</Label>
-                <Input type="number" min="0" step="0.5" value={roleDraft.fte} onChange={(e) => setRoleDraft((d) => ({ ...d, fte: Number(e.target.value) }))} />
-              </div>
-              <Button type="button" size="sm" variant="outline" onClick={addRole}><Plus className="h-4 w-4" /></Button>
-            </div>
-          </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
