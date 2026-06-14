@@ -49,7 +49,7 @@ function ProjectDetail() {
   const { projects: liveProjects, updateProject } = useProjects();
   const { addNotification } = useNotifications();
   const { addRfp } = useRfps();
-  const { addResourceRequest } = useResourceRequests();
+  const { addResourceRequest, resourceRequests } = useResourceRequests();
   const project = liveProjects.find((p) => p.id === loaderProject.id) ?? loaderProject;
   const [reportOpen, setReportOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState([
