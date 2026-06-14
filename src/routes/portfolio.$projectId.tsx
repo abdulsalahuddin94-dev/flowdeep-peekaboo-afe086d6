@@ -1609,7 +1609,7 @@ function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Mi
 
 // ── Add Milestone / Activity / Task dialog ───────────────────────────────────
 function AddMilestoneDialog({
-  defaultOwner, packages, items, projectName, addResourceRequest, onAdd,
+  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting,
 }: {
   defaultOwner: string;
   packages: TenderPackage[];
@@ -1617,6 +1617,7 @@ function AddMilestoneDialog({
   projectName: string;
   addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => string;
   onAdd: (m: Milestone[]) => void;
+  onUpdateExisting: (name: string, patch: Partial<Milestone>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ItemKind>("Activity");
