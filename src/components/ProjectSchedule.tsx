@@ -264,6 +264,63 @@ export function ProjectSchedule({
     window.addEventListener("pointerup", onUp);
   }
 
+  // Column resize (Excel-like: drag to resize, double-click to auto-fit)
+  function startColResize(key: WidthKey, e: React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = widths[key];
+    const onMove = (ev: PointerEvent) => {
+      const next = Math.min(MAX_COL_W, Math.max(MIN_COL_W, startW + (ev.clientX - startX)));
+      setWidths(prev => ({ ...prev, [key]: next }));
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function autoFitCol(key: WidthKey) {
+    const headerLabel =
+      key === "name" ? "Task Name" : (COLUMNS.find(c => c.key === key)?.label ?? "");
+    let max = measureText(headerLabel, "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto");
+    for (const { item, depth, hasChildren } of visibleRows) {
+      let txt = "";
+      let extra = 0;
+      switch (key) {
+        case "name":
+          txt = item.name;
+          extra = depth * 14 + 16 + (hasChildren ? 4 : 0) + (item.kind === "Milestone" ? 16 : 0);
+          break;
+        case "type": txt = item.kind; extra = 16; break;
+        case "start": txt = item.startDate || "—"; break;
+        case "end": txt = item.endDate || "—"; break;
+        case "owner": txt = item.owner; break;
+        case "assignee": txt = item.assignee || "—"; break;
+        case "status": txt = statusText[item.rag]; extra = 18; break;
+        case "progress": txt = `${item.progress ?? 0}%`; extra = 60; break;
+        case "dep": txt = item.dep || "—"; break;
+        case "roles":
+          txt = item.roles.length ? item.roles.map(r => `${r.role} (${r.fte})`).join(", ") : "—";
+          break;
+        case "payment":
+          if (!item.payment || item.payment.kind === "None") txt = "—";
+          else if (item.payment.kind === "Client Revenue") txt = `Revenue · ${item.payment.amount || "—"}`;
+          else txt = `${item.payment.packageId || "Pkg"} · ${item.payment.amount || "—"}`;
+          extra = 16;
+          break;
+      }
+      const w = measureText(txt) + extra;
+      if (w > max) max = w;
+    }
+    const next = Math.min(MAX_COL_W, Math.max(MIN_COL_W, Math.ceil(max + COL_PAD)));
+    setWidths(prev => ({ ...prev, [key]: next }));
+  }
+
   // Row index map for arrow drawing
   const rowIndex = useMemo(() => {
     const m = new Map<string, number>();
