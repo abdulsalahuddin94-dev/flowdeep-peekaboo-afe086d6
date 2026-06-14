@@ -1880,8 +1880,11 @@ function AddMilestoneDialog({
                   <div><Label className="text-xs">End date</Label><Input type="date" value={newMilestoneEnd} onChange={(e) => setNewMilestoneEnd(e.target.value)} /></div>
                 </div>
               )}
-              <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-              <p className="text-[11px] text-muted-foreground">End date is calculated from the total hours of tasks (parallel tasks excluded).</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+                <div><Label>End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={activityEnd} onChange={(e) => setActivityEnd(e.target.value)} /></div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">If left empty, the end date is derived from child tasks. Overlapping tasks count once toward the activity duration.</p>
             </>
           )}
 
