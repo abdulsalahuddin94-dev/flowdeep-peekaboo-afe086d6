@@ -101,6 +101,11 @@ export function ProjectSchedule({
   );
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
+  const [widths, setWidths] = useState<Record<WidthKey, number>>(() => {
+    const w: Record<string, number> = { name: DEFAULT_NAME_W };
+    for (const c of COLUMNS) w[c.key] = c.w;
+    return w as Record<WidthKey, number>;
+  });
   const splitRef = useRef<HTMLDivElement | null>(null);
   const leftScrollRef = useRef<HTMLDivElement | null>(null);
   const rightScrollRef = useRef<HTMLDivElement | null>(null);
