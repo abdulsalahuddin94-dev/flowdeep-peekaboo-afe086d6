@@ -66,7 +66,7 @@ type AppContextValue = {
   addRfp: (r: RfpEntry) => void;
   // Resource requests
   resourceRequests: ResourceRequest[];
-  addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => void;
+  addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => string;
   updateResourceRequest: (id: string, patch: Partial<ResourceRequest>) => void;
   // Tags
   tags: (OrgTag & { usage: number })[];
