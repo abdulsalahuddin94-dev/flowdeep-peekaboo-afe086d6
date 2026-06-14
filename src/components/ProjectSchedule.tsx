@@ -327,16 +327,16 @@ export function ProjectSchedule({
       <div ref={splitRef} className="relative flex" style={{ height: 560 }}>
         {/* LEFT: table */}
         <div className="flex flex-col overflow-hidden border-r border-border" style={{ width: `${leftPct}%` }}>
-          {/* Header */}
-          <div className="flex shrink-0 border-b border-border bg-secondary/30 text-xs font-medium text-muted-foreground" style={{ height: ROW_H }}>
-            <div className="flex items-center px-3" style={{ width: NAME_COL_W }}>Task Name</div>
-            {COLUMNS.filter(c => colVisible(c.key)).map(c => (
-              <div key={c.key} className="flex items-center border-l border-border px-3" style={{ width: c.w }}>{c.label}</div>
-            ))}
-          </div>
-          {/* Body */}
+          {/* Body (header is sticky inside so it scrolls horizontally with columns) */}
           <div ref={leftScrollRef} onScroll={onLeftScroll} className="flex-1 overflow-auto">
-            <div style={{ minWidth: NAME_COL_W + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + c.w, 0) }}>
+            <div style={{ width: NAME_COL_W + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + c.w, 0) }}>
+              {/* Header */}
+              <div className="sticky top-0 z-20 flex border-b border-border bg-secondary/60 backdrop-blur text-xs font-medium text-muted-foreground" style={{ height: ROW_H }}>
+                <div className="flex items-center px-3" style={{ width: NAME_COL_W }}>Task Name</div>
+                {COLUMNS.filter(c => colVisible(c.key)).map(c => (
+                  <div key={c.key} className="flex items-center border-l border-border px-3" style={{ width: c.w }}>{c.label}</div>
+                ))}
+              </div>
               {visibleRows.map(({ item, depth, hasChildren }) => {
                 const isOpen = expanded.has(item.name);
                 const isCrit = criticalSet.has(item.name);
