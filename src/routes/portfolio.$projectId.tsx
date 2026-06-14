@@ -1696,8 +1696,12 @@ function AddMilestoneDialog({
       });
     }
 
+    // Collect cascading updates to existing items (parent end-date extensions)
+    const updates: Array<{ name: string; patch: Partial<Milestone> }> = [];
+
     if (kind === "Activity") {
       if (!startDate) { toast.error("Start date is required"); return; }
+      if (activityEnd && activityEnd < startDate) { toast.error("End date must be after start date"); return; }
       let parent: string | undefined;
       if (parentMilestone === "__new__") {
         if (!newMilestoneName.trim() || !newMilestoneEnd) {
@@ -1713,9 +1717,21 @@ function AddMilestoneDialog({
       } else if (parentMilestone !== "__none__") {
         parent = parentMilestone;
       }
+
+      // If activity end exceeds parent milestone's stored end → confirm
+      if (activityEnd && parent && parentMilestone !== "__new__") {
+        const ms = items.find((i) => i.name === parent && i.kind === "Milestone");
+        if (ms?.endDate && activityEnd > ms.endDate) {
+          const ok = window.confirm(
+            `Activity ends ${activityEnd}, which is after parent milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
+          );
+          if (ok) updates.push({ name: ms.name, patch: { endDate: activityEnd, startDate: activityEnd } });
+        }
+      }
+
       newItems.push({
         name: name.trim(), kind: "Activity",
-        startDate, endDate: startDate, owner: owner || defaultOwner, rag, dep,
+        startDate, endDate: activityEnd || startDate, owner: owner || defaultOwner, rag, dep,
         roles, payment: buildPayment(), progress: 0, parent,
       });
     }
@@ -1730,7 +1746,7 @@ function AddMilestoneDialog({
         if (newActivityParentMs !== "__none__") actParent = newActivityParentMs;
         newItems.push({
           name: newActivityName.trim(), kind: "Activity",
-          startDate: newActivityStart, endDate: newActivityStart,
+          startDate: newActivityStart, endDate: newActivityEnd || newActivityStart,
           owner: owner || defaultOwner, rag: "blue", dep: "",
           roles: [], payment: { kind: "None", amount: "" }, progress: 0, parent: actParent,
         });
@@ -1740,6 +1756,34 @@ function AddMilestoneDialog({
       }
       if (!startDate) { toast.error("Start date is required"); return; }
       if (!durationValue || durationValue <= 0) { toast.error("Duration must be > 0"); return; }
+
+      const days = durationUnit === "hours"
+        ? Math.max(1, Math.ceil(Number(durationValue) / 8))
+        : Math.max(1, Number(durationValue));
+      const taskEnd = addDaysISO(startDate, days - 1);
+
+      // Cascade: task → activity → milestone end-date checks (only for existing parents)
+      if (parent && parentActivity !== "__new__") {
+        const act = items.find((i) => i.name === parent && i.kind === "Activity");
+        if (act?.endDate && taskEnd > act.endDate) {
+          const ok = window.confirm(
+            `Task ends ${taskEnd}, after parent activity "${act.name}" (${act.endDate}). Extend the activity end date?`,
+          );
+          if (ok) {
+            updates.push({ name: act.name, patch: { endDate: taskEnd } });
+            // Also check milestone above
+            if (act.parent) {
+              const ms = items.find((i) => i.name === act.parent && i.kind === "Milestone");
+              if (ms?.endDate && taskEnd > ms.endDate) {
+                const ok2 = window.confirm(
+                  `This also exceeds milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
+                );
+                if (ok2) updates.push({ name: ms.name, patch: { endDate: taskEnd, startDate: taskEnd } });
+              }
+            }
+          }
+        }
+      }
 
       // Each skill/role creates a pending resource request
       const requestIds: string[] = [];
@@ -1761,9 +1805,9 @@ function AddMilestoneDialog({
 
       newItems.push({
         name: name.trim(), kind: "Task",
-        startDate, endDate: startDate, owner: owner || defaultOwner, rag, dep,
+        startDate, endDate: taskEnd, owner: owner || defaultOwner, rag, dep,
         roles, payment: buildPayment(), progress: 0, parent,
-        durationValue: Number(durationValue), durationUnit, isParallel,
+        durationValue: Number(durationValue), durationUnit,
         resourceRequestIds: requestIds.length ? requestIds : undefined,
       });
 
@@ -1773,10 +1817,12 @@ function AddMilestoneDialog({
     }
 
     onAdd(newItems);
+    for (const u of updates) onUpdateExisting(u.name, u.patch);
     toast.success(`${kind} added`);
     setOpen(false);
     reset();
   }
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
