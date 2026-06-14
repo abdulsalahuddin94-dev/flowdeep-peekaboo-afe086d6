@@ -33,6 +33,7 @@ export type ScheduleItem = {
   payment?: PaymentLink;
   progress?: number;
   parent?: string;
+  assignee?: string;
 };
 
 type Scale = "day" | "week" | "month";
