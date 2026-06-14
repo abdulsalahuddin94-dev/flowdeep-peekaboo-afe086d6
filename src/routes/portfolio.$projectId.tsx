@@ -1909,6 +1909,7 @@ function AddMilestoneDialog({
                   <div className="col-span-2 text-[11px] text-muted-foreground">New activity</div>
                   <div><Label className="text-xs">Name</Label><Input value={newActivityName} onChange={(e) => setNewActivityName(e.target.value)} /></div>
                   <div><Label className="text-xs">Start date</Label><Input type="date" value={newActivityStart} onChange={(e) => setNewActivityStart(e.target.value)} /></div>
+                  <div className="col-span-2"><Label className="text-xs">End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={newActivityEnd} onChange={(e) => setNewActivityEnd(e.target.value)} /></div>
                   <div className="col-span-2">
                     <Label className="text-xs">Parent milestone</Label>
                     <Select value={newActivityParentMs} onValueChange={setNewActivityParentMs}>
