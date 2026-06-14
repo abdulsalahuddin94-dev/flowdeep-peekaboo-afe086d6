@@ -80,13 +80,22 @@ export function ProjectSchedule({
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
   const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(
-    () => new Set<ColKey>(["type", "start", "end", "status", "progress", "dep"]),
+    () => new Set<ColKey>(["type", "start", "end", "assignee", "status", "progress", "dep"]),
   );
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
   const splitRef = useRef<HTMLDivElement | null>(null);
   const leftScrollRef = useRef<HTMLDivElement | null>(null);
   const rightScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-collapse app sidebar while viewing the schedule for more horizontal room
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar();
+  useEffect(() => {
+    const wasOpen = sidebarOpen;
+    setSidebarOpen(false);
+    return () => { if (wasOpen) setSidebarOpen(true); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-expand newly added parents
   useEffect(() => {
