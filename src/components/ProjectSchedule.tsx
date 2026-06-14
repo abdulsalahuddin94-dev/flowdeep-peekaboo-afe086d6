@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight, Columns3, Diamond } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // ── Shared types (mirror parent file) ────────────────────────────────────────
 export type ItemKind = "Milestone" | "Activity" | "Task";
@@ -32,6 +33,7 @@ export type ScheduleItem = {
   payment?: PaymentLink;
   progress?: number;
   parent?: string;
+  assignee?: string;
 };
 
 type Scale = "day" | "week" | "month";
@@ -56,6 +58,7 @@ const COLUMNS = [
   { key: "start",    label: "Start",       w: 100 },
   { key: "end",      label: "End",         w: 100 },
   { key: "owner",    label: "Owner",       w: 110 },
+  { key: "assignee", label: "Assignee",    w: 130 },
   { key: "status",   label: "Status",      w: 110 },
   { key: "progress", label: "% Complete",  w: 110 },
   { key: "dep",      label: "Depends on",  w: 110 },
@@ -77,13 +80,22 @@ export function ProjectSchedule({
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
   const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(
-    () => new Set<ColKey>(["type", "start", "end", "status", "progress", "dep"]),
+    () => new Set<ColKey>(["type", "start", "end", "assignee", "status", "progress", "dep"]),
   );
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
   const splitRef = useRef<HTMLDivElement | null>(null);
   const leftScrollRef = useRef<HTMLDivElement | null>(null);
   const rightScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-collapse app sidebar while viewing the schedule for more horizontal room
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar();
+  useEffect(() => {
+    const wasOpen = sidebarOpen;
+    setSidebarOpen(false);
+    return () => { if (wasOpen) setSidebarOpen(true); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-expand newly added parents
   useEffect(() => {
@@ -315,16 +327,16 @@ export function ProjectSchedule({
       <div ref={splitRef} className="relative flex" style={{ height: 560 }}>
         {/* LEFT: table */}
         <div className="flex flex-col overflow-hidden border-r border-border" style={{ width: `${leftPct}%` }}>
-          {/* Header */}
-          <div className="flex shrink-0 border-b border-border bg-secondary/30 text-xs font-medium text-muted-foreground" style={{ height: ROW_H }}>
-            <div className="flex items-center px-3" style={{ width: NAME_COL_W }}>Task Name</div>
-            {COLUMNS.filter(c => colVisible(c.key)).map(c => (
-              <div key={c.key} className="flex items-center border-l border-border px-3" style={{ width: c.w }}>{c.label}</div>
-            ))}
-          </div>
-          {/* Body */}
+          {/* Body (header is sticky inside so it scrolls horizontally with columns) */}
           <div ref={leftScrollRef} onScroll={onLeftScroll} className="flex-1 overflow-auto">
-            <div style={{ minWidth: NAME_COL_W + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + c.w, 0) }}>
+            <div style={{ width: NAME_COL_W + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + c.w, 0) }}>
+              {/* Header */}
+              <div className="sticky top-0 z-20 flex border-b border-border bg-secondary/60 backdrop-blur text-xs font-medium text-muted-foreground" style={{ height: ROW_H }}>
+                <div className="flex items-center px-3" style={{ width: NAME_COL_W }}>Task Name</div>
+                {COLUMNS.filter(c => colVisible(c.key)).map(c => (
+                  <div key={c.key} className="flex items-center border-l border-border px-3" style={{ width: c.w }}>{c.label}</div>
+                ))}
+              </div>
               {visibleRows.map(({ item, depth, hasChildren }) => {
                 const isOpen = expanded.has(item.name);
                 const isCrit = criticalSet.has(item.name);
@@ -362,6 +374,15 @@ export function ProjectSchedule({
                     )}
                     {colVisible("owner") && (
                       <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 110 }}>{item.owner}</div>
+                    )}
+                    {colVisible("assignee") && (
+                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 130 }}>
+                        {item.assignee ? (
+                          <span className="truncate">{item.assignee}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
                     )}
                     {colVisible("status") && (
                       <div className="flex items-center border-l border-border/60 px-3" style={{ width: 110 }}>
