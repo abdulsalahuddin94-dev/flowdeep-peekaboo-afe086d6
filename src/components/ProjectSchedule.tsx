@@ -66,9 +66,26 @@ const COLUMNS = [
   { key: "payment",  label: "Payment link",w: 160 },
 ] as const;
 type ColKey = typeof COLUMNS[number]["key"];
+type WidthKey = ColKey | "name";
 
 const ROW_H = 36;
-const NAME_COL_W = 280;
+const DEFAULT_NAME_W = 280;
+const MIN_COL_W = 56;
+const MAX_COL_W = 800;
+const COL_PAD = 28; // px of horizontal padding for autofit (px-3 on both sides + border)
+
+// Shared canvas for text measurement (Excel-like auto-fit)
+let _measureCtx: CanvasRenderingContext2D | null = null;
+function measureText(text: string, font = "12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto") {
+  if (typeof document === "undefined") return text.length * 7;
+  if (!_measureCtx) {
+    const c = document.createElement("canvas");
+    _measureCtx = c.getContext("2d");
+  }
+  if (!_measureCtx) return text.length * 7;
+  _measureCtx.font = font;
+  return _measureCtx.measureText(text).width;
+}
 
 export function ProjectSchedule({
   items,
@@ -84,6 +101,11 @@ export function ProjectSchedule({
   );
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
+  const [widths, setWidths] = useState<Record<WidthKey, number>>(() => {
+    const w: Record<string, number> = { name: DEFAULT_NAME_W };
+    for (const c of COLUMNS) w[c.key] = c.w;
+    return w as Record<WidthKey, number>;
+  });
   const splitRef = useRef<HTMLDivElement | null>(null);
   const leftScrollRef = useRef<HTMLDivElement | null>(null);
   const rightScrollRef = useRef<HTMLDivElement | null>(null);
@@ -242,6 +264,63 @@ export function ProjectSchedule({
     window.addEventListener("pointerup", onUp);
   }
 
+  // Column resize (Excel-like: drag to resize, double-click to auto-fit)
+  function startColResize(key: WidthKey, e: React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = widths[key];
+    const onMove = (ev: PointerEvent) => {
+      const next = Math.min(MAX_COL_W, Math.max(MIN_COL_W, startW + (ev.clientX - startX)));
+      setWidths(prev => ({ ...prev, [key]: next }));
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function autoFitCol(key: WidthKey) {
+    const headerLabel =
+      key === "name" ? "Task Name" : (COLUMNS.find(c => c.key === key)?.label ?? "");
+    let max = measureText(headerLabel, "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto");
+    for (const { item, depth, hasChildren } of visibleRows) {
+      let txt = "";
+      let extra = 0;
+      switch (key) {
+        case "name":
+          txt = item.name;
+          extra = depth * 14 + 16 + (hasChildren ? 4 : 0) + (item.kind === "Milestone" ? 16 : 0);
+          break;
+        case "type": txt = item.kind; extra = 16; break;
+        case "start": txt = item.startDate || "—"; break;
+        case "end": txt = item.endDate || "—"; break;
+        case "owner": txt = item.owner; break;
+        case "assignee": txt = item.assignee || "—"; break;
+        case "status": txt = statusText[item.rag]; extra = 18; break;
+        case "progress": txt = `${item.progress ?? 0}%`; extra = 60; break;
+        case "dep": txt = item.dep || "—"; break;
+        case "roles":
+          txt = item.roles.length ? item.roles.map(r => `${r.role} (${r.fte})`).join(", ") : "—";
+          break;
+        case "payment":
+          if (!item.payment || item.payment.kind === "None") txt = "—";
+          else if (item.payment.kind === "Client Revenue") txt = `Revenue · ${item.payment.amount || "—"}`;
+          else txt = `${item.payment.packageId || "Pkg"} · ${item.payment.amount || "—"}`;
+          extra = 16;
+          break;
+      }
+      const w = measureText(txt) + extra;
+      if (w > max) max = w;
+    }
+    const next = Math.min(MAX_COL_W, Math.max(MIN_COL_W, Math.ceil(max + COL_PAD)));
+    setWidths(prev => ({ ...prev, [key]: next }));
+  }
+
   // Row index map for arrow drawing
   const rowIndex = useMemo(() => {
     const m = new Map<string, number>();
@@ -329,12 +408,12 @@ export function ProjectSchedule({
         <div className="flex flex-col overflow-hidden border-r border-border" style={{ width: `${leftPct}%` }}>
           {/* Body (header is sticky inside so it scrolls horizontally with columns) */}
           <div ref={leftScrollRef} onScroll={onLeftScroll} className="flex-1 overflow-auto">
-            <div style={{ width: NAME_COL_W + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + c.w, 0) }}>
+            <div style={{ width: widths.name + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + widths[c.key], 0) }}>
               {/* Header */}
               <div className="sticky top-0 z-20 flex border-b border-border bg-secondary/60 backdrop-blur text-xs font-medium text-muted-foreground" style={{ height: ROW_H }}>
-                <div className="flex items-center px-3" style={{ width: NAME_COL_W }}>Task Name</div>
+                <ColHeader label="Task Name" width={widths.name} onResize={(e) => startColResize("name", e)} onAutoFit={() => autoFitCol("name")} first />
                 {COLUMNS.filter(c => colVisible(c.key)).map(c => (
-                  <div key={c.key} className="flex items-center border-l border-border px-3" style={{ width: c.w }}>{c.label}</div>
+                  <ColHeader key={c.key} label={c.label} width={widths[c.key]} onResize={(e) => startColResize(c.key, e)} onAutoFit={() => autoFitCol(c.key)} />
                 ))}
               </div>
               {visibleRows.map(({ item, depth, hasChildren }) => {
@@ -343,7 +422,7 @@ export function ProjectSchedule({
                 const isMs = item.kind === "Milestone";
                 return (
                   <div key={item.name} className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
-                    <div className="flex items-center gap-1 px-2" style={{ width: NAME_COL_W, paddingLeft: 8 + depth * 14 }}>
+                    <div className="flex items-center gap-1 px-2 overflow-hidden" style={{ width: widths.name, paddingLeft: 8 + depth * 14 }}>
                       {hasChildren ? (
                         <button
                           onClick={() => setExpanded(prev => {
@@ -362,21 +441,21 @@ export function ProjectSchedule({
                       <span className={`truncate font-medium ${hasChildren ? "text-foreground" : "text-foreground/90"} ${isCrit ? "text-rag-red" : ""}`}>{item.name}</span>
                     </div>
                     {colVisible("type") && (
-                      <div className="flex items-center border-l border-border/60 px-3" style={{ width: 90 }}>
-                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">{item.kind}</span>
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.type }}>
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground truncate">{item.kind}</span>
                       </div>
                     )}
                     {colVisible("start") && (
-                      <div className="flex items-center border-l border-border/60 px-3 num-mono" style={{ width: 100 }}>{item.startDate || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden truncate" style={{ width: widths.start }}>{item.startDate || "—"}</div>
                     )}
                     {colVisible("end") && (
-                      <div className="flex items-center border-l border-border/60 px-3 num-mono" style={{ width: 100 }}>{item.endDate || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden truncate" style={{ width: widths.end }}>{item.endDate || "—"}</div>
                     )}
                     {colVisible("owner") && (
-                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 110 }}>{item.owner}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: widths.owner }}>{item.owner}</div>
                     )}
                     {colVisible("assignee") && (
-                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 130 }}>
+                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: widths.assignee }}>
                         {item.assignee ? (
                           <span className="truncate">{item.assignee}</span>
                         ) : (
@@ -385,12 +464,12 @@ export function ProjectSchedule({
                       </div>
                     )}
                     {colVisible("status") && (
-                      <div className="flex items-center border-l border-border/60 px-3" style={{ width: 110 }}>
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.status }}>
                         <RagBadge rag={item.rag} label={statusText[item.rag]} />
                       </div>
                     )}
                     {colVisible("progress") && (
-                      <div className="flex items-center gap-2 border-l border-border/60 px-3" style={{ width: 110 }}>
+                      <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
                           <div className="h-full bg-accent" style={{ width: `${item.progress ?? 0}%` }} />
                         </div>
@@ -398,10 +477,10 @@ export function ProjectSchedule({
                       </div>
                     )}
                     {colVisible("dep") && (
-                      <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground truncate" style={{ width: 110 }}>{item.dep || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground truncate" style={{ width: widths.dep }}>{item.dep || "—"}</div>
                     )}
                     {colVisible("roles") && (
-                      <div className="flex items-center gap-1 overflow-hidden border-l border-border/60 px-3" style={{ width: 180 }}>
+                      <div className="flex items-center gap-1 overflow-hidden border-l border-border/60 px-3" style={{ width: widths.roles }}>
                         {item.roles.length === 0 ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
@@ -412,15 +491,15 @@ export function ProjectSchedule({
                       </div>
                     )}
                     {colVisible("payment") && (
-                      <div className="flex items-center border-l border-border/60 px-3" style={{ width: 160 }}>
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.payment }}>
                         {!item.payment || item.payment.kind === "None" ? (
                           <span className="text-muted-foreground">—</span>
                         ) : item.payment.kind === "Client Revenue" ? (
-                          <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]">
+                          <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px] truncate">
                             Revenue · {item.payment.amount || "—"}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
+                          <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px] truncate">
                             {item.payment.packageId || "Pkg"} · {item.payment.amount || "—"}
                           </Badge>
                         )}
@@ -596,6 +675,37 @@ export function ProjectSchedule({
         </div>
         <div>Range: {fmt(minDate)} – {fmt(maxDate)}</div>
       </div>
+    </div>
+  );
+}
+
+// ── Column header with drag-to-resize + double-click auto-fit ────────────────
+function ColHeader({
+  label,
+  width,
+  onResize,
+  onAutoFit,
+  first,
+}: {
+  label: string;
+  width: number;
+  onResize: (e: React.PointerEvent) => void;
+  onAutoFit: () => void;
+  first?: boolean;
+}) {
+  return (
+    <div
+      className={`relative flex items-center px-3 ${first ? "" : "border-l border-border"}`}
+      style={{ width }}
+    >
+      <span className="truncate">{label}</span>
+      <div
+        onPointerDown={onResize}
+        onDoubleClick={onAutoFit}
+        title="Drag to resize · Double-click to auto-fit"
+        className="absolute right-0 top-0 z-30 h-full w-1.5 cursor-col-resize select-none hover:bg-accent/60"
+        style={{ touchAction: "none" }}
+      />
     </div>
   );
 }
