@@ -58,6 +58,7 @@ const COLUMNS = [
   { key: "start",    label: "Start",       w: 100 },
   { key: "end",      label: "End",         w: 100 },
   { key: "owner",    label: "Owner",       w: 110 },
+  { key: "assignee", label: "Assignee",    w: 130 },
   { key: "status",   label: "Status",      w: 110 },
   { key: "progress", label: "% Complete",  w: 110 },
   { key: "dep",      label: "Depends on",  w: 110 },
