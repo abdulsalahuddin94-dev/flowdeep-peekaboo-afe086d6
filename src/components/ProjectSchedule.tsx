@@ -66,9 +66,26 @@ const COLUMNS = [
   { key: "payment",  label: "Payment link",w: 160 },
 ] as const;
 type ColKey = typeof COLUMNS[number]["key"];
+type WidthKey = ColKey | "name";
 
 const ROW_H = 36;
-const NAME_COL_W = 280;
+const DEFAULT_NAME_W = 280;
+const MIN_COL_W = 56;
+const MAX_COL_W = 800;
+const COL_PAD = 28; // px of horizontal padding for autofit (px-3 on both sides + border)
+
+// Shared canvas for text measurement (Excel-like auto-fit)
+let _measureCtx: CanvasRenderingContext2D | null = null;
+function measureText(text: string, font = "12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto") {
+  if (typeof document === "undefined") return text.length * 7;
+  if (!_measureCtx) {
+    const c = document.createElement("canvas");
+    _measureCtx = c.getContext("2d");
+  }
+  if (!_measureCtx) return text.length * 7;
+  _measureCtx.font = font;
+  return _measureCtx.measureText(text).width;
+}
 
 export function ProjectSchedule({
   items,
