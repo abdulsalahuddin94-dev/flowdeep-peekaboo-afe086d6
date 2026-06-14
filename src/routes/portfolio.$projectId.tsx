@@ -1632,6 +1632,7 @@ function AddMilestoneDialog({
 
   // Activity-specific
   const [startDate, setStartDate] = useState("");
+  const [activityEnd, setActivityEnd] = useState("");
   const [parentMilestone, setParentMilestone] = useState<string>("__none__");
   const [newMilestoneName, setNewMilestoneName] = useState("");
   const [newMilestoneEnd, setNewMilestoneEnd] = useState("");
@@ -1640,10 +1641,10 @@ function AddMilestoneDialog({
   const [parentActivity, setParentActivity] = useState<string>("__none__");
   const [newActivityName, setNewActivityName] = useState("");
   const [newActivityStart, setNewActivityStart] = useState("");
+  const [newActivityEnd, setNewActivityEnd] = useState("");
   const [newActivityParentMs, setNewActivityParentMs] = useState<string>("__none__");
   const [durationValue, setDurationValue] = useState<number>(1);
   const [durationUnit, setDurationUnit] = useState<"hours" | "days">("days");
-  const [isParallel, setIsParallel] = useState(false);
 
   // Roles + payment (shared)
   const [roles, setRoles] = useState<RoleReq[]>([]);
