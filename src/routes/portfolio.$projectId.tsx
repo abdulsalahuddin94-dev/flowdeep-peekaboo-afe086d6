@@ -138,6 +138,9 @@ function ProjectDetail() {
                 projectName={project.name}
                 addResourceRequest={addResourceRequest}
                 onAdd={(newItems) => setMilestones((prev) => [...prev, ...newItems])}
+                onUpdateExisting={(name, patch) =>
+                  setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } : m)))
+                }
               />
             }
           />
