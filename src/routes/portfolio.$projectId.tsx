@@ -1669,9 +1669,9 @@ function AddMilestoneDialog({
   function reset() {
     setKind("Activity"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
     setEndDate(""); setLagDays(0);
-    setStartDate(""); setParentMilestone("__none__"); setNewMilestoneName(""); setNewMilestoneEnd("");
-    setParentActivity("__none__"); setNewActivityName(""); setNewActivityStart(""); setNewActivityParentMs("__none__");
-    setDurationValue(1); setDurationUnit("days"); setIsParallel(false);
+    setStartDate(""); setActivityEnd(""); setParentMilestone("__none__"); setNewMilestoneName(""); setNewMilestoneEnd("");
+    setParentActivity("__none__"); setNewActivityName(""); setNewActivityStart(""); setNewActivityEnd(""); setNewActivityParentMs("__none__");
+    setDurationValue(1); setDurationUnit("days");
     setRoles([]); setRoleDraft({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
