@@ -678,3 +678,34 @@ export function ProjectSchedule({
     </div>
   );
 }
+
+// ── Column header with drag-to-resize + double-click auto-fit ────────────────
+function ColHeader({
+  label,
+  width,
+  onResize,
+  onAutoFit,
+  first,
+}: {
+  label: string;
+  width: number;
+  onResize: (e: React.PointerEvent) => void;
+  onAutoFit: () => void;
+  first?: boolean;
+}) {
+  return (
+    <div
+      className={`relative flex items-center px-3 ${first ? "" : "border-l border-border"}`}
+      style={{ width }}
+    >
+      <span className="truncate">{label}</span>
+      <div
+        onPointerDown={onResize}
+        onDoubleClick={onAutoFit}
+        title="Drag to resize · Double-click to auto-fit"
+        className="absolute right-0 top-0 z-30 h-full w-1.5 cursor-col-resize select-none hover:bg-accent/60"
+        style={{ touchAction: "none" }}
+      />
+    </div>
+  );
+}
