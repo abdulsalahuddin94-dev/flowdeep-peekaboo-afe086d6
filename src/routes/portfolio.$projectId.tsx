@@ -138,6 +138,9 @@ function ProjectDetail() {
                 projectName={project.name}
                 addResourceRequest={addResourceRequest}
                 onAdd={(newItems) => setMilestones((prev) => [...prev, ...newItems])}
+                onUpdateExisting={(name, patch) =>
+                  setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } : m)))
+                }
               />
             }
           />
@@ -1554,57 +1557,51 @@ function minISO(arr: (string | undefined)[]): string | undefined {
 function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Milestone[] {
   const out = items.map((it) => ({ ...it }));
 
-  // Task: assignee from any fulfilled request, endDate from duration if provided
+  // Task: derive endDate from duration; assignee from fulfilled requests or "Waiting"
   for (const it of out) {
     if (it.kind !== "Task") continue;
-    if (it.resourceRequestIds?.length) {
-      const names = it.resourceRequestIds
-        .map((id) => reqs.find((r) => r.id === id)?.assignedTo)
-        .filter(Boolean) as string[];
-      if (names.length) it.assignee = Array.from(new Set(names)).join(", ");
-    }
     if (it.durationValue && it.startDate) {
       const days = it.durationUnit === "hours"
         ? Math.max(1, Math.ceil(it.durationValue / 8))
         : Math.max(1, it.durationValue);
       it.endDate = addDaysISO(it.startDate, days - 1);
     }
+    if (it.resourceRequestIds?.length) {
+      const linked = it.resourceRequestIds
+        .map((id) => reqs.find((r) => r.id === id))
+        .filter(Boolean) as ResourceRequest[];
+      const fulfilled = linked
+        .filter((r) => r.status === "Fulfilled" && r.assignedTo)
+        .map((r) => r.assignedTo!) as string[];
+      if (fulfilled.length) it.assignee = Array.from(new Set(fulfilled)).join(", ");
+      else if (linked.length) it.assignee = "Waiting";
+    }
   }
 
-  // Activity: duration = sum of non-parallel task hours; end from startDate
+  // Activity: start = min(task.start), end = max(stored end, max(task.end))
+  // (overlap is naturally handled — duration spans first start to last end)
   for (const it of out) {
     if (it.kind !== "Activity") continue;
     const tasks = out.filter((t) => t.kind === "Task" && t.parent === it.name);
     if (!tasks.length) continue;
-    const hours = tasks.reduce((s, t) => {
-      if (t.isParallel) return s;
-      const v = t.durationValue ?? 0;
-      return s + (t.durationUnit === "days" ? v * 8 : v);
-    }, 0);
-    if (!it.startDate) {
-      const ms = minISO(tasks.map((t) => t.startDate));
-      if (ms) it.startDate = ms;
-    }
-    if (hours > 0 && it.startDate) {
-      const days = Math.max(1, Math.ceil(hours / 8));
-      it.endDate = addDaysISO(it.startDate, days - 1);
-    } else {
-      const me = maxISO(tasks.map((t) => t.endDate));
-      if (me) it.endDate = me;
-    }
+    const ts = minISO(tasks.map((t) => t.startDate));
+    const te = maxISO(tasks.map((t) => t.endDate));
+    if (!it.startDate && ts) it.startDate = ts;
+    if (te && (!it.endDate || te > it.endDate)) it.endDate = te;
   }
 
-  // Milestone: end = max child end + lag; render as diamond (start = end)
+  // Milestone: end = max(stored end, max child end) + lag; diamond (start = end)
   for (const it of out) {
     if (it.kind !== "Milestone") continue;
     const children = out.filter((c) => c.parent === it.name);
     if (children.length) {
       const me = maxISO(children.map((c) => c.endDate));
-      if (me) it.endDate = addDaysISO(me, it.lagDays ?? 0);
-    } else if (it.endDate && it.lagDays) {
-      // standalone milestone: lag is just informational
+      if (me) {
+        const withLag = addDaysISO(me, it.lagDays ?? 0);
+        if (!it.endDate || withLag > it.endDate) it.endDate = withLag;
+      }
     }
-    it.startDate = it.endDate;
+    if (it.endDate) it.startDate = it.endDate;
   }
 
   return out;
@@ -1612,7 +1609,7 @@ function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Mi
 
 // ── Add Milestone / Activity / Task dialog ───────────────────────────────────
 function AddMilestoneDialog({
-  defaultOwner, packages, items, projectName, addResourceRequest, onAdd,
+  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting,
 }: {
   defaultOwner: string;
   packages: TenderPackage[];
@@ -1620,6 +1617,7 @@ function AddMilestoneDialog({
   projectName: string;
   addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => string;
   onAdd: (m: Milestone[]) => void;
+  onUpdateExisting: (name: string, patch: Partial<Milestone>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ItemKind>("Activity");
@@ -1634,6 +1632,7 @@ function AddMilestoneDialog({
 
   // Activity-specific
   const [startDate, setStartDate] = useState("");
+  const [activityEnd, setActivityEnd] = useState("");
   const [parentMilestone, setParentMilestone] = useState<string>("__none__");
   const [newMilestoneName, setNewMilestoneName] = useState("");
   const [newMilestoneEnd, setNewMilestoneEnd] = useState("");
@@ -1642,10 +1641,10 @@ function AddMilestoneDialog({
   const [parentActivity, setParentActivity] = useState<string>("__none__");
   const [newActivityName, setNewActivityName] = useState("");
   const [newActivityStart, setNewActivityStart] = useState("");
+  const [newActivityEnd, setNewActivityEnd] = useState("");
   const [newActivityParentMs, setNewActivityParentMs] = useState<string>("__none__");
   const [durationValue, setDurationValue] = useState<number>(1);
   const [durationUnit, setDurationUnit] = useState<"hours" | "days">("days");
-  const [isParallel, setIsParallel] = useState(false);
 
   // Roles + payment (shared)
   const [roles, setRoles] = useState<RoleReq[]>([]);
@@ -1670,9 +1669,9 @@ function AddMilestoneDialog({
   function reset() {
     setKind("Activity"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
     setEndDate(""); setLagDays(0);
-    setStartDate(""); setParentMilestone("__none__"); setNewMilestoneName(""); setNewMilestoneEnd("");
-    setParentActivity("__none__"); setNewActivityName(""); setNewActivityStart(""); setNewActivityParentMs("__none__");
-    setDurationValue(1); setDurationUnit("days"); setIsParallel(false);
+    setStartDate(""); setActivityEnd(""); setParentMilestone("__none__"); setNewMilestoneName(""); setNewMilestoneEnd("");
+    setParentActivity("__none__"); setNewActivityName(""); setNewActivityStart(""); setNewActivityEnd(""); setNewActivityParentMs("__none__");
+    setDurationValue(1); setDurationUnit("days");
     setRoles([]); setRoleDraft({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
@@ -1697,8 +1696,12 @@ function AddMilestoneDialog({
       });
     }
 
+    // Collect cascading updates to existing items (parent end-date extensions)
+    const updates: Array<{ name: string; patch: Partial<Milestone> }> = [];
+
     if (kind === "Activity") {
       if (!startDate) { toast.error("Start date is required"); return; }
+      if (activityEnd && activityEnd < startDate) { toast.error("End date must be after start date"); return; }
       let parent: string | undefined;
       if (parentMilestone === "__new__") {
         if (!newMilestoneName.trim() || !newMilestoneEnd) {
@@ -1714,9 +1717,21 @@ function AddMilestoneDialog({
       } else if (parentMilestone !== "__none__") {
         parent = parentMilestone;
       }
+
+      // If activity end exceeds parent milestone's stored end → confirm
+      if (activityEnd && parent && parentMilestone !== "__new__") {
+        const ms = items.find((i) => i.name === parent && i.kind === "Milestone");
+        if (ms?.endDate && activityEnd > ms.endDate) {
+          const ok = window.confirm(
+            `Activity ends ${activityEnd}, which is after parent milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
+          );
+          if (ok) updates.push({ name: ms.name, patch: { endDate: activityEnd, startDate: activityEnd } });
+        }
+      }
+
       newItems.push({
         name: name.trim(), kind: "Activity",
-        startDate, endDate: startDate, owner: owner || defaultOwner, rag, dep,
+        startDate, endDate: activityEnd || startDate, owner: owner || defaultOwner, rag, dep,
         roles, payment: buildPayment(), progress: 0, parent,
       });
     }
@@ -1731,7 +1746,7 @@ function AddMilestoneDialog({
         if (newActivityParentMs !== "__none__") actParent = newActivityParentMs;
         newItems.push({
           name: newActivityName.trim(), kind: "Activity",
-          startDate: newActivityStart, endDate: newActivityStart,
+          startDate: newActivityStart, endDate: newActivityEnd || newActivityStart,
           owner: owner || defaultOwner, rag: "blue", dep: "",
           roles: [], payment: { kind: "None", amount: "" }, progress: 0, parent: actParent,
         });
@@ -1741,6 +1756,34 @@ function AddMilestoneDialog({
       }
       if (!startDate) { toast.error("Start date is required"); return; }
       if (!durationValue || durationValue <= 0) { toast.error("Duration must be > 0"); return; }
+
+      const days = durationUnit === "hours"
+        ? Math.max(1, Math.ceil(Number(durationValue) / 8))
+        : Math.max(1, Number(durationValue));
+      const taskEnd = addDaysISO(startDate, days - 1);
+
+      // Cascade: task → activity → milestone end-date checks (only for existing parents)
+      if (parent && parentActivity !== "__new__") {
+        const act = items.find((i) => i.name === parent && i.kind === "Activity");
+        if (act?.endDate && taskEnd > act.endDate) {
+          const ok = window.confirm(
+            `Task ends ${taskEnd}, after parent activity "${act.name}" (${act.endDate}). Extend the activity end date?`,
+          );
+          if (ok) {
+            updates.push({ name: act.name, patch: { endDate: taskEnd } });
+            // Also check milestone above
+            if (act.parent) {
+              const ms = items.find((i) => i.name === act.parent && i.kind === "Milestone");
+              if (ms?.endDate && taskEnd > ms.endDate) {
+                const ok2 = window.confirm(
+                  `This also exceeds milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
+                );
+                if (ok2) updates.push({ name: ms.name, patch: { endDate: taskEnd, startDate: taskEnd } });
+              }
+            }
+          }
+        }
+      }
 
       // Each skill/role creates a pending resource request
       const requestIds: string[] = [];
@@ -1762,9 +1805,9 @@ function AddMilestoneDialog({
 
       newItems.push({
         name: name.trim(), kind: "Task",
-        startDate, endDate: startDate, owner: owner || defaultOwner, rag, dep,
+        startDate, endDate: taskEnd, owner: owner || defaultOwner, rag, dep,
         roles, payment: buildPayment(), progress: 0, parent,
-        durationValue: Number(durationValue), durationUnit, isParallel,
+        durationValue: Number(durationValue), durationUnit,
         resourceRequestIds: requestIds.length ? requestIds : undefined,
       });
 
@@ -1774,10 +1817,12 @@ function AddMilestoneDialog({
     }
 
     onAdd(newItems);
+    for (const u of updates) onUpdateExisting(u.name, u.patch);
     toast.success(`${kind} added`);
     setOpen(false);
     reset();
   }
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
@@ -1835,8 +1880,11 @@ function AddMilestoneDialog({
                   <div><Label className="text-xs">End date</Label><Input type="date" value={newMilestoneEnd} onChange={(e) => setNewMilestoneEnd(e.target.value)} /></div>
                 </div>
               )}
-              <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-              <p className="text-[11px] text-muted-foreground">End date is calculated from the total hours of tasks (parallel tasks excluded).</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+                <div><Label>End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={activityEnd} onChange={(e) => setActivityEnd(e.target.value)} /></div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">If left empty, the end date is derived from child tasks. Overlapping tasks count once toward the activity duration.</p>
             </>
           )}
 
@@ -1861,6 +1909,7 @@ function AddMilestoneDialog({
                   <div className="col-span-2 text-[11px] text-muted-foreground">New activity</div>
                   <div><Label className="text-xs">Name</Label><Input value={newActivityName} onChange={(e) => setNewActivityName(e.target.value)} /></div>
                   <div><Label className="text-xs">Start date</Label><Input type="date" value={newActivityStart} onChange={(e) => setNewActivityStart(e.target.value)} /></div>
+                  <div className="col-span-2"><Label className="text-xs">End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={newActivityEnd} onChange={(e) => setNewActivityEnd(e.target.value)} /></div>
                   <div className="col-span-2">
                     <Label className="text-xs">Parent milestone</Label>
                     <Select value={newActivityParentMs} onValueChange={setNewActivityParentMs}>
@@ -1892,10 +1941,7 @@ function AddMilestoneDialog({
                   </Select>
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox checked={isParallel} onCheckedChange={(v) => setIsParallel(Boolean(v))} />
-                Runs in parallel (exclude from activity duration total)
-              </label>
+              <p className="text-[11px] text-muted-foreground">If multiple tasks in this activity share dates, the overlapping period is counted once toward the activity's duration.</p>
             </>
           )}
 
