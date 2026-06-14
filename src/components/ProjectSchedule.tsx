@@ -408,12 +408,12 @@ export function ProjectSchedule({
         <div className="flex flex-col overflow-hidden border-r border-border" style={{ width: `${leftPct}%` }}>
           {/* Body (header is sticky inside so it scrolls horizontally with columns) */}
           <div ref={leftScrollRef} onScroll={onLeftScroll} className="flex-1 overflow-auto">
-            <div style={{ width: NAME_COL_W + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + c.w, 0) }}>
+            <div style={{ width: widths.name + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + widths[c.key], 0) }}>
               {/* Header */}
               <div className="sticky top-0 z-20 flex border-b border-border bg-secondary/60 backdrop-blur text-xs font-medium text-muted-foreground" style={{ height: ROW_H }}>
-                <div className="flex items-center px-3" style={{ width: NAME_COL_W }}>Task Name</div>
+                <ColHeader label="Task Name" width={widths.name} onResize={(e) => startColResize("name", e)} onAutoFit={() => autoFitCol("name")} first />
                 {COLUMNS.filter(c => colVisible(c.key)).map(c => (
-                  <div key={c.key} className="flex items-center border-l border-border px-3" style={{ width: c.w }}>{c.label}</div>
+                  <ColHeader key={c.key} label={c.label} width={widths[c.key]} onResize={(e) => startColResize(c.key, e)} onAutoFit={() => autoFitCol(c.key)} />
                 ))}
               </div>
               {visibleRows.map(({ item, depth, hasChildren }) => {
@@ -422,7 +422,7 @@ export function ProjectSchedule({
                 const isMs = item.kind === "Milestone";
                 return (
                   <div key={item.name} className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
-                    <div className="flex items-center gap-1 px-2" style={{ width: NAME_COL_W, paddingLeft: 8 + depth * 14 }}>
+                    <div className="flex items-center gap-1 px-2 overflow-hidden" style={{ width: widths.name, paddingLeft: 8 + depth * 14 }}>
                       {hasChildren ? (
                         <button
                           onClick={() => setExpanded(prev => {
@@ -441,21 +441,21 @@ export function ProjectSchedule({
                       <span className={`truncate font-medium ${hasChildren ? "text-foreground" : "text-foreground/90"} ${isCrit ? "text-rag-red" : ""}`}>{item.name}</span>
                     </div>
                     {colVisible("type") && (
-                      <div className="flex items-center border-l border-border/60 px-3" style={{ width: 90 }}>
-                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">{item.kind}</span>
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.type }}>
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground truncate">{item.kind}</span>
                       </div>
                     )}
                     {colVisible("start") && (
-                      <div className="flex items-center border-l border-border/60 px-3 num-mono" style={{ width: 100 }}>{item.startDate || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden truncate" style={{ width: widths.start }}>{item.startDate || "—"}</div>
                     )}
                     {colVisible("end") && (
-                      <div className="flex items-center border-l border-border/60 px-3 num-mono" style={{ width: 100 }}>{item.endDate || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden truncate" style={{ width: widths.end }}>{item.endDate || "—"}</div>
                     )}
                     {colVisible("owner") && (
-                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 110 }}>{item.owner}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: widths.owner }}>{item.owner}</div>
                     )}
                     {colVisible("assignee") && (
-                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: 130 }}>
+                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: widths.assignee }}>
                         {item.assignee ? (
                           <span className="truncate">{item.assignee}</span>
                         ) : (
@@ -464,12 +464,12 @@ export function ProjectSchedule({
                       </div>
                     )}
                     {colVisible("status") && (
-                      <div className="flex items-center border-l border-border/60 px-3" style={{ width: 110 }}>
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.status }}>
                         <RagBadge rag={item.rag} label={statusText[item.rag]} />
                       </div>
                     )}
                     {colVisible("progress") && (
-                      <div className="flex items-center gap-2 border-l border-border/60 px-3" style={{ width: 110 }}>
+                      <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
                           <div className="h-full bg-accent" style={{ width: `${item.progress ?? 0}%` }} />
                         </div>
@@ -477,10 +477,10 @@ export function ProjectSchedule({
                       </div>
                     )}
                     {colVisible("dep") && (
-                      <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground truncate" style={{ width: 110 }}>{item.dep || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground truncate" style={{ width: widths.dep }}>{item.dep || "—"}</div>
                     )}
                     {colVisible("roles") && (
-                      <div className="flex items-center gap-1 overflow-hidden border-l border-border/60 px-3" style={{ width: 180 }}>
+                      <div className="flex items-center gap-1 overflow-hidden border-l border-border/60 px-3" style={{ width: widths.roles }}>
                         {item.roles.length === 0 ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
@@ -491,15 +491,15 @@ export function ProjectSchedule({
                       </div>
                     )}
                     {colVisible("payment") && (
-                      <div className="flex items-center border-l border-border/60 px-3" style={{ width: 160 }}>
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.payment }}>
                         {!item.payment || item.payment.kind === "None" ? (
                           <span className="text-muted-foreground">—</span>
                         ) : item.payment.kind === "Client Revenue" ? (
-                          <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px]">
+                          <Badge variant="outline" className="border-rag-green/40 bg-rag-green/10 text-rag-green text-[10px] truncate">
                             Revenue · {item.payment.amount || "—"}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
+                          <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px] truncate">
                             {item.payment.packageId || "Pkg"} · {item.payment.amount || "—"}
                           </Badge>
                         )}
