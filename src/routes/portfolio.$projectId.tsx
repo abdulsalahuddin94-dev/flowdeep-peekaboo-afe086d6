@@ -2170,7 +2170,7 @@ function ChangeRequestsTab({ project: _project }: { project: typeof projects[num
 }
 
 // ── Procurement (project) tab ─────────────────────────────────────────────────
-function ProcurementProjectTab() {
+function ProcurementProjectTab({ projectName, addRfp }: { projectName: string; addRfp: (r: RfpEntry) => void }) {
   const contracts = [
     { id: "CT-2026-038", vendor: "Oracle Consulting", value: "$680K", end: "Dec 12", rag: "green" as Rag, status: "Active" },
     { id: "CT-2026-029", vendor: "Cyberguard", value: "$140K", end: "Sep 30", rag: "green" as Rag, status: "Active" },
@@ -2180,12 +2180,61 @@ function ProcurementProjectTab() {
     { id: "RFP-014", title: "Robotics Integration Partner", type: "RFP", due: "Jun 28", bidders: 4, rag: "amber" as Rag, status: "Open" },
     { id: "RFP-016", title: "Training services rollout", type: "RFP", due: "Jul 12", bidders: 2, rag: "amber" as Rag, status: "Open" },
   ];
+
+  const [packages, setPackages] = useState<TenderPackage[]>(SEED_PACKAGES);
+  const [expandedPkg, setExpandedPkg] = useState<string | null>(null);
+  const [newPkgOpen, setNewPkgOpen] = useState(false);
+  const [newScope, setNewScope] = useState("");
+  const [newEst, setNewEst] = useState("");
+  const [newVendors, setNewVendors] = useState<string[]>([]);
+
+  function handleNewPackage() {
+    if (!newScope.trim()) { toast.error("Please enter a package scope"); return; }
+    const id = `PKG-${String(packages.length + 1).padStart(3, "0")}`;
+    setPackages(prev => [...prev, { id, scope: newScope.trim(), est: newEst.trim() || "TBD", status: "Draft" }]);
+    toast.success("Tender request created", { description: `${id} saved as Draft` });
+    setNewPkgOpen(false); setNewScope(""); setNewEst(""); setNewVendors([]);
+  }
+
+  function sendForTendering(pkgId: string) {
+    const pkg = packages.find(p => p.id === pkgId);
+    if (!pkg) return;
+    const rfpNum = 17 + packages.filter(p => p.rfp).length;
+    const rfpId = `RFP-0${rfpNum}`;
+    setPackages(prev => prev.map(p => p.id === pkgId
+      ? { ...p, status: "Sent for Tendering", rfp: rfpId, issued: "Today", closes: "30 days" }
+      : p
+    ));
+    addRfp({ id: rfpId, title: pkg.scope, type: "RFP", status: "Open", bidders: 0, due: "30 days", project: projectName });
+    toast.success("RFP created in Procurement", { description: `${rfpId} published — vendors can submit proposals` });
+  }
+
+  function approveProposal(pkgId: string, proposal: TenderProposal) {
+    const contractNum = 38 + packages.filter(p => p.contract).length;
+    const contractId = `CT-2026-0${contractNum}`;
+    setPackages(prev => prev.map(p => p.id === pkgId
+      ? { ...p, status: "Awarded", vendor: proposal.vendor, contract: contractId, awarded: "Today", est: proposal.value, proposals: undefined }
+      : p
+    ));
+    toast.success(`Package awarded to ${proposal.vendor}`, { description: `Contract ${contractId} created automatically` });
+    setExpandedPkg(null);
+  }
+
+  function rejectProposal(pkgId: string, vendorName: string) {
+    setPackages(prev => prev.map(p => p.id === pkgId
+      ? { ...p, proposals: p.proposals?.filter(pr => pr.vendor !== vendorName) }
+      : p
+    ));
+    toast.info(`Proposal from ${vendorName} rejected`);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-4">
         {[
           { l: "Active Contracts", v: String(contracts.filter((c) => c.status === "Active").length), c: "text-rag-green" },
           { l: "Open RFPs", v: String(rfps.length), c: "text-rag-amber" },
+          { l: "Tender Packages", v: String(packages.length), c: "text-accent" },
           { l: "Total Committed", v: "$915K", c: "text-foreground" },
         ].map((k) => (
           <div key={k.l} className="glass-card p-4">
@@ -2193,6 +2242,144 @@ function ProcurementProjectTab() {
             <div className={`mt-1 text-lg font-medium num-mono ${k.c}`}>{k.v}</div>
           </div>
         ))}
+      </div>
+
+      <div className="glass-card overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="label-eyebrow">Tender Packages</div>
+          <Dialog open={newPkgOpen} onOpenChange={setNewPkgOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">+ New Request</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader><DialogTitle>New Tender Request</DialogTitle></DialogHeader>
+              <div className="rounded-md border border-accent/20 bg-accent-dim/30 px-3 py-2 text-xs text-accent">
+                Project: <span className="font-medium">{projectName}</span>
+                <span className="ml-2 text-muted-foreground">· Saved as Draft until sent for tendering</span>
+              </div>
+              <div className="grid gap-3">
+                <div>
+                  <Label>Package scope</Label>
+                  <Input placeholder="e.g. Security audit & pen-testing" value={newScope} onChange={e => setNewScope(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Estimated value</Label>
+                  <Input placeholder="e.g. $150K" value={newEst} onChange={e => setNewEst(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Recommended Vendors</Label>
+                  <div className="mt-1.5 space-y-2 rounded-md border border-border bg-background/40 p-3">
+                    {vendorList.map((v) => (
+                      <div key={v.name} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`nv-${v.name}`}
+                          checked={newVendors.includes(v.name)}
+                          onCheckedChange={(checked) =>
+                            setNewVendors((prev) => checked ? [...prev, v.name] : prev.filter((n) => n !== v.name))
+                          }
+                        />
+                        <label htmlFor={`nv-${v.name}`} className="cursor-pointer text-sm text-foreground">
+                          {v.name}
+                          <span className="ml-1.5 text-xs text-muted-foreground">({v.category})</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setNewPkgOpen(false)}>Cancel</Button>
+                <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNewPackage}>Create Request</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Package</TableHead><TableHead>Scope</TableHead><TableHead>Est. Value</TableHead>
+              <TableHead>RFP</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {packages.map((pkg) => (
+              <Fragment key={pkg.id}>
+                <TableRow>
+                  <TableCell className="font-medium text-foreground">{pkg.id}</TableCell>
+                  <TableCell>{pkg.scope}</TableCell>
+                  <TableCell className="num-mono">{pkg.est}</TableCell>
+                  <TableCell className="num-mono text-xs text-muted-foreground">{pkg.rfp ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`border ${
+                      pkg.status === "Draft" ? "bg-secondary/40 text-muted-foreground border-border" :
+                      pkg.status === "Sent for Tendering" ? "bg-rag-amber/10 text-rag-amber border-rag-amber/30" :
+                      pkg.status === "Proposals Received" ? "bg-accent/10 text-accent border-accent/30" :
+                      pkg.status === "Awarded" ? "bg-rag-green/10 text-rag-green border-rag-green/30" :
+                      "bg-secondary/40 text-muted-foreground border-border"
+                    }`}>{pkg.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {pkg.status === "Draft" && (
+                      <Button size="sm" variant="outline" className="border-accent/40 text-accent hover:bg-accent-dim h-7 text-xs"
+                        onClick={() => sendForTendering(pkg.id)}>
+                        <Send className="mr-1.5 h-3 w-3" />Send for Tendering
+                      </Button>
+                    )}
+                    {pkg.status === "Sent for Tendering" && (
+                      <span className="text-xs text-muted-foreground">Closes {pkg.closes}</span>
+                    )}
+                    {pkg.status === "Proposals Received" && (
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-accent hover:bg-accent-dim"
+                        onClick={() => setExpandedPkg(expandedPkg === pkg.id ? null : pkg.id)}>
+                        {expandedPkg === pkg.id ? <ChevronDown className="mr-1 h-3 w-3" /> : <ChevronRight className="mr-1 h-3 w-3" />}
+                        {pkg.proposals?.length} proposal{pkg.proposals?.length !== 1 ? "s" : ""}
+                      </Button>
+                    )}
+                    {pkg.status === "Awarded" && (
+                      <div className="text-xs">
+                        <span className="font-medium text-foreground">{pkg.vendor}</span>
+                        <span className="ml-2 num-mono text-muted-foreground">{pkg.contract}</span>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+                {pkg.status === "Proposals Received" && expandedPkg === pkg.id && pkg.proposals?.map((pr) => (
+                  <TableRow key={`${pkg.id}-${pr.vendor}`} className="bg-secondary/20 border-l-2 border-l-accent/30">
+                    <TableCell />
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                        <span className="text-sm font-medium text-foreground">{pr.vendor}</span>
+                        <span className="num-mono text-xs text-muted-foreground">{pr.value}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-secondary/60">
+                          <div className="h-full rounded-full bg-accent" style={{ width: `${pr.score}%` }} />
+                        </div>
+                        <span className="num-mono text-xs text-muted-foreground">{pr.score}/100</span>
+                      </div>
+                    </TableCell>
+                    <TableCell /><TableCell />
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button size="sm" className="h-7 border border-rag-green/30 bg-rag-green/10 text-rag-green hover:bg-rag-green/20 text-xs"
+                          onClick={() => approveProposal(pkg.id, pr)}>
+                          <CheckCircle2 className="mr-1 h-3 w-3" />Approve
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-rag-red"
+                          onClick={() => rejectProposal(pkg.id, pr.vendor)}>
+                          <XCircle className="mr-1 h-3 w-3" />Reject
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </Fragment>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       <div className="glass-card overflow-hidden">
