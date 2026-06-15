@@ -204,9 +204,6 @@ function ProjectDetail() {
           <CharterTab project={project} />
         </TabsContent>
 
-        <TabsContent value="Planning" className="mt-5">
-          <PlanningTab project={project} addRfp={addRfp} addResourceRequest={addResourceRequest} />
-        </TabsContent>
 
         <TabsContent value="Project Schedule" className="mt-5">
           <ProjectSchedule
