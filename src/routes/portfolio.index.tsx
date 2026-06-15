@@ -47,7 +47,6 @@ function PortfolioPage() {
         actions={
           <div className="flex gap-2">
             <NewProjectDialog onAdd={addProject} />
-            <NewBusinessCaseDialog />
           </div>
         }
       />
