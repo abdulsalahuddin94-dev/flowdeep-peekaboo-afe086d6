@@ -39,9 +39,59 @@ export const Route = createFileRoute("/portfolio/$projectId")({
 });
 
 const TABS = [
-  "Overview", "Project Charter", "Planning", "Project Schedule", "Team & Allocation", "Financials",
+  "Overview", "Project Charter", "Project Schedule", "Team & Allocation", "Financials",
   "Risks & Issues", "Documents", "Status Reports", "Change Requests",
-  "Procurement", "Stakeholders", "Lessons Learned",
+  "Procurement", "Business Trips", "Stakeholders", "Lessons Learned",
+];
+
+const PLANNING_STAGES = [
+  { n: 1, name: "Initiation", state: "done" as const },
+  { n: 2, name: "Planning",   state: "active" as const },
+  { n: 3, name: "Execution",  state: "todo" as const },
+  { n: 4, name: "Monitoring", state: "todo" as const },
+  { n: 5, name: "Closure",    state: "todo" as const },
+];
+
+const PLANNING_CHECKLIST = [
+  { label: "Objectives & scope defined", done: true },
+  { label: "Milestone schedule created", done: true },
+  { label: "Manpower requirements submitted", done: true },
+  { label: "Business trips planned", done: false },
+  { label: "Budget plan approved", done: false },
+  { label: "Charter approved", done: false },
+];
+
+const INITIAL_GATE_DATA: GateStage[] = [
+  { name: "Initiation", items: [
+    { task: "Define project objectives & scope", role: "Project Manager", done: true },
+    { task: "Identify key stakeholders", role: "Project Manager", done: true },
+    { task: "Obtain project charter approval", role: "Executive Sponsor", done: true },
+  ]},
+  { name: "Planning", items: [
+    { task: "Develop project management plan", role: "Project Manager", done: true },
+    { task: "Estimate resources and budget", role: "Finance Manager", done: true },
+    { task: "Risk assessment completed", role: "Project Manager", done: false },
+    { task: "Procurement plan approved", role: "Procurement Lead", done: false },
+  ]},
+  { name: "Execution", items: [
+    { task: "Kick-off meeting conducted", role: "Project Manager", done: false },
+    { task: "All team members onboarded", role: "Resource Manager", done: false },
+    { task: "First sprint review completed", role: "Tech Lead", done: false },
+  ]},
+  { name: "Monitoring", items: [
+    { task: "Weekly status reports submitted", role: "Project Manager", done: false },
+    { task: "Budget variance within 5%", role: "Finance Manager", done: false },
+    { task: "RAID log up to date", role: "Project Manager", done: false },
+  ]},
+  { name: "Closure", items: [
+    { task: "All deliverables accepted by client / sponsor", role: "Executive Sponsor", done: false },
+    { task: "Project documentation complete and filed", role: "Project Manager", done: false },
+    { task: "Lessons learned documented", role: "Project Manager", done: false },
+    { task: "Final financial report approved", role: "Finance Manager", done: false },
+    { task: "Stakeholder sign-off obtained", role: "Executive Sponsor", done: false },
+    { task: "All contracts closed and vendors notified", role: "Procurement Lead", done: false },
+    { task: "Project archived in system", role: "Project Manager", done: false },
+  ]},
 ];
 
 function ProjectDetail() {
