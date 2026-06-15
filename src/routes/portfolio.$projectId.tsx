@@ -871,93 +871,92 @@ const SEED_PACKAGES: TenderPackage[] = [
   { id: "PKG-004", scope: "Managed support (1 year)", est: "$285K", status: "Draft" },
 ];
 
-function PlanningTab({ project, addRfp, addResourceRequest }: {
-  project: typeof projects[number];
-  addRfp: (r: RfpEntry) => void;
-  addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => void;
-}) {
-  const checklist = [
-    { label: "Objectives & scope defined", done: true },
-    { label: "Milestone schedule created", done: true },
-    { label: "Manpower requirements submitted", done: true },
-    { label: "Business trips planned", done: false },
-    { label: "Budget plan approved", done: false },
-    { label: "Charter approved", done: false },
-  ];
-  const doneCount = checklist.filter((c) => c.done).length;
-  const pct = Math.round((doneCount / checklist.length) * 100);
+// ── Planning Progress dialog (shown when Progress KPI is clicked) ────────────
+function PlanningProgressDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const doneCount = PLANNING_CHECKLIST.filter((c) => c.done).length;
+  const pct = Math.round((doneCount / PLANNING_CHECKLIST.length) * 100);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader><DialogTitle>Planning Progress</DialogTitle></DialogHeader>
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-foreground">
+            {doneCount} / {PLANNING_CHECKLIST.length} complete
+          </div>
+          <div className="text-sm text-accent">{pct}%</div>
+        </div>
+        <div className="mt-2 grid gap-x-8 gap-y-3 md:grid-cols-2">
+          {PLANNING_CHECKLIST.map((c) => (
+            <div key={c.label} className="flex items-center gap-2.5">
+              {c.done ? (
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-accent text-[11px] text-accent-foreground">✓</div>
+              ) : (
+                <div className="h-5 w-5 shrink-0 rounded border border-border bg-secondary/40" />
+              )}
+              <span className={`text-sm ${c.done ? "text-foreground" : "text-muted-foreground"}`}>{c.label}</span>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-  const subTabs = [
-    { v: "init", l: "Stage Gate" },
-    { v: "manpower", l: "Manpower Requirements" },
-    { v: "trips", l: "Business Trips Plan" },
-    { v: "fin", l: "Financial Planning" },
-    { v: "tender", l: "Tender Packages" },
-  ];
-
-  const stages = [
-    { n: 1, name: "Initiation", state: "done" },
-    { n: 2, name: "Planning", state: "active" },
-    { n: 3, name: "Execution", state: "todo" },
-    { n: 4, name: "Monitoring", state: "todo" },
-    { n: 5, name: "Closure", state: "todo" },
-  ] as const;
-
-  const [packages, setPackages] = useState<TenderPackage[]>(SEED_PACKAGES);
-  const [expandedPkg, setExpandedPkg] = useState<string | null>(null);
-  const [newPkgOpen, setNewPkgOpen] = useState(false);
-  const [newScope, setNewScope] = useState("");
-
-
-
-
-
-  // Business trips (v11)
+// ── Business Trips tab ───────────────────────────────────────────────────────
+function BusinessTripsTab({ pm }: { pm: string }) {
   const [trips, setTrips] = useState<Trip[]>([
     { id: "T-01", purpose: "Site survey", dest: "Dubai, UAE", dates: "Jun 12 – Jun 15", travelers: "Sara, Mei", cost: "$5.2K", rag: "green", status: "Completed" },
     { id: "T-02", purpose: "Vendor workshop", dest: "Munich, DE", dates: "Jul 08 – Jul 11", travelers: "K. Bauer", cost: "$3.0K", rag: "green", status: "Completed" },
     { id: "T-03", purpose: "User training", dest: "Riyadh, KSA", dates: "Aug 18 – Aug 22", travelers: "H. Tanaka, Priya, +2", cost: "$9.8K", rag: "amber", status: "Booked" },
     { id: "T-04", purpose: "Go-live support", dest: "Doha, QA", dates: "Sep 14 – Sep 28", travelers: "John, Mei, +2", cost: "$6.5K", rag: "blue", status: "Planned" },
   ]);
-  const [newEst, setNewEst] = useState("");
-  const [newVendors, setNewVendors] = useState<string[]>([]);
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[
+          { l: "Trips Planned", v: String(trips.length) },
+          { l: "Travelers", v: "9" },
+          { l: "Total Budget", v: "$24.5K" },
+          { l: "Spent", v: "$8.2K", c: "text-rag-green" },
+        ].map((k) => (
+          <div key={k.l} className="glass-card p-4">
+            <div className="label-eyebrow">{k.l}</div>
+            <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="label-eyebrow">Trips</div>
+        <LogTripDialog
+          teamMembers={[pm, "Mei Chen", "Priya Iyer", "Diego Ortiz", "K. Bauer", "H. Tanaka"]}
+          onAdd={(t) => setTrips((prev) => [...prev, { ...t, id: `T-${String(prev.length + 1).padStart(2, "0")}` }])}
+        />
+      </div>
+      <div className="glass-card overflow-hidden">
+        <Table>
+          <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Purpose</TableHead><TableHead>Destination</TableHead><TableHead>Dates</TableHead><TableHead>Travelers</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableBody>{trips.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className="font-medium text-foreground">{r.id}</TableCell>
+              <TableCell>{r.purpose}</TableCell>
+              <TableCell>{r.dest}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{r.dates}</TableCell>
+              <TableCell className="text-xs">{r.travelers}</TableCell>
+              <TableCell className="num-mono">{r.cost}</TableCell>
+              <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
+            </TableRow>
+          ))}</TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
 
-  // Stage Gates
-  const [stageGateOpen, setStageGateOpen] = useState(false);
-  const [gateData, setGateData] = useState<GateStage[]>([
-    { name: "Initiation", items: [
-      { task: "Define project objectives & scope", role: "Project Manager", done: true },
-      { task: "Identify key stakeholders", role: "Project Manager", done: true },
-      { task: "Obtain project charter approval", role: "Executive Sponsor", done: true },
-    ]},
-    { name: "Planning", items: [
-      { task: "Develop project management plan", role: "Project Manager", done: true },
-      { task: "Estimate resources and budget", role: "Finance Manager", done: true },
-      { task: "Risk assessment completed", role: "Project Manager", done: false },
-      { task: "Procurement plan approved", role: "Procurement Lead", done: false },
-    ]},
-    { name: "Execution", items: [
-      { task: "Kick-off meeting conducted", role: "Project Manager", done: false },
-      { task: "All team members onboarded", role: "Resource Manager", done: false },
-      { task: "First sprint review completed", role: "Tech Lead", done: false },
-    ]},
-    { name: "Monitoring", items: [
-      { task: "Weekly status reports submitted", role: "Project Manager", done: false },
-      { task: "Budget variance within 5%", role: "Finance Manager", done: false },
-      { task: "RAID log up to date", role: "Project Manager", done: false },
-    ]},
-    { name: "Closure", items: [
-      { task: "All deliverables accepted by client / sponsor", role: "Executive Sponsor", done: false },
-      { task: "Project documentation complete and filed", role: "Project Manager", done: false },
-      { task: "Lessons learned documented", role: "Project Manager", done: false },
-      { task: "Final financial report approved", role: "Finance Manager", done: false },
-      { task: "Stakeholder sign-off obtained", role: "Executive Sponsor", done: false },
-      { task: "All contracts closed and vendors notified", role: "Procurement Lead", done: false },
-      { task: "Project archived in system", role: "Project Manager", done: false },
-    ]},
-  ]);
-
-  // Financial Planning state
+// ── Financials tab (includes Financial Planning content) ─────────────────────
+function FinancialsTab({ project }: { project: typeof projects[number] }) {
   const [costEntries, setCostEntries] = useState<CostEntry[]>([
     { c: "Labour",            b: 1.20, a: 0.84, color: "bg-rag-green" },
     { c: "Hardware",          b: 0.90, a: 0.62, color: "bg-rag-blue" },
@@ -971,478 +970,105 @@ function PlanningTab({ project, addRfp, addResourceRequest }: {
     { ms: "UAT Sign-off",       evt: "Progress invoice (25%)", plan: 0.80, date: project.endDate, s: "blue",  sl: "Planned",  act: null },
     { ms: "Go-live",            evt: "Final payment (25%)",    plan: 0.80, date: "Sep 14",        s: "blue",  sl: "Planned",  act: null },
   ]);
-
-  function handleNewPackage() {
-    if (!newScope.trim()) { toast.error("Please enter a package scope"); return; }
-    const id = `PKG-${String(packages.length + 1).padStart(3, "0")}`;
-    setPackages(prev => [...prev, { id, scope: newScope.trim(), est: newEst.trim() || "TBD", status: "Draft" }]);
-    toast.success("Tender request created", { description: `${id} saved as Draft` });
-    setNewPkgOpen(false); setNewScope(""); setNewEst(""); setNewVendors([]);
-  }
-
-  function sendForTendering(pkgId: string) {
-    const pkg = packages.find(p => p.id === pkgId);
-    if (!pkg) return;
-    const rfpNum = 17 + packages.filter(p => p.rfp).length;
-    const rfpId = `RFP-0${rfpNum}`;
-    setPackages(prev => prev.map(p => p.id === pkgId
-      ? { ...p, status: "Sent for Tendering", rfp: rfpId, issued: "Today", closes: "30 days" }
-      : p
-    ));
-    addRfp({
-      id: rfpId,
-      title: pkg.scope,
-      type: "RFP",
-      status: "Open",
-      bidders: 0,
-      due: "30 days",
-      project: project.name,
-    });
-    toast.success("RFP created in Procurement", { description: `${rfpId} published — vendors can submit proposals` });
-  }
-
-  function approveProposal(pkgId: string, proposal: TenderProposal) {
-    const contractNum = 38 + packages.filter(p => p.contract).length;
-    const contractId = `CT-2026-0${contractNum}`;
-    setPackages(prev => prev.map(p => p.id === pkgId
-      ? { ...p, status: "Awarded", vendor: proposal.vendor, contract: contractId, awarded: "Today", est: proposal.value, proposals: undefined }
-      : p
-    ));
-    toast.success(`Package awarded to ${proposal.vendor}`, { description: `Contract ${contractId} created automatically` });
-    setExpandedPkg(null);
-  }
-
-  function rejectProposal(pkgId: string, vendorName: string) {
-    setPackages(prev => prev.map(p => p.id === pkgId
-      ? { ...p, proposals: p.proposals?.filter(pr => pr.vendor !== vendorName) }
-      : p
-    ));
-    toast.info(`Proposal from ${vendorName} rejected`);
-  }
-
   return (
-    <div className="space-y-5">
-      {/* Progress card */}
-      <div className="glass-card p-5">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-foreground">
-            Planning Progress: {doneCount} / {checklist.length} complete
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[
+          { l: "Total Budget", v: `$${project.budgetTotal.toFixed(1)}M` },
+          { l: "Spent", v: `$${project.budgetUsed.toFixed(2)}M` },
+          { l: "Committed", v: "$1.12M", c: "text-rag-amber" },
+          { l: "Forecast EAC", v: `$${(project.budgetTotal * 1.04).toFixed(2)}M`, c: "text-rag-amber" },
+        ].map((k) => (
+          <div key={k.l} className="glass-card p-4">
+            <div className="label-eyebrow">{k.l}</div>
+            <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
           </div>
-          <div className="text-sm text-accent">{pct}% complete</div>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[1fr_360px]">
+        <div className="glass-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="label-eyebrow">Cost categories</div>
+            <AddCostDialog onAdd={(e) => setCostEntries((prev) => [...prev, e])} />
+          </div>
+          <div className="space-y-3">
+            {costEntries.map((r) => {
+              const pct = Math.round((r.a / r.b) * 100);
+              return (
+                <div key={r.c}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-foreground">{r.c}</span>
+                    <span className="num-mono text-xs text-muted-foreground">${r.a.toFixed(2)}M / ${r.b.toFixed(2)}M</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/50">
+                    <div className={`h-full ${r.color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-          {checklist.map((c) => (
-            <div key={c.label} className="flex items-center gap-2.5">
-              {c.done ? (
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-accent text-[11px] text-accent-foreground">✓</div>
-              ) : (
-                <div className="h-5 w-5 shrink-0 rounded border border-border bg-secondary/40" />
-              )}
-              <span className={`text-sm ${c.done ? "text-foreground" : "text-muted-foreground"}`}>{c.label}</span>
-            </div>
-          ))}
+        <div className="glass-card p-5">
+          <div className="label-eyebrow mb-3">Quarterly cash plan</div>
+          <ul className="space-y-3 text-sm">
+            {[
+              { q: "Q1 2026", v: "$0.45M", s: "green", sl: "Released" },
+              { q: "Q2 2026", v: "$1.05M", s: "green", sl: "Released" },
+              { q: "Q3 2026", v: "$1.20M", s: "amber", sl: "Pending" },
+              { q: "Q4 2026", v: "$0.50M", s: "blue", sl: "Planned" },
+            ].map((q) => (
+              <li key={q.q} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                <div>
+                  <div className="text-foreground">{q.q}</div>
+                  <div className="num-mono text-xs text-muted-foreground">{q.v}</div>
+                </div>
+                <RagBadge rag={q.s as any} label={q.sl} />
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
-      {/* Sub-tabs */}
-      <Tabs defaultValue="init">
-        <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
-          {subTabs.map((t) => (
-            <TabsTrigger
-              key={t.v}
-              value={t.v}
-              className="rounded-none border-b-2 border-transparent bg-transparent px-4 py-2.5 text-xs text-muted-foreground data-[state=active]:border-accent data-[state=active]:bg-transparent data-[state=active]:text-accent data-[state=active]:shadow-none"
-            >
-              {t.l}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="init" className="mt-5">
-          <div className="glass-card p-5 max-w-sm">
-              <div className="label-eyebrow">Stage Gate Overview</div>
-              <ul className="mt-4 space-y-3">
-                {stages.map((s) => {
-                  const isDone = s.state === "done";
-                  const isActive = s.state === "active";
-                  return (
-                    <li key={s.n} className="flex items-center gap-3">
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${
-                          isDone
-                            ? "bg-accent text-accent-foreground"
-                            : isActive
-                            ? "bg-accent text-accent-foreground ring-2 ring-accent/40"
-                            : "border border-border bg-secondary/40 text-muted-foreground"
-                        }`}
-                      >
-                        <span className="num-mono">{s.n}</span>
-                      </div>
-                      <span className={`text-sm ${isDone || isActive ? "text-foreground" : "text-muted-foreground"}`}>
-                        {s.name}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-              <button
-                className="mt-5 w-full rounded-md border border-accent/40 bg-accent-dim/40 py-2 text-sm text-accent hover:bg-accent-dim/60"
-                onClick={() => setStageGateOpen(true)}
-              >
-                View Stage Gates →
-              </button>
+      <div className="glass-card p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="label-eyebrow">Revenue plan — linked to milestones</div>
+          <div className="flex items-center gap-3">
+            <span className="num-mono text-xs text-muted-foreground">
+              Total planned: ${revEntries.reduce((s, r) => s + r.plan, 0).toFixed(2)}M
+            </span>
+            <AddRevenueDialog onAdd={(e) => setRevEntries((prev) => [...prev, e])} />
           </div>
-
-          {/* Stage Gates management dialog */}
-          <StageGatesDialog
-            open={stageGateOpen}
-            onOpenChange={setStageGateOpen}
-            gateData={gateData}
-            setGateData={setGateData}
-          />
-        </TabsContent>
-
-
-
-
-        <TabsContent value="manpower" className="mt-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="label-eyebrow">Manpower requirements</div>
-            <RequestResourcesDialog projectName={project.name} />
-          </div>
-          <div className="glass-card overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Role</TableHead><TableHead>FTE</TableHead><TableHead>Skill level</TableHead>
-                  <TableHead>Period</TableHead><TableHead>Sourcing</TableHead><TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  { r: "Solution Architect", f: 1.0, sk: "Senior", p: "Jun–Sep", src: "Internal",            s: "green", sl: "Confirmed" },
-                  { r: "QA Engineer",        f: 2.0, sk: "Mid",    p: "Jul–Sep", src: "Internal + Subcontract", s: "green", sl: "Confirmed" },
-                  { r: "Integration Dev",    f: 1.5, sk: "Mid",    p: "Jun–Aug", src: "Internal",            s: "green", sl: "Confirmed" },
-                  { r: "Security Reviewer",  f: 0.5, sk: "Senior", p: "Aug",     src: "Subcontract",         s: "green", sl: "Confirmed" },
-                  { r: "Change Manager",     f: 0.5, sk: "Mid",    p: "Sep",     src: "Internal",            s: "amber", sl: "Pending" },
-                ].map((m) => (
-                  <TableRow key={m.r}>
-                    <TableCell className="font-medium text-foreground">{m.r}</TableCell>
-                    <TableCell className="num-mono">{m.f}</TableCell>
-                    <TableCell>{m.sk}</TableCell>
-                    <TableCell>{m.p}</TableCell>
-                    <TableCell className="text-muted-foreground">{m.src}</TableCell>
-                    <TableCell><RagBadge rag={m.s as any} label={m.sl} /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-
-
-        <TabsContent value="trips" className="mt-5 space-y-4">
-          <div className="grid gap-3 md:grid-cols-4">
-            {[
-              { l: "Trips Planned", v: String(trips.length) },
-              { l: "Travelers", v: "9" },
-              { l: "Total Budget", v: "$24.5K" },
-              { l: "Spent", v: "$8.2K", c: "text-rag-green" },
-            ].map((k) => (
-              <div key={k.l} className="glass-card p-4">
-                <div className="label-eyebrow">{k.l}</div>
-                <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
-              </div>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Milestone</TableHead>
+              <TableHead>Revenue event</TableHead>
+              <TableHead className="text-right">Planned ($M)</TableHead>
+              <TableHead>Expected date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actual ($M)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {revEntries.map((r) => (
+              <TableRow key={r.ms}>
+                <TableCell className="font-medium text-foreground">{r.ms}</TableCell>
+                <TableCell className="text-muted-foreground">{r.evt}</TableCell>
+                <TableCell className="num-mono text-right">${r.plan.toFixed(2)}M</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{r.date}</TableCell>
+                <TableCell><RagBadge rag={r.s as any} label={r.sl} /></TableCell>
+                <TableCell className="num-mono text-right">{r.act != null ? `$${r.act.toFixed(2)}M` : "—"}</TableCell>
+              </TableRow>
             ))}
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="label-eyebrow">Trips</div>
-            <LogTripDialog
-              teamMembers={[project.pm, "Mei Chen", "Priya Iyer", "Diego Ortiz", "K. Bauer", "H. Tanaka"]}
-              onAdd={(t) => setTrips((prev) => [...prev, { ...t, id: `T-${String(prev.length + 1).padStart(2, "0")}` }])}
-            />
-          </div>
-          <div className="glass-card overflow-hidden">
-            <Table>
-              <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Purpose</TableHead><TableHead>Destination</TableHead><TableHead>Dates</TableHead><TableHead>Travelers</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{trips.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">{r.id}</TableCell>
-                  <TableCell>{r.purpose}</TableCell>
-                  <TableCell>{r.dest}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.dates}</TableCell>
-                  <TableCell className="text-xs">{r.travelers}</TableCell>
-                  <TableCell className="num-mono">{r.cost}</TableCell>
-                  <TableCell><RagBadge rag={r.rag} label={r.status} /></TableCell>
-                </TableRow>
-              ))}</TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="fin" className="mt-5 space-y-4">
-          <div className="grid gap-3 md:grid-cols-4">
-            {[
-              { l: "Total CAPEX", v: "$2.40M" },
-              { l: "Total OPEX", v: "$0.80M" },
-              { l: "Committed", v: "$1.12M", c: "text-rag-amber" },
-              { l: "Remaining", v: "$2.08M", c: "text-rag-green" },
-            ].map((k) => (
-              <div key={k.l} className="glass-card p-4">
-                <div className="label-eyebrow">{k.l}</div>
-                <div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
-              </div>
-            ))}
-          </div>
-          <div className="grid gap-4 md:grid-cols-[1fr_360px]">
-            <div className="glass-card p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="label-eyebrow">Cost categories</div>
-                <AddCostDialog onAdd={(e) => setCostEntries((prev) => [...prev, e])} />
-              </div>
-              <div className="space-y-3">
-                {costEntries.map((r) => {
-                  const pct = Math.round((r.a / r.b) * 100);
-                  return (
-                    <div key={r.c}>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="text-foreground">{r.c}</span>
-                        <span className="num-mono text-xs text-muted-foreground">${r.a.toFixed(2)}M / ${r.b.toFixed(2)}M</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/50">
-                        <div className={`h-full ${r.color}`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="glass-card p-5">
-              <div className="label-eyebrow mb-3">Quarterly cash plan</div>
-              <ul className="space-y-3 text-sm">
-                {[
-                  { q: "Q1 2026", v: "$0.45M", s: "green", sl: "Released" },
-                  { q: "Q2 2026", v: "$1.05M", s: "green", sl: "Released" },
-                  { q: "Q3 2026", v: "$1.20M", s: "amber", sl: "Pending" },
-                  { q: "Q4 2026", v: "$0.50M", s: "blue", sl: "Planned" },
-                ].map((q) => (
-                  <li key={q.q} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0 last:pb-0">
-                    <div>
-                      <div className="text-foreground">{q.q}</div>
-                      <div className="num-mono text-xs text-muted-foreground">{q.v}</div>
-                    </div>
-                    <RagBadge rag={q.s as any} label={q.sl} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Revenue Plan */}
-          <div className="glass-card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="label-eyebrow">Revenue plan — linked to milestones</div>
-              <div className="flex items-center gap-3">
-                <span className="num-mono text-xs text-muted-foreground">
-                  Total planned: ${revEntries.reduce((s, r) => s + r.plan, 0).toFixed(2)}M
-                </span>
-                <AddRevenueDialog onAdd={(e) => setRevEntries((prev) => [...prev, e])} />
-              </div>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Milestone</TableHead>
-                  <TableHead>Revenue event</TableHead>
-                  <TableHead className="text-right">Planned ($M)</TableHead>
-                  <TableHead>Expected date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actual ($M)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {revEntries.map((r) => (
-                  <TableRow key={r.ms}>
-                    <TableCell className="font-medium text-foreground">{r.ms}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.evt}</TableCell>
-                    <TableCell className="num-mono text-right">${r.plan.toFixed(2)}M</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{r.date}</TableCell>
-                    <TableCell><RagBadge rag={r.s as any} label={r.sl} /></TableCell>
-                    <TableCell className="num-mono text-right">{r.act != null ? `$${r.act.toFixed(2)}M` : "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tender" className="mt-5 space-y-4">
-          {/* KPI strip — live from packages state */}
-          <div className="grid gap-3 md:grid-cols-4">
-            {[
-              { l: "Draft Requests", v: String(packages.filter(p => p.status === "Draft").length), c: "text-muted-foreground" },
-              { l: "In Tendering", v: String(packages.filter(p => p.status === "Sent for Tendering").length), c: "text-rag-amber" },
-              { l: "Proposals Received", v: String(packages.filter(p => p.status === "Proposals Received").length), c: "text-accent" },
-              { l: "Awarded", v: String(packages.filter(p => p.status === "Awarded").length), c: "text-rag-green" },
-            ].map((k) => (
-              <div key={k.l} className="glass-card p-4">
-                <div className="label-eyebrow">{k.l}</div>
-                <div className={`mt-1 text-lg font-medium num-mono ${k.c}`}>{k.v}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Header + New Request */}
-          <div className="flex items-center justify-between">
-            <div className="label-eyebrow">Packages</div>
-            <Dialog open={newPkgOpen} onOpenChange={setNewPkgOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">+ New Request</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader><DialogTitle>New Tender Request</DialogTitle></DialogHeader>
-                <div className="rounded-md border border-accent/20 bg-accent-dim/30 px-3 py-2 text-xs text-accent">
-                  Project: <span className="font-medium">{project.name}</span>
-                  <span className="ml-2 text-muted-foreground">· Saved as Draft until sent for tendering</span>
-                </div>
-                <div className="grid gap-3">
-                  <div>
-                    <Label>Package scope</Label>
-                    <Input placeholder="e.g. Security audit & pen-testing" value={newScope} onChange={e => setNewScope(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Estimated value</Label>
-                    <Input placeholder="e.g. $150K" value={newEst} onChange={e => setNewEst(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Recommended Vendors</Label>
-                    <div className="mt-1.5 space-y-2 rounded-md border border-border bg-background/40 p-3">
-                      {vendorList.map((v) => (
-                        <div key={v.name} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`nv-${v.name}`}
-                            checked={newVendors.includes(v.name)}
-                            onCheckedChange={(checked) =>
-                              setNewVendors((prev) =>
-                                checked ? [...prev, v.name] : prev.filter((n) => n !== v.name)
-                              )
-                            }
-                          />
-                          <label htmlFor={`nv-${v.name}`} className="cursor-pointer text-sm text-foreground">
-                            {v.name}
-                            <span className="ml-1.5 text-xs text-muted-foreground">({v.category})</span>
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setNewPkgOpen(false)}>Cancel</Button>
-                  <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNewPackage}>Create Request</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Packages table with expandable proposal rows */}
-          <div className="glass-card overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Package</TableHead><TableHead>Scope</TableHead><TableHead>Est. Value</TableHead>
-                  <TableHead>RFP</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {packages.map((pkg) => (
-                  <Fragment key={pkg.id}>
-                    <TableRow>
-                      <TableCell className="font-medium text-foreground">{pkg.id}</TableCell>
-                      <TableCell>{pkg.scope}</TableCell>
-                      <TableCell className="num-mono">{pkg.est}</TableCell>
-                      <TableCell className="num-mono text-xs text-muted-foreground">{pkg.rfp ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`border ${
-                          pkg.status === "Draft" ? "bg-secondary/40 text-muted-foreground border-border" :
-                          pkg.status === "Sent for Tendering" ? "bg-rag-amber/10 text-rag-amber border-rag-amber/30" :
-                          pkg.status === "Proposals Received" ? "bg-accent/10 text-accent border-accent/30" :
-                          pkg.status === "Awarded" ? "bg-rag-green/10 text-rag-green border-rag-green/30" :
-                          "bg-secondary/40 text-muted-foreground border-border"
-                        }`}>{pkg.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {pkg.status === "Draft" && (
-                          <Button size="sm" variant="outline" className="border-accent/40 text-accent hover:bg-accent-dim h-7 text-xs"
-                            onClick={() => sendForTendering(pkg.id)}>
-                            <Send className="mr-1.5 h-3 w-3" />Send for Tendering
-                          </Button>
-                        )}
-                        {pkg.status === "Sent for Tendering" && (
-                          <span className="text-xs text-muted-foreground">Closes {pkg.closes}</span>
-                        )}
-                        {pkg.status === "Proposals Received" && (
-                          <Button size="sm" variant="ghost" className="h-7 text-xs text-accent hover:bg-accent-dim"
-                            onClick={() => setExpandedPkg(expandedPkg === pkg.id ? null : pkg.id)}>
-                            {expandedPkg === pkg.id
-                              ? <ChevronDown className="mr-1 h-3 w-3" />
-                              : <ChevronRight className="mr-1 h-3 w-3" />}
-                            {pkg.proposals?.length} proposal{pkg.proposals?.length !== 1 ? "s" : ""}
-                          </Button>
-                        )}
-                        {pkg.status === "Awarded" && (
-                          <div className="text-xs">
-                            <span className="font-medium text-foreground">{pkg.vendor}</span>
-                            <span className="ml-2 num-mono text-muted-foreground">{pkg.contract}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-
-                    {/* Expanded vendor proposal sub-rows */}
-                    {pkg.status === "Proposals Received" && expandedPkg === pkg.id && pkg.proposals?.map((pr) => (
-                      <TableRow key={`${pkg.id}-${pr.vendor}`} className="bg-secondary/20 border-l-2 border-l-accent/30">
-                        <TableCell />
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
-                            <span className="text-sm font-medium text-foreground">{pr.vendor}</span>
-                            <span className="num-mono text-xs text-muted-foreground">{pr.value}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-secondary/60">
-                              <div className="h-full rounded-full bg-accent" style={{ width: `${pr.score}%` }} />
-                            </div>
-                            <span className="num-mono text-xs text-muted-foreground">{pr.score}/100</span>
-                          </div>
-                        </TableCell>
-                        <TableCell /><TableCell />
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" className="h-7 border border-rag-green/30 bg-rag-green/10 text-rag-green hover:bg-rag-green/20 text-xs"
-                              onClick={() => approveProposal(pkg.id, pr)}>
-                              <CheckCircle2 className="mr-1 h-3 w-3" />Approve
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-rag-red"
-                              onClick={() => rejectProposal(pkg.id, pr.vendor)}>
-                              <XCircle className="mr-1 h-3 w-3" />Reject
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
+
 
 function RequestResourcesDialog({ projectName }: { projectName: string }) {
   const [open, setOpen] = useState(false);
