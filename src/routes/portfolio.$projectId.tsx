@@ -123,6 +123,11 @@ function ProjectDetail() {
     { week: 17, by: project.pm, when: "10 days ago", rag: "amber", text: "Vendor SOW reviewed. Two open RAID items remain; mitigations scheduled this sprint." },
     { week: 16, by: project.pm, when: "17 days ago", rag: "green", text: "Discovery completed and signed off. Build phase 1 kicked off on plan." },
   ]);
+  const [planningProgressOpen, setPlanningProgressOpen] = useState(false);
+  const [stageGateOpen, setStageGateOpen] = useState(false);
+  const [gateData, setGateData] = useState<GateStage[]>(INITIAL_GATE_DATA);
+  const currentStage = PLANNING_STAGES.find((s) => s.state === "active") ?? PLANNING_STAGES[0];
+  const planningDone = PLANNING_CHECKLIST.filter((c) => c.done).length;
   return (
     <div>
       <div className="mb-4">
