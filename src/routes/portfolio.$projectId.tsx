@@ -1178,19 +1178,7 @@ function RequestResourcesDialog({ projectName }: { projectName: string }) {
   );
 }
 
-function PlanningField({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
-  const rows = multiline ? Math.max(3, value.split("\n").length) : 2;
-  return (
-    <div>
-      <div className="mb-1.5 text-xs text-muted-foreground">{label}</div>
-      <textarea
-        defaultValue={value}
-        rows={rows}
-        className="w-full resize-none rounded-md border border-border bg-background/40 p-3 text-sm text-foreground focus:border-accent focus:outline-none"
-      />
-    </div>
-  );
-}
+
 
 // ── v11 Types ─────────────────────────────────────────────────────────────────
 type ItemKind = "Milestone" | "Activity" | "Task";
