@@ -148,9 +148,35 @@ function ProjectDetail() {
         }
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-6">
+        <button
+          type="button"
+          onClick={() => setPlanningProgressOpen(true)}
+          className="glass-card p-3 text-left transition-colors hover:border-accent/40"
+        >
+          <div className="label-eyebrow">Progress</div>
+          <div className="mt-1 text-lg font-medium num-mono text-foreground">{project.progress}%</div>
+          <div className="mt-1 text-[10px] text-muted-foreground">Planning {planningDone}/{PLANNING_CHECKLIST.length} · click for details</div>
+        </button>
+        <button
+          type="button"
+          onClick={() => setStageGateOpen(true)}
+          className="glass-card p-3 text-left transition-colors hover:border-accent/40"
+        >
+          <div className="label-eyebrow">Stage Gate</div>
+          <div className="mt-1 text-lg font-medium text-foreground">{currentStage.name}</div>
+          <div className="mt-1 flex items-center gap-1">
+            {PLANNING_STAGES.map((s) => (
+              <span
+                key={s.n}
+                className={`h-1.5 flex-1 rounded-full ${
+                  s.state === "done" ? "bg-accent" : s.state === "active" ? "bg-accent/60" : "bg-secondary/60"
+                }`}
+              />
+            ))}
+          </div>
+        </button>
         {[
-          { l: "Progress", v: `${project.progress}%` },
           { l: "Budget", v: `$${project.budgetUsed.toFixed(2)}M / $${project.budgetTotal.toFixed(1)}M` },
           { l: "Variance", v: "+4%", c: "text-rag-amber" },
           { l: "End date", v: project.endDate },
