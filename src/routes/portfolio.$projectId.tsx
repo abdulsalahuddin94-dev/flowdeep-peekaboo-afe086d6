@@ -378,33 +378,7 @@ function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="Financials" className="mt-5">
-          <div className="grid gap-3 md:grid-cols-4">
-            {[
-              { l: "Total Budget", v: `$${project.budgetTotal.toFixed(1)}M` },
-              { l: "Spent", v: `$${project.budgetUsed.toFixed(2)}M` },
-              { l: "Committed", v: "$0.4M" },
-              { l: "Forecast EAC", v: `$${(project.budgetTotal * 1.04).toFixed(2)}M`, c: "text-rag-amber" },
-            ].map((k) => (
-              <div key={k.l} className="glass-card p-4">
-                <div className="label-eyebrow">{k.l}</div><div className={`mt-1 text-lg font-medium num-mono ${k.c ?? "text-foreground"}`}>{k.v}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 glass-card p-5">
-            <div className="label-eyebrow mb-3">Cost breakdown</div>
-            <Table>
-              <TableHeader><TableRow><TableHead>Category</TableHead><TableHead>Budget</TableHead><TableHead>Actual</TableHead><TableHead>Variance</TableHead></TableRow></TableHeader>
-              <TableBody>{[
-                ["Labour", "1.20", "0.84", "+0%"],
-                ["Hardware", "0.90", "0.62", "-4%"],
-                ["Software licenses", "0.40", "0.31", "+1%"],
-                ["Business Trips", "0.10", "0.07", "+0%"],
-                ["Contingency", "0.60", "0.26", "—"],
-              ].map((r) => (
-                <TableRow key={r[0]}><TableCell>{r[0]}</TableCell><TableCell className="num-mono">${r[1]}M</TableCell><TableCell className="num-mono">${r[2]}M</TableCell><TableCell className="num-mono text-xs">{r[3]}</TableCell></TableRow>
-              ))}</TableBody>
-            </Table>
-          </div>
+          <FinancialsTab project={project} />
         </TabsContent>
 
         <TabsContent value="Risks & Issues" className="mt-5">
@@ -431,7 +405,11 @@ function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="Procurement" className="mt-5">
-          <ProcurementProjectTab />
+          <ProcurementProjectTab projectName={project.name} addRfp={addRfp} />
+        </TabsContent>
+
+        <TabsContent value="Business Trips" className="mt-5">
+          <BusinessTripsTab pm={project.pm} />
         </TabsContent>
 
         <TabsContent value="Stakeholders" className="mt-5">
@@ -442,6 +420,9 @@ function ProjectDetail() {
           <LessonsTab project={project} />
         </TabsContent>
       </Tabs>
+
+      <PlanningProgressDialog open={planningProgressOpen} onOpenChange={setPlanningProgressOpen} />
+      <StageGatesDialog open={stageGateOpen} onOpenChange={setStageGateOpen} gateData={gateData} setGateData={setGateData} />
     </div>
   );
 }
