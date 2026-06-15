@@ -582,7 +582,7 @@ function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); setOpen(o); }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-accent/40 text-accent hover:bg-accent/10">
+        <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
           <Plus className="mr-1 h-4 w-4" />New Project
         </Button>
       </DialogTrigger>
