@@ -823,7 +823,11 @@ export function ProjectSchedule({
               </div>
 
               {/* Body with grid + bars + arrows */}
-              <div className="relative" style={{ height: visibleRows.length * ROW_H }}>
+              <div
+                className="relative cursor-grab"
+                style={{ height: visibleRows.length * ROW_H }}
+                onPointerDown={beginPan}
+              >
                 {/* Vertical grid lines */}
                 <div className="absolute inset-0 flex pointer-events-none">
                   {headerCells.map((c, i) => (
@@ -854,8 +858,10 @@ export function ProjectSchedule({
                     if (!from) return null;
                     const fromIdx = rowIndex.get(from.name);
                     if (fromIdx === undefined) return null;
-                    const fromEnd = parseISO(from.endDate);
-                    const toStart = parseISO(item.startDate);
+                    const fromOv = dragPreview[from.name];
+                    const toOv = dragPreview[item.name];
+                    const fromEnd = parseISO(fromOv?.endDate ?? from.endDate);
+                    const toStart = parseISO(toOv?.startDate ?? item.startDate);
                     if (!fromEnd || !toStart) return null;
                     const x1 = xForDate(fromEnd) + dayWidth;
                     const y1 = fromIdx * ROW_H + ROW_H / 2;
@@ -881,16 +887,15 @@ export function ProjectSchedule({
 
                 {/* Bars / Milestones */}
                 {visibleRows.map(({ item, hasChildren }, i) => {
-                  const s = parseISO(item.startDate);
-                  const e = parseISO(item.endDate);
+                  const ov = dragPreview[item.name];
+                  const s = parseISO(ov?.startDate ?? item.startDate);
+                  const e = parseISO(ov?.endDate ?? item.endDate);
                   if (!s || !e) return null;
                   const isMs = item.kind === "Milestone" || diffDays(e, s) === 0;
-                  // (critical-path highlight handled via row tint + arrow color)
                   const x = xForDate(s);
                   const top = i * ROW_H;
                   const progress = Math.max(0, Math.min(100, item.progress ?? 0));
 
-                  // RAG color tokens per status (matches the Status badge colors)
                   const ragColor: Record<typeof item.rag, { solid: string; soft: string; border: string; hex: string }> = {
                     green: { solid: "bg-rag-green", soft: "bg-rag-green/30", border: "border-rag-green/60", hex: "#22C55E" },
                     amber: { solid: "bg-rag-amber", soft: "bg-rag-amber/30", border: "border-rag-amber/60", hex: "#F59E0B" },
@@ -906,13 +911,12 @@ export function ProjectSchedule({
                     return (
                       <div
                         key={item.name}
-                        title={`${item.name} · ${item.endDate}`}
-                        className="absolute"
+                        title={`${item.name} · ${ov?.endDate ?? item.endDate}`}
+                        className={`absolute ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
                         style={{ left: cx - 8, top: cy - 8, width: 16, height: 16 }}
+                        onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
                       >
-                        <div
-                          className={`h-full w-full rotate-45 border ${rc.border} ${rc.solid} shadow`}
-                        />
+                        <div className={`h-full w-full rotate-45 border ${rc.border} ${rc.solid} shadow`} />
                       </div>
                     );
                   }
@@ -923,9 +927,13 @@ export function ProjectSchedule({
                   const barTop = top + (ROW_H - barH) / 2;
 
                   if (hasChildren) {
-                    // Summary bar (bracket-like) — colored by status
                     return (
-                      <div key={item.name} className="absolute" style={{ left: x, top: barTop, width: w, height: barH }}>
+                      <div
+                        key={item.name}
+                        className={`absolute ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
+                        style={{ left: x, top: barTop, width: w, height: barH }}
+                        onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
+                      >
                         <div className={`relative h-full w-full ${rc.solid} opacity-80 rounded-sm`}>
                           <div className="absolute left-0 top-full h-2 w-2 -translate-x-0 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: rc.hex }} />
                           <div className="absolute right-0 top-full h-2 w-2 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: rc.hex }} />
@@ -938,19 +946,32 @@ export function ProjectSchedule({
                     <div
                       key={item.name}
                       title={`${item.name} · ${fmt(s)} → ${fmt(e)} · ${progress}%`}
-                      className={`absolute rounded-md border ${rc.border} overflow-hidden`}
+                      className={`absolute rounded-md border ${rc.border} overflow-hidden ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
                       style={{ left: x, top: barTop, width: w, height: barH }}
+                      onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
                     >
                       <div className={`absolute inset-0 ${rc.soft}`} />
                       <div className={`absolute inset-y-0 left-0 ${rc.solid}`} style={{ width: `${progress}%` }} />
-                      <div className="absolute inset-0 flex items-center px-1.5">
-
+                      <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none">
                         <span className="truncate text-[10px] font-medium text-foreground/90">{item.name}</span>
                       </div>
+                      {editable && (
+                        <>
+                          <div
+                            onPointerDown={(ev) => beginBarDrag(item.name, "resize-start", ev)}
+                            className="absolute left-0 top-0 h-full w-1.5 cursor-ew-resize hover:bg-foreground/30"
+                          />
+                          <div
+                            onPointerDown={(ev) => beginBarDrag(item.name, "resize-end", ev)}
+                            className="absolute right-0 top-0 h-full w-1.5 cursor-ew-resize hover:bg-foreground/30"
+                          />
+                        </>
+                      )}
                     </div>
                   );
                 })}
               </div>
+
             </div>
           </div>
         </div>
