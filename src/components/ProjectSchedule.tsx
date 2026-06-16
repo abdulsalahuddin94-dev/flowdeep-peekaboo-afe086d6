@@ -489,23 +489,21 @@ export function ProjectSchedule({
                     )}
                     {colVisible("start") && (
                       <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden" style={{ width: widths.start }}>
-                        <EditableText
-                          value={item.startDate || ""}
-                          placeholder="—"
-                          type="date"
+                        <DateRangeCell
+                          item={item}
+                          field="start"
                           editable={editable}
-                          onCommit={(v) => patch(item.name, { startDate: v })}
+                          onCommit={(p) => patch(item.name, p)}
                         />
                       </div>
                     )}
                     {colVisible("end") && (
                       <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden" style={{ width: widths.end }}>
-                        <EditableText
-                          value={item.endDate || ""}
-                          placeholder="—"
-                          type="date"
+                        <DateRangeCell
+                          item={item}
+                          field="end"
                           editable={editable}
-                          onCommit={(v) => patch(item.name, { endDate: v })}
+                          onCommit={(p) => patch(item.name, p)}
                         />
                       </div>
                     )}
@@ -520,26 +518,35 @@ export function ProjectSchedule({
                     )}
                     {colVisible("assignee") && (
                       <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.assignee }}>
-                        <EditableText
-                          value={item.assignee || ""}
-                          placeholder="—"
+                        <AssigneeCell
+                          item={item}
                           editable={editable}
                           onCommit={(v) => patch(item.name, { assignee: v || undefined })}
+                          onRequestSkill={(role) => onRequestSkill?.(item.name, role)}
                         />
                       </div>
                     )}
                     {colVisible("status") && (
                       <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.status }}>
                         {editable ? (
-                          <select
-                            value={item.rag}
-                            onChange={(e) => patch(item.name, { rag: e.target.value as Rag })}
-                            className="w-full cursor-pointer rounded bg-transparent text-xs outline-none focus:ring-1 focus:ring-accent"
-                          >
-                            {ragOptions.map(r => (
-                              <option key={r} value={r} className="bg-background text-foreground">{statusText[r]}</option>
-                            ))}
-                          </select>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="outline-none focus:ring-1 focus:ring-accent rounded-md">
+                                <RagBadge rag={item.rag} label={statusText[item.rag]} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-44">
+                              {ragOptions.map((r) => (
+                                <DropdownMenuItem
+                                  key={r}
+                                  onClick={() => patch(item.name, { rag: r })}
+                                  className="gap-2"
+                                >
+                                  <RagBadge rag={r} label={statusText[r]} />
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         ) : (
                           <RagBadge rag={item.rag} label={statusText[item.rag]} />
                         )}
