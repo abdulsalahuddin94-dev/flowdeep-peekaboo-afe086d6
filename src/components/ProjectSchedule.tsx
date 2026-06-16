@@ -17,7 +17,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Columns3, Diamond, Plus, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -111,6 +111,11 @@ export function ProjectSchedule({
   );
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  // Live preview overrides while dragging/resizing a bar
+  const [dragPreview, setDragPreview] = useState<Record<string, { startDate: string; endDate: string }>>({});
+  // Undo history: each entry is the list of patches needed to restore the prior state
+  const historyRef = useRef<Array<Array<{ name: string; before: Partial<ScheduleItem> }>>>([]);
   const [widths, setWidths] = useState<Record<WidthKey, number>>(() => {
     const w: Record<string, number> = { name: DEFAULT_NAME_W };
     for (const c of COLUMNS) w[c.key] = c.w;
@@ -368,6 +373,155 @@ export function ProjectSchedule({
     return m;
   }, [visibleRows]);
 
+  // ── Undo (Ctrl+Z) ──────────────────────────────────────────────────────────
+  function pushUndo(entry: Array<{ name: string; before: Partial<ScheduleItem> }>) {
+    if (!entry.length) return;
+    historyRef.current.push(entry);
+    if (historyRef.current.length > 50) historyRef.current.shift();
+  }
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const z = (e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey;
+      if (!z) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      const entry = historyRef.current.pop();
+      if (!entry) return;
+      e.preventDefault();
+      for (const p of entry) onItemPatch?.(p.name, p.before);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onItemPatch]);
+
+  // ── Bar drag / resize on the Gantt ─────────────────────────────────────────
+  // Build dependents map (item.name -> names that depend on it)
+  const dependentsOf = useMemo(() => {
+    const m = new Map<string, string[]>();
+    const byNameLc = new Map(items.map(i => [i.name.toLowerCase(), i]));
+    for (const it of items) {
+      const q = it.dep?.trim().toLowerCase();
+      if (!q || q === "—") continue;
+      const dep =
+        byNameLc.get(q) ??
+        items.find(i => i.name.toLowerCase().includes(q) || q.includes(i.name.toLowerCase()));
+      if (dep) {
+        if (!m.has(dep.name)) m.set(dep.name, []);
+        m.get(dep.name)!.push(it.name);
+      }
+    }
+    return m;
+  }, [items]);
+
+  function fmtISO(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const da = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${da}`;
+  }
+
+  // Collect cascading shift: returns map of name -> {startDate, endDate} after applying.
+  // mode: 'move' shifts start+end; 'resize-end' shifts end only (dependents shift by delta);
+  // 'resize-start' shifts start only (no dependent cascade).
+  function computeShift(rootName: string, deltaDays: number, mode: "move" | "resize-end" | "resize-start") {
+    const result: Record<string, { startDate: string; endDate: string }> = {};
+    const byName = new Map(items.map(i => [i.name, i]));
+    const root = byName.get(rootName);
+    if (!root) return result;
+    const rs = parseISO(root.startDate), re = parseISO(root.endDate);
+    if (!rs || !re) return result;
+    if (mode === "move") {
+      result[rootName] = { startDate: fmtISO(addDays(rs, deltaDays)), endDate: fmtISO(addDays(re, deltaDays)) };
+    } else if (mode === "resize-end") {
+      const newEnd = addDays(re, deltaDays);
+      if (diffDays(newEnd, rs) < 0) return result;
+      result[rootName] = { startDate: root.startDate, endDate: fmtISO(newEnd) };
+    } else {
+      const newStart = addDays(rs, deltaDays);
+      if (diffDays(re, newStart) < 0) return result;
+      result[rootName] = { startDate: fmtISO(newStart), endDate: root.endDate };
+    }
+    if (mode === "resize-start") return result;
+    // Cascade to dependents by the same delta (their end-anchor moves with predecessor end)
+    const queue = [rootName];
+    const seen = new Set([rootName]);
+    while (queue.length) {
+      const n = queue.shift()!;
+      const deps = dependentsOf.get(n) ?? [];
+      for (const dn of deps) {
+        if (seen.has(dn)) continue;
+        seen.add(dn);
+        const di = byName.get(dn);
+        if (!di) continue;
+        const ds = parseISO(di.startDate), de = parseISO(di.endDate);
+        if (!ds || !de) continue;
+        result[dn] = { startDate: fmtISO(addDays(ds, deltaDays)), endDate: fmtISO(addDays(de, deltaDays)) };
+        queue.push(dn);
+      }
+    }
+    return result;
+  }
+
+  function beginBarDrag(name: string, mode: "move" | "resize-end" | "resize-start", e: React.PointerEvent) {
+    if (!editable) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const byName = new Map(items.map(i => [i.name, i]));
+    let lastDelta = 0;
+    const onMove = (ev: PointerEvent) => {
+      const delta = Math.round((ev.clientX - startX) / dayWidth);
+      if (delta === lastDelta) return;
+      lastDelta = delta;
+      setDragPreview(delta === 0 ? {} : computeShift(name, delta, mode));
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+      const final = lastDelta === 0 ? {} : computeShift(name, lastDelta, mode);
+      const names = Object.keys(final);
+      if (names.length) {
+        const undoEntry = names.map(n => {
+          const orig = byName.get(n)!;
+          return { name: n, before: { startDate: orig.startDate, endDate: orig.endDate } };
+        });
+        pushUndo(undoEntry);
+        for (const n of names) onItemPatch?.(n, final[n]);
+      }
+      setDragPreview({});
+    };
+    document.body.style.cursor = mode === "move" ? "grabbing" : "ew-resize";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  // Pan empty Gantt area (click-drag to scroll)
+  function beginPan(e: React.PointerEvent) {
+    if (e.button !== 0) return;
+    const el = rightScrollRef.current;
+    if (!el) return;
+    const startX = e.clientX, startY = e.clientY;
+    const startL = el.scrollLeft, startT = el.scrollTop;
+    let moved = false;
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+      moved = true;
+      el.scrollLeft = startL - dx;
+      el.scrollTop = startT - dy;
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "grabbing";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+
   function findDepItem(depStr: string): ScheduleItem | undefined {
     const q = depStr?.trim().toLowerCase();
     if (!q || q === "—") return undefined;
@@ -450,7 +604,10 @@ export function ProjectSchedule({
       {/* Split pane */}
       <div ref={splitRef} className="relative flex" style={{ height: 560 }}>
         {/* LEFT: table */}
-        <div className="flex flex-col overflow-hidden border-r border-border" style={{ width: `${leftPct}%` }}>
+        <div
+          className={`flex flex-col overflow-hidden border-r border-border transition-[width] duration-200 ${leftCollapsed ? "border-r-0" : ""}`}
+          style={{ width: leftCollapsed ? 0 : `${leftPct}%` }}
+        >
           {/* Body (header is sticky inside so it scrolls horizontally with columns) */}
           <div ref={leftScrollRef} onScroll={onLeftScroll} className="flex-1 overflow-auto">
             <div style={{ width: widths.name + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + widths[c.key], 0) }}>
@@ -625,13 +782,25 @@ export function ProjectSchedule({
           </div>
         </div>
 
-        {/* Divider */}
-        <div
-          onPointerDown={startDrag}
-          className="w-1 cursor-col-resize bg-border hover:bg-accent/60 transition-colors"
-          style={{ zIndex: 10 }}
-          aria-label="Resize panes"
-        />
+        {/* Divider with collapse toggle */}
+        <div className="relative flex items-stretch" style={{ zIndex: 10 }}>
+          {!leftCollapsed && (
+            <div
+              onPointerDown={startDrag}
+              className="w-1 cursor-col-resize bg-border hover:bg-accent/60 transition-colors"
+              aria-label="Resize panes"
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setLeftCollapsed((v) => !v)}
+            title={leftCollapsed ? "Show table" : "Hide table"}
+            className="absolute top-2 -translate-x-1/2 left-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground hover:border-accent"
+          >
+            {leftCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+
 
         {/* RIGHT: gantt */}
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -654,7 +823,11 @@ export function ProjectSchedule({
               </div>
 
               {/* Body with grid + bars + arrows */}
-              <div className="relative" style={{ height: visibleRows.length * ROW_H }}>
+              <div
+                className="relative cursor-grab"
+                style={{ height: visibleRows.length * ROW_H }}
+                onPointerDown={beginPan}
+              >
                 {/* Vertical grid lines */}
                 <div className="absolute inset-0 flex pointer-events-none">
                   {headerCells.map((c, i) => (
@@ -685,8 +858,10 @@ export function ProjectSchedule({
                     if (!from) return null;
                     const fromIdx = rowIndex.get(from.name);
                     if (fromIdx === undefined) return null;
-                    const fromEnd = parseISO(from.endDate);
-                    const toStart = parseISO(item.startDate);
+                    const fromOv = dragPreview[from.name];
+                    const toOv = dragPreview[item.name];
+                    const fromEnd = parseISO(fromOv?.endDate ?? from.endDate);
+                    const toStart = parseISO(toOv?.startDate ?? item.startDate);
                     if (!fromEnd || !toStart) return null;
                     const x1 = xForDate(fromEnd) + dayWidth;
                     const y1 = fromIdx * ROW_H + ROW_H / 2;
@@ -712,16 +887,15 @@ export function ProjectSchedule({
 
                 {/* Bars / Milestones */}
                 {visibleRows.map(({ item, hasChildren }, i) => {
-                  const s = parseISO(item.startDate);
-                  const e = parseISO(item.endDate);
+                  const ov = dragPreview[item.name];
+                  const s = parseISO(ov?.startDate ?? item.startDate);
+                  const e = parseISO(ov?.endDate ?? item.endDate);
                   if (!s || !e) return null;
                   const isMs = item.kind === "Milestone" || diffDays(e, s) === 0;
-                  // (critical-path highlight handled via row tint + arrow color)
                   const x = xForDate(s);
                   const top = i * ROW_H;
                   const progress = Math.max(0, Math.min(100, item.progress ?? 0));
 
-                  // RAG color tokens per status (matches the Status badge colors)
                   const ragColor: Record<typeof item.rag, { solid: string; soft: string; border: string; hex: string }> = {
                     green: { solid: "bg-rag-green", soft: "bg-rag-green/30", border: "border-rag-green/60", hex: "#22C55E" },
                     amber: { solid: "bg-rag-amber", soft: "bg-rag-amber/30", border: "border-rag-amber/60", hex: "#F59E0B" },
@@ -737,13 +911,12 @@ export function ProjectSchedule({
                     return (
                       <div
                         key={item.name}
-                        title={`${item.name} · ${item.endDate}`}
-                        className="absolute"
+                        title={`${item.name} · ${ov?.endDate ?? item.endDate}`}
+                        className={`absolute ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
                         style={{ left: cx - 8, top: cy - 8, width: 16, height: 16 }}
+                        onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
                       >
-                        <div
-                          className={`h-full w-full rotate-45 border ${rc.border} ${rc.solid} shadow`}
-                        />
+                        <div className={`h-full w-full rotate-45 border ${rc.border} ${rc.solid} shadow`} />
                       </div>
                     );
                   }
@@ -754,9 +927,13 @@ export function ProjectSchedule({
                   const barTop = top + (ROW_H - barH) / 2;
 
                   if (hasChildren) {
-                    // Summary bar (bracket-like) — colored by status
                     return (
-                      <div key={item.name} className="absolute" style={{ left: x, top: barTop, width: w, height: barH }}>
+                      <div
+                        key={item.name}
+                        className={`absolute ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
+                        style={{ left: x, top: barTop, width: w, height: barH }}
+                        onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
+                      >
                         <div className={`relative h-full w-full ${rc.solid} opacity-80 rounded-sm`}>
                           <div className="absolute left-0 top-full h-2 w-2 -translate-x-0 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: rc.hex }} />
                           <div className="absolute right-0 top-full h-2 w-2 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: rc.hex }} />
@@ -769,19 +946,32 @@ export function ProjectSchedule({
                     <div
                       key={item.name}
                       title={`${item.name} · ${fmt(s)} → ${fmt(e)} · ${progress}%`}
-                      className={`absolute rounded-md border ${rc.border} overflow-hidden`}
+                      className={`absolute rounded-md border ${rc.border} overflow-hidden ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
                       style={{ left: x, top: barTop, width: w, height: barH }}
+                      onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
                     >
                       <div className={`absolute inset-0 ${rc.soft}`} />
                       <div className={`absolute inset-y-0 left-0 ${rc.solid}`} style={{ width: `${progress}%` }} />
-                      <div className="absolute inset-0 flex items-center px-1.5">
-
+                      <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none">
                         <span className="truncate text-[10px] font-medium text-foreground/90">{item.name}</span>
                       </div>
+                      {editable && (
+                        <>
+                          <div
+                            onPointerDown={(ev) => beginBarDrag(item.name, "resize-start", ev)}
+                            className="absolute left-0 top-0 h-full w-1.5 cursor-ew-resize hover:bg-foreground/30"
+                          />
+                          <div
+                            onPointerDown={(ev) => beginBarDrag(item.name, "resize-end", ev)}
+                            className="absolute right-0 top-0 h-full w-1.5 cursor-ew-resize hover:bg-foreground/30"
+                          />
+                        </>
+                      )}
                     </div>
                   );
                 })}
               </div>
+
             </div>
           </div>
         </div>
