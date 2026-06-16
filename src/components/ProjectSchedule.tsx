@@ -870,3 +870,210 @@ function EditableText({
     />
   );
 }
+
+// ── Date range cell with two-month calendar popover ─────────────────────────
+function DateRangeCell({
+  item,
+  field,
+  editable,
+  onCommit,
+}: {
+  item: ScheduleItem;
+  field: "start" | "end";
+  editable: boolean;
+  onCommit: (patch: Partial<ScheduleItem>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const start = parseISO(item.startDate);
+  const end = parseISO(item.endDate);
+  const display = field === "start" ? item.startDate : item.endDate;
+
+  const trigger = (
+    <button
+      className="block w-full cursor-text truncate rounded px-0.5 text-left hover:bg-accent/10"
+      title="Click to edit dates"
+    >
+      {display || <span className="text-muted-foreground">—</span>}
+    </button>
+  );
+
+  if (!editable) {
+    return (
+      <span className="truncate">
+        {display || <span className="text-muted-foreground">—</span>}
+      </span>
+    );
+  }
+
+  const fmtISO = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const da = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${da}`;
+  };
+  const duration = start && end ? Math.max(1, diffDays(end, start) + 1) : 1;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-auto p-4 pointer-events-auto" align="start">
+        <div className="mb-3 grid grid-cols-3 gap-3">
+          <div>
+            <Label className="mb-1 block text-[10px] uppercase tracking-wide text-muted-foreground">Start date</Label>
+            <Input
+              type="date"
+              value={item.startDate || ""}
+              onChange={(e) => onCommit({ startDate: e.target.value })}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div>
+            <Label className="mb-1 block text-[10px] uppercase tracking-wide text-muted-foreground">Due date</Label>
+            <Input
+              type="date"
+              value={item.endDate || ""}
+              onChange={(e) => onCommit({ endDate: e.target.value })}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div>
+            <Label className="mb-1 block text-[10px] uppercase tracking-wide text-muted-foreground">Duration</Label>
+            <Input
+              type="number"
+              min={1}
+              value={duration}
+              onChange={(e) => {
+                const n = Math.max(1, Number(e.target.value) || 1);
+                if (start) onCommit({ endDate: fmtISO(addDays(start, n - 1)) });
+              }}
+              className="h-8 text-xs num-mono"
+            />
+          </div>
+        </div>
+        <Calendar
+          mode="range"
+          numberOfMonths={2}
+          defaultMonth={start ?? new Date()}
+          selected={start && end ? { from: start, to: end } : start ? { from: start, to: start } : undefined}
+          onSelect={(r) => {
+            if (!r) return;
+            const patch: Partial<ScheduleItem> = {};
+            if (r.from) patch.startDate = fmtISO(r.from);
+            if (r.to) patch.endDate = fmtISO(r.to);
+            else if (r.from) patch.endDate = fmtISO(r.from);
+            onCommit(patch);
+          }}
+          className={cn("p-0 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ── Assignee cell: name pill / Waiting / request skill popover ──────────────
+function AssigneeCell({
+  item,
+  editable,
+  onCommit,
+  onRequestSkill,
+}: {
+  item: ScheduleItem;
+  editable: boolean;
+  onCommit: (v: string) => void;
+  onRequestSkill: (role: RoleReq) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState("");
+  const [skill, setSkill] = useState<RoleReq["skill"]>("Mid");
+  const [fte, setFte] = useState("1");
+
+  const a = item.assignee?.trim();
+  const isWaiting = a?.toLowerCase() === "waiting";
+  const isEmpty = !a;
+
+  if (!editable) {
+    if (isEmpty) return <span className="text-muted-foreground">—</span>;
+    if (isWaiting)
+      return (
+        <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
+          Waiting
+        </Badge>
+      );
+    return <span className="truncate text-foreground/90">{a}</span>;
+  }
+
+  if (isWaiting) {
+    return (
+      <Badge variant="outline" className="border-rag-amber/40 bg-rag-amber/10 text-rag-amber text-[10px]">
+        Waiting
+      </Badge>
+    );
+  }
+
+  if (!isEmpty) {
+    return (
+      <button
+        onClick={() => onCommit("")}
+        title="Click to clear"
+        className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[11px] text-foreground hover:bg-accent/20"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        <span className="truncate">{a}</span>
+      </button>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:border-accent hover:text-foreground">
+          <UserPlus className="h-3 w-3" /> Request skill
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" align="start">
+        <div className="mb-2 text-xs font-medium">Request a skill</div>
+        <p className="mb-3 text-[11px] text-muted-foreground">
+          Sent to Resources. When fulfilled, the assignee will appear here.
+        </p>
+        <div className="space-y-2">
+          <div>
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Role</Label>
+            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. QA Engineer" className="h-8 text-xs" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Skill level</Label>
+              <Select value={skill} onValueChange={(v) => setSkill(v as RoleReq["skill"])}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(["Junior", "Mid", "Senior", "Lead"] as const).map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">FTE</Label>
+              <Input type="number" min={0.1} step={0.1} value={fte} onChange={(e) => setFte(e.target.value)} className="h-8 text-xs num-mono" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 flex justify-end gap-2">
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button
+            size="sm"
+            className="h-7 text-xs"
+            disabled={!role.trim()}
+            onClick={() => {
+              onRequestSkill({ role: role.trim(), skill, fte: parseFloat(fte) || 1 });
+              setOpen(false);
+              setRole(""); setSkill("Mid"); setFte("1");
+            }}
+          >
+            <Plus className="mr-1 h-3 w-3" /> Send request
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
