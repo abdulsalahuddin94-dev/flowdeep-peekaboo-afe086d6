@@ -17,7 +17,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -796,9 +796,9 @@ export function ProjectSchedule({
             onClick={() => setLeftCollapsed((v) => !v)}
             title={leftCollapsed ? "Show table" : "Hide table"}
             aria-label={leftCollapsed ? "Show table" : "Hide table"}
-            className="absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 z-30 flex h-9 w-9 items-center justify-center rounded-full border-2 border-accent bg-background text-accent shadow-md hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 z-30 flex h-7 w-5 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground shadow-sm hover:bg-accent hover:text-accent-foreground hover:border-accent transition-colors"
           >
-            {leftCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            {leftCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
           </button>
         </div>
 
