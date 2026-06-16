@@ -398,8 +398,13 @@ export function ProjectSchedule({
   // Build dependents map (item.name -> names that depend on it)
   const dependentsOf = useMemo(() => {
     const m = new Map<string, string[]>();
+    const byNameLc = new Map(items.map(i => [i.name.toLowerCase(), i]));
     for (const it of items) {
-      const dep = findDepItemByName(items, it.dep);
+      const q = it.dep?.trim().toLowerCase();
+      if (!q || q === "—") continue;
+      const dep =
+        byNameLc.get(q) ??
+        items.find(i => i.name.toLowerCase().includes(q) || q.includes(i.name.toLowerCase()));
       if (dep) {
         if (!m.has(dep.name)) m.set(dep.name, []);
         m.get(dep.name)!.push(it.name);
