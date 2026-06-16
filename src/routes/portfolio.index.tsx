@@ -74,6 +74,7 @@ function AllProjectsTab({ restrict, projectList }: { restrict?: boolean; project
   const [view, setView]           = useState<View>("grid");
   const [query, setQuery]         = useState("");
   const [active, setActive]       = useState<Project | null>(null);
+  const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = useState(false);
   const [ragFilter, setRagFilter]   = useState<string[]>([]);
   const [stageFilter, setStageFilter] = useState<string[]>([]);
