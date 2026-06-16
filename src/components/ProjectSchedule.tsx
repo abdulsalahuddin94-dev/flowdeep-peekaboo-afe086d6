@@ -716,10 +716,20 @@ export function ProjectSchedule({
                   const e = parseISO(item.endDate);
                   if (!s || !e) return null;
                   const isMs = item.kind === "Milestone" || diffDays(e, s) === 0;
-                  const isCrit = criticalSet.has(item.name);
+                  // (critical-path highlight handled via row tint + arrow color)
                   const x = xForDate(s);
                   const top = i * ROW_H;
                   const progress = Math.max(0, Math.min(100, item.progress ?? 0));
+
+                  // RAG color tokens per status (matches the Status badge colors)
+                  const ragColor: Record<typeof item.rag, { solid: string; soft: string; border: string; hex: string }> = {
+                    green: { solid: "bg-rag-green", soft: "bg-rag-green/30", border: "border-rag-green/60", hex: "#22C55E" },
+                    amber: { solid: "bg-rag-amber", soft: "bg-rag-amber/30", border: "border-rag-amber/60", hex: "#F59E0B" },
+                    red:   { solid: "bg-rag-red",   soft: "bg-rag-red/30",   border: "border-rag-red/60",   hex: "#EF4444" },
+                    blue:  { solid: "bg-rag-blue",  soft: "bg-rag-blue/30",  border: "border-rag-blue/60",  hex: "#3B82F6" },
+                    grey:  { solid: "bg-rag-grey",  soft: "bg-rag-grey/30",  border: "border-rag-grey/60",  hex: "#94A3B8" },
+                  } as const;
+                  const rc = ragColor[item.rag];
 
                   if (isMs) {
                     const cx = x + dayWidth / 2;
@@ -732,7 +742,7 @@ export function ProjectSchedule({
                         style={{ left: cx - 8, top: cy - 8, width: 16, height: 16 }}
                       >
                         <div
-                          className={`h-full w-full rotate-45 border ${isCrit ? "border-rag-red bg-rag-red" : "border-accent bg-accent"} shadow`}
+                          className={`h-full w-full rotate-45 border ${rc.border} ${rc.solid} shadow`}
                         />
                       </div>
                     );
@@ -744,30 +754,28 @@ export function ProjectSchedule({
                   const barTop = top + (ROW_H - barH) / 2;
 
                   if (hasChildren) {
-                    // Summary bar (bracket-like)
+                    // Summary bar (bracket-like) — colored by status
                     return (
                       <div key={item.name} className="absolute" style={{ left: x, top: barTop, width: w, height: barH }}>
-                        <div className={`relative h-full w-full ${isCrit ? "bg-rag-red" : "bg-foreground"} opacity-80 rounded-sm`}>
-                          <div className="absolute left-0 top-full h-2 w-2 -translate-x-0 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: isCrit ? "#EF4444" : "currentColor" }} />
-                          <div className="absolute right-0 top-full h-2 w-2 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: isCrit ? "#EF4444" : "currentColor" }} />
-
+                        <div className={`relative h-full w-full ${rc.solid} opacity-80 rounded-sm`}>
+                          <div className="absolute left-0 top-full h-2 w-2 -translate-x-0 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: rc.hex }} />
+                          <div className="absolute right-0 top-full h-2 w-2 border-t-[6px] border-l-[3px] border-r-[3px] border-transparent" style={{ borderTopColor: rc.hex }} />
                         </div>
                       </div>
                     );
                   }
 
-                  const baseColor = isCrit ? "bg-rag-red/30" : "bg-accent/30";
-                  const fillColor = isCrit ? "bg-rag-red" : "bg-accent";
                   return (
                     <div
                       key={item.name}
                       title={`${item.name} · ${fmt(s)} → ${fmt(e)} · ${progress}%`}
-                      className={`absolute rounded-md border ${isCrit ? "border-rag-red/60" : "border-accent/60"} overflow-hidden`}
+                      className={`absolute rounded-md border ${rc.border} overflow-hidden`}
                       style={{ left: x, top: barTop, width: w, height: barH }}
                     >
-                      <div className={`absolute inset-0 ${baseColor}`} />
-                      <div className={`absolute inset-y-0 left-0 ${fillColor}`} style={{ width: `${progress}%` }} />
+                      <div className={`absolute inset-0 ${rc.soft}`} />
+                      <div className={`absolute inset-y-0 left-0 ${rc.solid}`} style={{ width: `${progress}%` }} />
                       <div className="absolute inset-0 flex items-center px-1.5">
+
                         <span className="truncate text-[10px] font-medium text-foreground/90">{item.name}</span>
                       </div>
                     </div>
