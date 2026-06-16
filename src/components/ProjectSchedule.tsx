@@ -782,13 +782,25 @@ export function ProjectSchedule({
           </div>
         </div>
 
-        {/* Divider */}
-        <div
-          onPointerDown={startDrag}
-          className="w-1 cursor-col-resize bg-border hover:bg-accent/60 transition-colors"
-          style={{ zIndex: 10 }}
-          aria-label="Resize panes"
-        />
+        {/* Divider with collapse toggle */}
+        <div className="relative flex items-stretch" style={{ zIndex: 10 }}>
+          {!leftCollapsed && (
+            <div
+              onPointerDown={startDrag}
+              className="w-1 cursor-col-resize bg-border hover:bg-accent/60 transition-colors"
+              aria-label="Resize panes"
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setLeftCollapsed((v) => !v)}
+            title={leftCollapsed ? "Show table" : "Hide table"}
+            className="absolute top-2 -translate-x-1/2 left-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground hover:border-accent"
+          >
+            {leftCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+
 
         {/* RIGHT: gantt */}
         <div className="flex flex-1 flex-col overflow-hidden">
