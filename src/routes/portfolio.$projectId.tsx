@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil } from "lucide-react";
+import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil, ArrowUpRight } from "lucide-react";
 import type { Rag } from "@/lib/mock-data";
 import { projects, vendors as vendorList, resources as resourcePool } from "@/lib/mock-data";
 import { useProjects, useNotifications, useRfps, useResourceRequests, type RfpEntry, type ResourceRequest } from "@/lib/projects-store";
@@ -180,8 +180,9 @@ function ProjectDetail() {
         <button
           type="button"
           onClick={() => setPlanningProgressOpen(true)}
-          className="glass-card p-3 text-left transition-colors hover:border-accent/40"
+          className="glass-card group relative p-3 text-left transition-colors hover:border-accent/40"
         >
+          <ArrowUpRight className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-accent" />
           <div className="label-eyebrow">Progress</div>
           <div className="mt-1 text-lg font-medium num-mono text-foreground">{project.progress}%</div>
           <div className="mt-1 text-[10px] text-muted-foreground">Planning {planningDone}/{PLANNING_CHECKLIST.length} · click for details</div>
@@ -189,8 +190,9 @@ function ProjectDetail() {
         <button
           type="button"
           onClick={() => setStageGateOpen(true)}
-          className="glass-card p-3 text-left transition-colors hover:border-accent/40"
+          className="glass-card group relative p-3 text-left transition-colors hover:border-accent/40"
         >
+          <ArrowUpRight className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-accent" />
           <div className="label-eyebrow">Stage Gate</div>
           <div className="mt-1 text-lg font-medium text-foreground">{currentStage.name}</div>
           <div className="mt-1 flex items-center gap-1">
