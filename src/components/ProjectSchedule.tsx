@@ -373,6 +373,150 @@ export function ProjectSchedule({
     return m;
   }, [visibleRows]);
 
+  // ── Undo (Ctrl+Z) ──────────────────────────────────────────────────────────
+  function pushUndo(entry: Array<{ name: string; before: Partial<ScheduleItem> }>) {
+    if (!entry.length) return;
+    historyRef.current.push(entry);
+    if (historyRef.current.length > 50) historyRef.current.shift();
+  }
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const z = (e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey;
+      if (!z) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      const entry = historyRef.current.pop();
+      if (!entry) return;
+      e.preventDefault();
+      for (const p of entry) onItemPatch?.(p.name, p.before);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onItemPatch]);
+
+  // ── Bar drag / resize on the Gantt ─────────────────────────────────────────
+  // Build dependents map (item.name -> names that depend on it)
+  const dependentsOf = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const it of items) {
+      const dep = findDepItemByName(items, it.dep);
+      if (dep) {
+        if (!m.has(dep.name)) m.set(dep.name, []);
+        m.get(dep.name)!.push(it.name);
+      }
+    }
+    return m;
+  }, [items]);
+
+  function fmtISO(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const da = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${da}`;
+  }
+
+  // Collect cascading shift: returns map of name -> {startDate, endDate} after applying.
+  // mode: 'move' shifts start+end; 'resize-end' shifts end only (dependents shift by delta);
+  // 'resize-start' shifts start only (no dependent cascade).
+  function computeShift(rootName: string, deltaDays: number, mode: "move" | "resize-end" | "resize-start") {
+    const result: Record<string, { startDate: string; endDate: string }> = {};
+    const byName = new Map(items.map(i => [i.name, i]));
+    const root = byName.get(rootName);
+    if (!root) return result;
+    const rs = parseISO(root.startDate), re = parseISO(root.endDate);
+    if (!rs || !re) return result;
+    if (mode === "move") {
+      result[rootName] = { startDate: fmtISO(addDays(rs, deltaDays)), endDate: fmtISO(addDays(re, deltaDays)) };
+    } else if (mode === "resize-end") {
+      const newEnd = addDays(re, deltaDays);
+      if (diffDays(newEnd, rs) < 0) return result;
+      result[rootName] = { startDate: root.startDate, endDate: fmtISO(newEnd) };
+    } else {
+      const newStart = addDays(rs, deltaDays);
+      if (diffDays(re, newStart) < 0) return result;
+      result[rootName] = { startDate: fmtISO(newStart), endDate: root.endDate };
+    }
+    if (mode === "resize-start") return result;
+    // Cascade to dependents by the same delta (their end-anchor moves with predecessor end)
+    const queue = [rootName];
+    const seen = new Set([rootName]);
+    while (queue.length) {
+      const n = queue.shift()!;
+      const deps = dependentsOf.get(n) ?? [];
+      for (const dn of deps) {
+        if (seen.has(dn)) continue;
+        seen.add(dn);
+        const di = byName.get(dn);
+        if (!di) continue;
+        const ds = parseISO(di.startDate), de = parseISO(di.endDate);
+        if (!ds || !de) continue;
+        result[dn] = { startDate: fmtISO(addDays(ds, deltaDays)), endDate: fmtISO(addDays(de, deltaDays)) };
+        queue.push(dn);
+      }
+    }
+    return result;
+  }
+
+  function beginBarDrag(name: string, mode: "move" | "resize-end" | "resize-start", e: React.PointerEvent) {
+    if (!editable) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const byName = new Map(items.map(i => [i.name, i]));
+    let lastDelta = 0;
+    const onMove = (ev: PointerEvent) => {
+      const delta = Math.round((ev.clientX - startX) / dayWidth);
+      if (delta === lastDelta) return;
+      lastDelta = delta;
+      setDragPreview(delta === 0 ? {} : computeShift(name, delta, mode));
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+      const final = lastDelta === 0 ? {} : computeShift(name, lastDelta, mode);
+      const names = Object.keys(final);
+      if (names.length) {
+        const undoEntry = names.map(n => {
+          const orig = byName.get(n)!;
+          return { name: n, before: { startDate: orig.startDate, endDate: orig.endDate } };
+        });
+        pushUndo(undoEntry);
+        for (const n of names) onItemPatch?.(n, final[n]);
+      }
+      setDragPreview({});
+    };
+    document.body.style.cursor = mode === "move" ? "grabbing" : "ew-resize";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  // Pan empty Gantt area (click-drag to scroll)
+  function beginPan(e: React.PointerEvent) {
+    if (e.button !== 0) return;
+    const el = rightScrollRef.current;
+    if (!el) return;
+    const startX = e.clientX, startY = e.clientY;
+    const startL = el.scrollLeft, startT = el.scrollTop;
+    let moved = false;
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+      moved = true;
+      el.scrollLeft = startL - dx;
+      el.scrollTop = startT - dy;
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "grabbing";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+
   function findDepItem(depStr: string): ScheduleItem | undefined {
     const q = depStr?.trim().toLowerCase();
     if (!q || q === "—") return undefined;
