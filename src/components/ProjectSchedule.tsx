@@ -17,7 +17,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
