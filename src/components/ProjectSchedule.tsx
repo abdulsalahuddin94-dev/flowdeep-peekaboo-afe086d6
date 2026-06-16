@@ -1026,8 +1026,8 @@ function AssigneeCell({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:border-accent hover:text-foreground">
-          <UserPlus className="h-3 w-3" /> Request skill
+        <button className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:border-accent hover:text-foreground">
+          <UserPlus className="h-3 w-3 shrink-0" /> Request skill
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-3" align="start">
