@@ -111,6 +111,11 @@ export function ProjectSchedule({
   );
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  // Live preview overrides while dragging/resizing a bar
+  const [dragPreview, setDragPreview] = useState<Record<string, { startDate: string; endDate: string }>>({});
+  // Undo history: each entry is the list of patches needed to restore the prior state
+  const historyRef = useRef<Array<Array<{ name: string; before: Partial<ScheduleItem> }>>>([]);
   const [widths, setWidths] = useState<Record<WidthKey, number>>(() => {
     const w: Record<string, number> = { name: DEFAULT_NAME_W };
     for (const c of COLUMNS) w[c.key] = c.w;
