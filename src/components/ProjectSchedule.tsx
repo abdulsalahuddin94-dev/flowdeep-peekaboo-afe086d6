@@ -799,3 +799,59 @@ function ColHeader({
     </div>
   );
 }
+
+// ── Inline-editable text/date cell (click to edit, Enter/blur to commit) ─────
+function EditableText({
+  value,
+  onCommit,
+  editable = true,
+  type = "text",
+  placeholder,
+  className,
+}: {
+  value: string;
+  onCommit: (v: string) => void;
+  editable?: boolean;
+  type?: "text" | "date";
+  placeholder?: string;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+
+  if (!editable) {
+    return (
+      <span className={`truncate ${className ?? ""}`}>
+        {value || <span className="text-muted-foreground">{placeholder ?? "—"}</span>}
+      </span>
+    );
+  }
+
+  if (!editing) {
+    return (
+      <span
+        onClick={() => setEditing(true)}
+        className={`block w-full cursor-text truncate rounded px-0.5 hover:bg-accent/10 ${className ?? ""}`}
+        title="Click to edit"
+      >
+        {value || <span className="text-muted-foreground">{placeholder ?? "—"}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      type={type}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => { setEditing(false); if (draft !== value) onCommit(draft); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); }
+        else if (e.key === "Escape") { setDraft(value); setEditing(false); }
+      }}
+      className={`w-full rounded bg-background px-1 py-0.5 text-xs outline-none ring-1 ring-accent ${className ?? ""}`}
+    />
+  );
+}
