@@ -16,7 +16,7 @@ export function RagDot({ rag, className }: { rag: Rag; className?: string }) {
 export function RagBadge({ rag, label, className }: { rag: Rag; label?: string; className?: string }) {
   const m = map[rag];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium", m.bg, m.text, m.border, className)}>
+    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium", m.bg, m.text, m.border, className)}>
       <span className={cn("h-1.5 w-1.5 rounded-full", m.dot)} />
       {label ?? m.label}
     </span>
