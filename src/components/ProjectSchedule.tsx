@@ -271,6 +271,7 @@ export function ProjectSchedule({
   function startColResize(key: WidthKey, e: React.PointerEvent) {
     e.preventDefault();
     e.stopPropagation();
+    userResizedRef.current.add(key);
     const startX = e.clientX;
     const startW = widths[key];
     const onMove = (ev: PointerEvent) => {
@@ -287,7 +288,7 @@ export function ProjectSchedule({
     window.addEventListener("pointerup", onUp);
   }
 
-  function autoFitCol(key: WidthKey) {
+  function computeFitWidth(key: WidthKey): number {
     const headerLabel =
       key === "name" ? "Task Name" : (COLUMNS.find(c => c.key === key)?.label ?? "");
     let max = measureText(headerLabel, "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto");
@@ -320,9 +321,29 @@ export function ProjectSchedule({
       const w = measureText(txt) + extra;
       if (w > max) max = w;
     }
-    const next = Math.min(MAX_COL_W, Math.max(MIN_COL_W, Math.ceil(max + COL_PAD)));
-    setWidths(prev => ({ ...prev, [key]: next }));
+    return Math.min(MAX_COL_W, Math.max(MIN_COL_W, Math.ceil(max + COL_PAD)));
   }
+
+  function autoFitCol(key: WidthKey) {
+    userResizedRef.current.add(key);
+    setWidths(prev => ({ ...prev, [key]: computeFitWidth(key) }));
+  }
+
+  // Auto-fit all columns whenever data, visible cols, or expansion changes,
+  // for any column the user has not manually resized.
+  useEffect(() => {
+    setWidths(prev => {
+      const next = { ...prev };
+      const keys: WidthKey[] = ["name", ...COLUMNS.map(c => c.key as WidthKey)];
+      for (const k of keys) {
+        if (userResizedRef.current.has(k)) continue;
+        next[k] = computeFitWidth(k);
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, visibleCols, expanded]);
+
 
   // Row index map for arrow drawing
   const rowIndex = useMemo(() => {
