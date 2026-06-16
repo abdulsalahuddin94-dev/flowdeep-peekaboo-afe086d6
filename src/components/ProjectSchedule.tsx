@@ -370,6 +370,11 @@ export function ProjectSchedule({
 
   function colVisible(k: ColKey) { return visibleCols.has(k); }
 
+  // Inline edit helpers
+  const editable = !!onItemPatch;
+  const ragOptions: Rag[] = ["blue", "amber", "green", "red", "grey"];
+  function patch(name: string, p: Partial<ScheduleItem>) { onItemPatch?.(name, p); }
+
   return (
     <div className="glass-card overflow-hidden">
       {/* Top action bar */}
