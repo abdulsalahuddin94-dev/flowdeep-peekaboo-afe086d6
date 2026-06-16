@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { RagBadge, RagDot } from "@/components/RagBadge";
@@ -74,6 +74,7 @@ function AllProjectsTab({ restrict, projectList }: { restrict?: boolean; project
   const [view, setView]           = useState<View>("grid");
   const [query, setQuery]         = useState("");
   const [active, setActive]       = useState<Project | null>(null);
+  const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = useState(false);
   const [ragFilter, setRagFilter]   = useState<string[]>([]);
   const [stageFilter, setStageFilter] = useState<string[]>([]);
@@ -255,11 +256,9 @@ function AllProjectsTab({ restrict, projectList }: { restrict?: boolean; project
         </div>
       )}
 
-      {view === "grid" && list.length > 0 && <ProjectGrid items={list} onOpen={setActive} />}
-      {view === "list" && list.length > 0 && <ProjectListView items={list} onOpen={setActive} />}
+      {view === "grid" && list.length > 0 && <ProjectGrid items={list} onOpen={(p) => navigate({ to: "/portfolio/$projectId", params: { projectId: p.id } })} />}
+      {view === "list" && list.length > 0 && <ProjectListView items={list} onOpen={(p) => navigate({ to: "/portfolio/$projectId", params: { projectId: p.id } })} />}
       {view === "gantt" && list.length > 0 && <GanttView items={list} />}
-
-      <ProjectSlideOver project={active} onClose={() => setActive(null)} />
     </>
   );
 }
