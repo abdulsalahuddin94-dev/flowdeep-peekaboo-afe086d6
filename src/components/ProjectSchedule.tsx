@@ -90,9 +90,11 @@ function measureText(text: string, font = "12px ui-sans-serif, system-ui, -apple
 export function ProjectSchedule({
   items,
   AddItemSlot,
+  onItemPatch,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
+  onItemPatch?: (name: string, patch: Partial<ScheduleItem>) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
@@ -106,6 +108,7 @@ export function ProjectSchedule({
     for (const c of COLUMNS) w[c.key] = c.w;
     return w as Record<WidthKey, number>;
   });
+  const userResizedRef = useRef<Set<WidthKey>>(new Set());
   const splitRef = useRef<HTMLDivElement | null>(null);
   const leftScrollRef = useRef<HTMLDivElement | null>(null);
   const rightScrollRef = useRef<HTMLDivElement | null>(null);
@@ -268,6 +271,7 @@ export function ProjectSchedule({
   function startColResize(key: WidthKey, e: React.PointerEvent) {
     e.preventDefault();
     e.stopPropagation();
+    userResizedRef.current.add(key);
     const startX = e.clientX;
     const startW = widths[key];
     const onMove = (ev: PointerEvent) => {
@@ -284,7 +288,7 @@ export function ProjectSchedule({
     window.addEventListener("pointerup", onUp);
   }
 
-  function autoFitCol(key: WidthKey) {
+  function computeFitWidth(key: WidthKey): number {
     const headerLabel =
       key === "name" ? "Task Name" : (COLUMNS.find(c => c.key === key)?.label ?? "");
     let max = measureText(headerLabel, "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto");
@@ -317,9 +321,29 @@ export function ProjectSchedule({
       const w = measureText(txt) + extra;
       if (w > max) max = w;
     }
-    const next = Math.min(MAX_COL_W, Math.max(MIN_COL_W, Math.ceil(max + COL_PAD)));
-    setWidths(prev => ({ ...prev, [key]: next }));
+    return Math.min(MAX_COL_W, Math.max(MIN_COL_W, Math.ceil(max + COL_PAD)));
   }
+
+  function autoFitCol(key: WidthKey) {
+    userResizedRef.current.add(key);
+    setWidths(prev => ({ ...prev, [key]: computeFitWidth(key) }));
+  }
+
+  // Auto-fit all columns whenever data, visible cols, or expansion changes,
+  // for any column the user has not manually resized.
+  useEffect(() => {
+    setWidths(prev => {
+      const next = { ...prev };
+      const keys: WidthKey[] = ["name", ...COLUMNS.map(c => c.key as WidthKey)];
+      for (const k of keys) {
+        if (userResizedRef.current.has(k)) continue;
+        next[k] = computeFitWidth(k);
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, visibleCols, expanded]);
+
 
   // Row index map for arrow drawing
   const rowIndex = useMemo(() => {
@@ -345,6 +369,11 @@ export function ProjectSchedule({
   };
 
   function colVisible(k: ColKey) { return visibleCols.has(k); }
+
+  // Inline edit helpers
+  const editable = !!onItemPatch;
+  const ragOptions: Rag[] = ["blue", "amber", "green", "red", "grey"];
+  function patch(name: string, p: Partial<ScheduleItem>) { onItemPatch?.(name, p); }
 
   return (
     <div className="glass-card overflow-hidden">
@@ -438,7 +467,12 @@ export function ProjectSchedule({
                         <span className="inline-block h-4 w-4" />
                       )}
                       {isMs && <Diamond className="h-3 w-3 shrink-0 text-accent" />}
-                      <span className={`truncate font-medium ${hasChildren ? "text-foreground" : "text-foreground/90"} ${isCrit ? "text-rag-red" : ""}`}>{item.name}</span>
+                      <EditableText
+                        value={item.name}
+                        editable={editable}
+                        className={`truncate font-medium ${hasChildren ? "text-foreground" : "text-foreground/90"} ${isCrit ? "text-rag-red" : ""}`}
+                        onCommit={(v) => v && v !== item.name && patch(item.name, { name: v })}
+                      />
                     </div>
                     {colVisible("type") && (
                       <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.type }}>
@@ -446,26 +480,61 @@ export function ProjectSchedule({
                       </div>
                     )}
                     {colVisible("start") && (
-                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden truncate" style={{ width: widths.start }}>{item.startDate || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden" style={{ width: widths.start }}>
+                        <EditableText
+                          value={item.startDate || ""}
+                          placeholder="—"
+                          type="date"
+                          editable={editable}
+                          onCommit={(v) => patch(item.name, { startDate: v })}
+                        />
+                      </div>
                     )}
                     {colVisible("end") && (
-                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden truncate" style={{ width: widths.end }}>{item.endDate || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 num-mono overflow-hidden" style={{ width: widths.end }}>
+                        <EditableText
+                          value={item.endDate || ""}
+                          placeholder="—"
+                          type="date"
+                          editable={editable}
+                          onCommit={(v) => patch(item.name, { endDate: v })}
+                        />
+                      </div>
                     )}
                     {colVisible("owner") && (
-                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: widths.owner }}>{item.owner}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.owner }}>
+                        <EditableText
+                          value={item.owner}
+                          editable={editable}
+                          onCommit={(v) => patch(item.name, { owner: v })}
+                        />
+                      </div>
                     )}
                     {colVisible("assignee") && (
-                      <div className="flex items-center border-l border-border/60 px-3 truncate" style={{ width: widths.assignee }}>
-                        {item.assignee ? (
-                          <span className="truncate">{item.assignee}</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                      <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.assignee }}>
+                        <EditableText
+                          value={item.assignee || ""}
+                          placeholder="—"
+                          editable={editable}
+                          onCommit={(v) => patch(item.name, { assignee: v || undefined })}
+                        />
                       </div>
                     )}
                     {colVisible("status") && (
                       <div className="flex items-center border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.status }}>
-                        <RagBadge rag={item.rag} label={statusText[item.rag]} />
+                        {editable ? (
+                          <select
+                            value={item.rag}
+                            onChange={(e) => patch(item.name, { rag: e.target.value as Rag })}
+                            className="w-full cursor-pointer rounded bg-transparent text-xs outline-none focus:ring-1 focus:ring-accent"
+                          >
+                            {ragOptions.map(r => (
+                              <option key={r} value={r} className="bg-background text-foreground">{statusText[r]}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <RagBadge rag={item.rag} label={statusText[item.rag]} />
+                        )}
                       </div>
                     )}
                     {colVisible("progress") && (
@@ -473,11 +542,32 @@ export function ProjectSchedule({
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
                           <div className="h-full bg-accent" style={{ width: `${item.progress ?? 0}%` }} />
                         </div>
-                        <span className="num-mono text-[10px] text-muted-foreground">{item.progress ?? 0}%</span>
+                        {editable ? (
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={item.progress ?? 0}
+                            onChange={(e) => {
+                              const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                              patch(item.name, { progress: n });
+                            }}
+                            className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-muted-foreground outline-none focus:ring-1 focus:ring-accent"
+                          />
+                        ) : (
+                          <span className="num-mono text-[10px] text-muted-foreground">{item.progress ?? 0}%</span>
+                        )}
                       </div>
                     )}
                     {colVisible("dep") && (
-                      <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground truncate" style={{ width: widths.dep }}>{item.dep || "—"}</div>
+                      <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground overflow-hidden" style={{ width: widths.dep }}>
+                        <EditableText
+                          value={item.dep || ""}
+                          placeholder="—"
+                          editable={editable}
+                          onCommit={(v) => patch(item.name, { dep: v })}
+                        />
+                      </div>
                     )}
                     {colVisible("roles") && (
                       <div className="flex items-center gap-1 overflow-hidden border-l border-border/60 px-3" style={{ width: widths.roles }}>
@@ -707,5 +797,61 @@ function ColHeader({
         style={{ touchAction: "none" }}
       />
     </div>
+  );
+}
+
+// ── Inline-editable text/date cell (click to edit, Enter/blur to commit) ─────
+function EditableText({
+  value,
+  onCommit,
+  editable = true,
+  type = "text",
+  placeholder,
+  className,
+}: {
+  value: string;
+  onCommit: (v: string) => void;
+  editable?: boolean;
+  type?: "text" | "date";
+  placeholder?: string;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+
+  if (!editable) {
+    return (
+      <span className={`truncate ${className ?? ""}`}>
+        {value || <span className="text-muted-foreground">{placeholder ?? "—"}</span>}
+      </span>
+    );
+  }
+
+  if (!editing) {
+    return (
+      <span
+        onClick={() => setEditing(true)}
+        className={`block w-full cursor-text truncate rounded px-0.5 hover:bg-accent/10 ${className ?? ""}`}
+        title="Click to edit"
+      >
+        {value || <span className="text-muted-foreground">{placeholder ?? "—"}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      type={type}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => { setEditing(false); if (draft !== value) onCommit(draft); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); }
+        else if (e.key === "Escape") { setDraft(value); setEditing(false); }
+      }}
+      className={`w-full rounded bg-background px-1 py-0.5 text-xs outline-none ring-1 ring-accent ${className ?? ""}`}
+    />
   );
 }

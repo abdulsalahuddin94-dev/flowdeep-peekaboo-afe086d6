@@ -208,6 +208,9 @@ function ProjectDetail() {
         <TabsContent value="Project Schedule" className="mt-5">
           <ProjectSchedule
             items={useMemo(() => computeDerivedSchedule(milestones, resourceRequests), [milestones, resourceRequests])}
+            onItemPatch={(name, patch) =>
+              setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } as Milestone : m)))
+            }
             AddItemSlot={
               <AddMilestoneDialog
                 defaultOwner={project.pm}
