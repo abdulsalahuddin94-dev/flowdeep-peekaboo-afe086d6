@@ -297,23 +297,31 @@ export function ProjectSchedule({
   }
 
   function computeFitWidth(key: WidthKey): number {
+    const MONO_FONT = "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
     const headerLabel =
       key === "name" ? "Task Name" : (COLUMNS.find(c => c.key === key)?.label ?? "");
     let max = measureText(headerLabel, "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto");
     for (const { item, depth, hasChildren } of visibleRows) {
       let txt = "";
       let extra = 0;
+      let font: string | undefined;
       switch (key) {
         case "name":
           txt = item.name;
           extra = depth * 14 + 16 + (hasChildren ? 4 : 0) + (item.kind === "Milestone" ? 16 : 0);
           break;
-        case "type": txt = item.kind; extra = 16; break;
-        case "start": txt = item.startDate || "—"; break;
-        case "end": txt = item.endDate || "—"; break;
+        case "type": txt = item.kind; extra = 20; break;
+        case "start": txt = item.startDate || "—"; font = MONO_FONT; break;
+        case "end": txt = item.endDate || "—"; font = MONO_FONT; break;
         case "owner": txt = item.owner; break;
-        case "assignee": txt = item.assignee || "—"; break;
-        case "status": txt = statusText[item.rag]; extra = 18; break;
+        case "assignee": {
+          const a = item.assignee?.trim();
+          if (!a) { txt = "Request skill"; extra = 14 + 4 + 16 + 2; } // icon + gap + px-2*2 + border
+          else if (a.toLowerCase() === "waiting") { txt = "Waiting"; extra = 16 + 2; }
+          else { txt = a; extra = 6 + 6 + 16 + 2; } // dot + gap + padding + border
+          break;
+        }
+        case "status": txt = statusText[item.rag]; extra = 6 + 6 + 16 + 2; break; // dot + gap + px-2*2 + border
         case "progress": txt = `${item.progress ?? 0}%`; extra = 60; break;
         case "dep": txt = item.dep || "—"; break;
         case "roles":
@@ -323,10 +331,10 @@ export function ProjectSchedule({
           if (!item.payment || item.payment.kind === "None") txt = "—";
           else if (item.payment.kind === "Client Revenue") txt = `Revenue · ${item.payment.amount || "—"}`;
           else txt = `${item.payment.packageId || "Pkg"} · ${item.payment.amount || "—"}`;
-          extra = 16;
+          extra = 20;
           break;
       }
-      const w = measureText(txt) + extra;
+      const w = measureText(txt, font) + extra;
       if (w > max) max = w;
     }
     return Math.min(MAX_COL_W, Math.max(MIN_COL_W, Math.ceil(max + COL_PAD)));
