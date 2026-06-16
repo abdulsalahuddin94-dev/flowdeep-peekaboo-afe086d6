@@ -716,7 +716,7 @@ export function ProjectSchedule({
                   const e = parseISO(item.endDate);
                   if (!s || !e) return null;
                   const isMs = item.kind === "Milestone" || diffDays(e, s) === 0;
-                  const isCrit = criticalSet.has(item.name);
+                  // (critical-path highlight handled via row tint + arrow color)
                   const x = xForDate(s);
                   const top = i * ROW_H;
                   const progress = Math.max(0, Math.min(100, item.progress ?? 0));
