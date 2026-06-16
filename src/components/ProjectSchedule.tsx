@@ -90,9 +90,11 @@ function measureText(text: string, font = "12px ui-sans-serif, system-ui, -apple
 export function ProjectSchedule({
   items,
   AddItemSlot,
+  onItemPatch,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
+  onItemPatch?: (name: string, patch: Partial<ScheduleItem>) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
@@ -106,6 +108,7 @@ export function ProjectSchedule({
     for (const c of COLUMNS) w[c.key] = c.w;
     return w as Record<WidthKey, number>;
   });
+  const userResizedRef = useRef<Set<WidthKey>>(new Set());
   const splitRef = useRef<HTMLDivElement | null>(null);
   const leftScrollRef = useRef<HTMLDivElement | null>(null);
   const rightScrollRef = useRef<HTMLDivElement | null>(null);
