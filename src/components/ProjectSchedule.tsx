@@ -97,10 +97,12 @@ export function ProjectSchedule({
   items,
   AddItemSlot,
   onItemPatch,
+  onRequestSkill,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
   onItemPatch?: (name: string, patch: Partial<ScheduleItem>) => void;
+  onRequestSkill?: (itemName: string, role: RoleReq) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
