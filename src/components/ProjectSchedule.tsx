@@ -783,7 +783,7 @@ export function ProjectSchedule({
         </div>
 
         {/* Divider with collapse toggle */}
-        <div className="relative flex items-stretch" style={{ zIndex: 10 }}>
+        <div className="relative flex items-stretch" style={{ zIndex: 10, width: leftCollapsed ? 0 : 4 }}>
           {!leftCollapsed && (
             <div
               onPointerDown={startDrag}
@@ -795,9 +795,10 @@ export function ProjectSchedule({
             type="button"
             onClick={() => setLeftCollapsed((v) => !v)}
             title={leftCollapsed ? "Show table" : "Hide table"}
-            className="absolute top-2 -translate-x-1/2 left-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground hover:border-accent"
+            aria-label={leftCollapsed ? "Show table" : "Hide table"}
+            className="absolute top-1/2 -translate-y-1/2 left-0 -translate-x-1/2 z-30 flex h-9 w-9 items-center justify-center rounded-full border-2 border-accent bg-background text-accent shadow-md hover:bg-accent hover:text-accent-foreground transition-colors"
           >
-            {leftCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+            {leftCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
         </div>
 
