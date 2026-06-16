@@ -211,6 +211,27 @@ function ProjectDetail() {
             onItemPatch={(name, patch) =>
               setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } as Milestone : m)))
             }
+            onRequestSkill={(name, role) => {
+              const id = addResourceRequest({
+                project: project.name,
+                role: role.role,
+                skill: role.skill,
+                fte: role.fte,
+                from: new Date().toISOString().slice(0, 7),
+                until: new Date().toISOString().slice(0, 7),
+                priority: "Medium",
+                submittedBy: project.pm,
+                notes: `Requested from schedule task "${name}"`,
+              });
+              setMilestones((prev) =>
+                prev.map((m) =>
+                  m.name === name
+                    ? { ...m, resourceRequestIds: [...(m.resourceRequestIds ?? []), id], assignee: "Waiting" }
+                    : m,
+                ),
+              );
+              toast.success("Skill request sent to Resources");
+            }}
             AddItemSlot={
               <AddMilestoneDialog
                 defaultOwner={project.pm}
@@ -225,6 +246,7 @@ function ProjectDetail() {
               />
             }
           />
+
         </TabsContent>
 
 
