@@ -196,16 +196,16 @@
   h1,h2,h3,h4,h5 { font-weight: 600; letter-spacing: -0.01em; }
 }
 
-/* ── DS02 Sidebar — always dark, lavender active ─────────────────────────── */
+/* ── DS02 Sidebar — navy bg + lavender gradient active ───────────────────── */
 .ds02-sidebar,
 .ds02-sidebar [data-sidebar="sidebar"] {
-  background-color: #1c1c24 !important;
+  background-color: #0B154B !important;
 }
 
-/* Override shadcn sidebar active state */
+/* Override shadcn sidebar active state — top→bottom gradient */
 .ds02-sidebar [data-active="true"],
 .ds02-sidebar [aria-current="page"] {
-  background-color: #ccc4ec !important;
+  background: linear-gradient(180deg, #DEC9FF 0%, #857999 100%) !important;
   color: #1c274c !important;
 }
 
