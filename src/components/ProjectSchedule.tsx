@@ -1136,14 +1136,76 @@ export function ProjectSchedule({
       </div>
 
       <AlertDialog open={!!pendingImport} onOpenChange={(o) => { if (!o) setPendingImport(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Import {pendingImport?.length ?? 0} items from MS Project?</AlertDialogTitle>
+            <AlertDialogTitle>Import preview — {pendingImport?.length ?? 0} items from MS Project</AlertDialogTitle>
             <AlertDialogDescription>
-              Choose how to bring these tasks, activities, and milestones into the schedule.
+              Review tasks, activities, milestones, and dependencies below before confirming.
               "Replace" clears the current schedule; "Append" adds them after existing items.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {pendingImport && (() => {
+            const counts = pendingImport.reduce(
+              (a, it) => {
+                a[it.kind] = (a[it.kind] ?? 0) + 1;
+                if (it.dep) a.deps += 1;
+                if (it.assignee) a.assigned += 1;
+                return a;
+              },
+              { Milestone: 0, Activity: 0, Task: 0, deps: 0, assigned: 0 } as Record<string, number>,
+            );
+            const kindColor = (k: ItemKind) =>
+              k === "Milestone" ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+              : k === "Activity" ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
+              : "bg-muted text-muted-foreground border-border";
+            return (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">{counts.Milestone} milestones</span>
+                  <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-blue-300">{counts.Activity} activities</span>
+                  <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.Task} tasks</span>
+                  <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.deps} dependencies</span>
+                  <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.assigned} assigned</span>
+                </div>
+                <div className="max-h-[50vh] overflow-auto rounded-md border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-muted/60 text-muted-foreground">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left font-medium">Name</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Type</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Start</th>
+                        <th className="px-2 py-1.5 text-left font-medium">End</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Depends on</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Assignee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingImport.map((it, i) => (
+                        <tr key={i} className="border-t border-border/60 hover:bg-muted/30">
+                          <td className="px-2 py-1.5">
+                            <div className="flex items-center gap-1.5">
+                              {it.parent && <span className="text-muted-foreground/60">↳</span>}
+                              <span className={it.kind === "Activity" ? "font-medium" : ""}>{it.name}</span>
+                            </div>
+                            {it.parent && <div className="pl-4 text-[10px] text-muted-foreground">in {it.parent}</div>}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <span className={`rounded border px-1.5 py-0.5 text-[10px] ${kindColor(it.kind)}`}>{it.kind}</span>
+                          </td>
+                          <td className="px-2 py-1.5 text-muted-foreground">{it.startDate || "—"}</td>
+                          <td className="px-2 py-1.5 text-muted-foreground">{it.endDate || "—"}</td>
+                          <td className="px-2 py-1.5 text-muted-foreground">{it.dep || "—"}</td>
+                          <td className="px-2 py-1.5 text-muted-foreground">{it.assignee || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <Button
