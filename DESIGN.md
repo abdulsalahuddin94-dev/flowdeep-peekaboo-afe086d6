@@ -309,6 +309,24 @@ Most-used values from the design system:
 
 ---
 
+## DS02 · Sidebar Style
+
+The sidebar is **always dark** in DS02 — regardless of the light/dark mode toggle. This creates a "dark sidebar + light/dark content" split that is common in professional SaaS apps.
+
+```
+Background:    #1c1c24  (always — light mode AND dark mode)
+Text:          rgba(255,255,255,0.7)
+Active item:   background #ccc4ec (lavender), text #1c274c (dark navy)
+Hover item:    background rgba(255,255,255,0.08)
+Border:        rgba(255,255,255,0.08)
+Radius:        rounded-xl (12px) per item
+Height:        h-10 (40px) per item
+```
+
+**Active state rule:** The active nav item uses `--accent-secondary` (`#ccc4ec`) as its background with `#1c274c` as text — NOT the golden accent. This mirrors the DS02 Figma reference exactly.
+
+**No section labels** — no "MAIN" or "MANAGEMENT" group headers. All items flow in a single list.
+
 ## DS02 · Card Style
 
 No glassmorphism — solid surfaces with light shadows.

@@ -29,6 +29,8 @@ const mgmt = [
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
+const allItems = [...main, ...mgmt];
+
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
@@ -36,23 +38,24 @@ export function AppSidebar() {
   const isActive = (url: string) => url === "/" ? pathname === "/" : pathname.startsWith(url);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center justify-between gap-2 px-2 py-3">
+    <Sidebar collapsible="icon" className="ds02-sidebar border-r-0">
+      {/* Header */}
+      <SidebarHeader className="border-b border-white/8 px-3 py-4">
+        <div className="flex items-center justify-between gap-2">
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-accent-foreground font-semibold">N</div>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-secondary text-[#1c274c] font-bold text-sm">
+                N
+              </div>
               <div>
-                <div className="text-sm font-medium tracking-wide text-foreground">Nexus PMO</div>
-                <Badge variant="outline" className="mt-0.5 h-4 border-accent/40 bg-accent-dim px-1.5 py-0 text-[10px] font-medium text-accent">
-                  Portfolio Director
-                </Badge>
+                <div className="text-sm font-semibold text-white">Nexus PMO</div>
+                <div className="text-[10px] text-white/50 mt-0.5">Portfolio Director</div>
               </div>
             </div>
           )}
           <button
             onClick={toggleSidebar}
-            className="ml-auto rounded p-1 text-muted-foreground hover:bg-sidebar-accent hover:text-accent"
+            className="ml-auto rounded-lg p-1.5 text-white/40 hover:bg-white/8 hover:text-white/80 transition-colors"
             aria-label="Toggle sidebar"
           >
             <ChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
@@ -60,79 +63,79 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="label-eyebrow">Main</SidebarGroupLabel>
+      {/* Nav */}
+      <SidebarContent className="px-2 py-3">
+        <SidebarGroup className="p-0">
           <SidebarGroupContent>
-            <SidebarMenu>
-              {main.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      {item.badge && !collapsed && (
-                        <Badge
-                          className={`ml-auto h-5 px-1.5 text-[10px] ${
-                            item.badgeTone === "red"
-                              ? "bg-rag-red/15 text-rag-red border border-rag-red/30"
-                              : "bg-accent-dim text-accent border border-accent/30"
-                          }`}
-                          variant="outline"
-                        >
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="label-eyebrow">Management</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mgmt.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="gap-0.5">
+              {allItems.map((item) => {
+                const active = isActive(item.url);
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                      className={`
+                        h-10 rounded-xl px-3 text-sm font-medium transition-all
+                        ${active
+                          ? "bg-accent-secondary text-[#1c274c] hover:bg-accent-secondary/90"
+                          : "text-white/70 hover:bg-white/8 hover:text-white"
+                        }
+                      `}
+                    >
+                      <Link to={item.url} className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{item.title}</span>
+                        {"badge" in item && item.badge && !collapsed && (
+                          <span className={`ml-auto text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${
+                            "badgeTone" in item && item.badgeTone === "red"
+                              ? "bg-rag-red/20 text-rag-red"
+                              : "bg-white/15 text-white/70"
+                          }`}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
+      {/* Footer */}
+      <SidebarFooter className="border-t border-white/8 px-3 py-3">
+        <SidebarMenu className="gap-0.5">
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Help & Docs">
-              <HelpCircle className="h-4 w-4" />
+            <SidebarMenuButton
+              tooltip="Help & Docs"
+              className="h-10 rounded-xl px-3 text-sm font-medium text-white/70 hover:bg-white/8 hover:text-white transition-all"
+            >
+              <HelpCircle className="h-4 w-4 shrink-0" />
               <span>Help & Docs</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Logout">
-              <LogOut className="h-4 w-4" />
+            <SidebarMenuButton
+              tooltip="Logout"
+              className="h-10 rounded-xl px-3 text-sm font-medium text-white/70 hover:bg-white/8 hover:text-white transition-all"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
               <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         {!collapsed && (
-          <div className="flex items-center gap-2 px-2 pt-2">
-            <Avatar className="h-8 w-8 border border-border">
-              <AvatarFallback className="bg-accent-dim text-accent text-xs">AK</AvatarFallback>
+          <div className="mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2">
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarFallback className="bg-accent-secondary text-[#1c274c] text-xs font-bold">AK</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div className="truncate text-xs font-medium text-foreground">Aisha Khoury</div>
-              <div className="truncate text-[10px] text-muted-foreground">Portfolio Director</div>
+              <div className="truncate text-xs font-semibold text-white">Aisha Khoury</div>
+              <div className="truncate text-[10px] text-white/50">Portfolio Director</div>
             </div>
           </div>
         )}
