@@ -132,21 +132,222 @@ background: rgba(255,255,255,0.06);
 
 ---
 
-# DS02 — TBD / Dark + Light Mode
-**Status:** Defined when ready  
-**Mode:** Dark + Light  
-**Character:** To be specified
+# DS02 — Warm Light / Dark Mode
+**Status:** Active (defined from Figma — Attendance App Design System)  
+**Mode:** Light (default) + Dark  
+**Character:** Warm cream surfaces, golden yellow accent, lavender secondary, clean white backgrounds. Professional and approachable — works in both modes.
 
-> DS02 tokens will be filled in when the new design is ready.
-> It will include both a `:root` (dark) and `[data-theme="light"]` block.
+## DS02 · Visual Language
 
+- White / warm-cream backgrounds — no glass, solid surfaces
+- Golden yellow (`#f2c94c`) as the primary accent
+- Lavender/purple (`#ccc4ec`, `#dec9ff`) as the secondary accent
+- Dark navy (`#1c274c`) for deep accents and high-contrast elements
+- Clean, modern typography — Inter as the primary font
+- Consistent 8px / 10px / 16px radius system
+
+---
+
+## DS02 · CSS Variables
+
+Apply these to `:root` in `styles.css` when DS02 is active.
+
+### Light Mode (default)
+
+```css
+:root {
+  /* Backgrounds */
+  --background: #ffffff;
+  --surface:    #f5efeb;       /* warm cream — cards, panels */
+  --surface-alt: #e5e5e5;     /* dividers, inactive tabs */
+  --surface-alt-2: #c7c5d0;   /* subtle fills */
+
+  /* Text */
+  --foreground:         #262626;   /* primary text */
+  --text-secondary:     #3d3d44;   /* secondary text */
+  --muted-foreground:   #737373;   /* captions, metadata */
+  --text-inverse:       #ffffff;   /* text on dark backgrounds */
+
+  /* Accent — Golden Yellow */
+  --accent:             #f2c94c;
+  --accent-foreground:  #1c274c;   /* dark text on accent */
+  --accent-dim:         rgba(242,201,76,0.15);
+  --accent-deep:        #1c274c;   /* navy — used for strong emphasis */
+  --accent-dark:        #30384a;   /* slightly lighter navy */
+
+  /* Secondary Accent — Lavender */
+  --accent-secondary:   #ccc4ec;
+  --accent-secondary-2: #dec9ff;
+  --accent-blue:        #a0c9e9;
+
+  /* Border & Input */
+  --border: #a3a3a3;
+  --border-light: #d4d4d4;
+  --input:  #ffffff;
+  --ring:   rgba(242,201,76,0.5);
+
+  /* Semantic */
+  --destructive:            #ef4444;
+  --destructive-foreground: #ffffff;
+}
 ```
-DS02 · Dark Mode tokens  →  to be defined
-DS02 · Light Mode tokens →  to be defined
-DS02 · Accent colour     →  to be defined
-DS02 · Card style        →  to be defined
-DS02 · Typography        →  to be defined
+
+### Dark Mode
+
+```css
+[data-theme="dark"] {
+  --background:       #121318;
+  --surface:          #1c1c24;
+  --surface-alt:      #292931;
+  --surface-alt-2:    #30384a;
+
+  --foreground:       #ffffff;
+  --text-secondary:   #c7c5d0;
+  --muted-foreground: #737373;
+  --text-inverse:     #121318;
+
+  --accent:             #f2c94c;
+  --accent-foreground:  #121318;
+  --accent-dim:         rgba(242,201,76,0.15);
+  --accent-deep:        #a0c9e9;
+  --accent-dark:        #30384a;
+
+  --accent-secondary:   #ccc4ec;
+  --accent-secondary-2: #dec9ff;
+  --accent-blue:        #a0c9e9;
+
+  --border:       rgba(255,255,255,0.12);
+  --border-light: rgba(255,255,255,0.06);
+  --input:        rgba(255,255,255,0.06);
+  --ring:         rgba(242,201,76,0.4);
+}
 ```
+
+---
+
+## DS02 · Colour Reference
+
+### Core Palette
+
+| Token | Light | Dark | Usage |
+|---|---|---|---|
+| `--background` | `#ffffff` | `#121318` | Page background |
+| `--surface` | `#f5efeb` | `#1c1c24` | Cards, panels, inputs |
+| `--surface-alt` | `#e5e5e5` | `#292931` | Dividers, inactive fills |
+| `--foreground` | `#262626` | `#ffffff` | Primary text |
+| `--muted-foreground` | `#737373` | `#737373` | Metadata, captions |
+| `--border` | `#a3a3a3` | `rgba(255,255,255,0.12)` | All borders |
+
+### Accent Palette
+
+| Token | Value | Usage |
+|---|---|---|
+| `--accent` | `#f2c94c` | Primary CTA, active states, highlights |
+| `--accent-foreground` | `#1c274c` (light) / `#121318` (dark) | Text on accent backgrounds |
+| `--accent-dim` | `rgba(242,201,76,0.15)` | Chip fills, selected backgrounds |
+| `--accent-deep` | `#1c274c` | Deep emphasis, dark buttons |
+| `--accent-secondary` | `#ccc4ec` | Secondary badges, info chips |
+| `--accent-secondary-2` | `#dec9ff` | Hover glow, focus rings on secondary |
+| `--accent-blue` | `#a0c9e9` | Info states, blue tags |
+
+### Semantic Colours (same both modes)
+
+| Purpose | Colour |
+|---|---|
+| Success / On Track | `#10b981` |
+| Warning / At Risk | `#f59e0b` |
+| Danger / Error | `#ef4444` |
+| Info / New | `#3b82f6` |
+
+---
+
+## DS02 · Typography
+
+**Primary font:** `Inter` (Google Fonts). Fallback: `ui-sans-serif, system-ui, sans-serif`.  
+**Display / Headings:** `Poppins` for large display text if needed.
+
+| Element | Size | Weight | Notes |
+|---|---|---|---|
+| Display | 78px | 700 | Hero / splash only |
+| H1 | 48px | 700 | Page titles |
+| H2 | 44px | 700 | Section headers |
+| H3 | 40px | 600 | Sub-sections |
+| H4 | 36px | 700 | Card headers |
+| H5 | 32px | 600 | |
+| Body Large | 16px | 400 | Default body text |
+| Body | 14px | 400 | Tables, cards |
+| Caption | 12px | 400 | Metadata, timestamps |
+| Label | 12px | 600 | Form labels, eyebrows |
+
+> Numbers and IDs: still use `.num-mono` (Courier New / monospace) as inherited from Shared Rules.
+
+---
+
+## DS02 · Border Radius
+
+Most-used values from the design system:
+
+| Token | Value | Usage |
+|---|---|---|
+| `rounded-sm` | 4px | Badges, tags |
+| `rounded-md` | 8px | **Default** — buttons, inputs, most cards |
+| `rounded-lg` | 10px | Cards, panels |
+| `rounded-xl` | 16px | Large modals, hero containers |
+| `rounded-full` | 9999px | Avatars, pills, toggles |
+
+---
+
+## DS02 · Shadows
+
+| Token | Value | Usage |
+|---|---|---|
+| `shadow-sm` | `0 1px 2px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.1)` | Subtle lift |
+| `shadow-md` | `0 2px 4px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.1)` | Cards |
+| `shadow-lg` | `0 4px 6px rgba(0,0,0,0.1), 0 10px 15px rgba(0,0,0,0.1)` | Modals |
+| `shadow-accent` | `0 7px 8px rgba(242,201,76,0.2)` | Accent button glow |
+| `focus-ring` | `0 0 0 2px rgba(242,201,76,0.5)` | Focus state |
+
+---
+
+## DS02 · Card Style
+
+No glassmorphism — solid surfaces with light shadows.
+
+```css
+/* Light mode */
+background: #f5efeb;          /* --surface */
+border: 1px solid #d4d4d4;    /* --border-light */
+border-radius: 8px;
+box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+transition: all 200ms ease;
+
+/* Hover */
+border-color: #f2c94c;        /* accent border on hover */
+box-shadow: 0 2px 8px rgba(242,201,76,0.15);
+
+/* Dark mode */
+background: #1c1c24;
+border: 1px solid rgba(255,255,255,0.1);
+```
+
+---
+
+## DS02 · Do's and Don'ts
+
+**Do:**
+- Use `--background` (`#fff` / `#121318`) as the page background
+- Use `--surface` (`#f5efeb` / `#1c1c24`) for cards and panels
+- Use `--accent` (`#f2c94c`) as the single primary CTA colour
+- Use `data-theme="dark"` on `<html>` to switch to dark mode
+- Use `Inter` for all body text
+- Keep border-radius at 8px for most elements
+
+**Don't:**
+- Don't use glassmorphism (`backdrop-filter: blur`) — DS02 uses solid surfaces
+- Don't use the DS01 navy (`#0B1120`) as a background in DS02
+- Don't mix DS01 teal (`#51CAAD`) with DS02 golden accent
+- Don't use `font-bold` for body text — max `font-semibold` (600)
+- Don't hardcode hex values — always use CSS variables
 
 ---
 
