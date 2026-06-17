@@ -67,7 +67,7 @@ export function AppSidebar() {
             <div className="flex items-center gap-2.5">
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-sm"
-                style={{ background: SIDEBAR_COLORS.navActive, color: "#FFFFFF" }}
+                style={{ background: SIDEBAR_COLORS.navActiveSolid, color: SIDEBAR_COLORS.navActiveText }}
               >
                 N
               </div>
