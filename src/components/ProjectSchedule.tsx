@@ -702,6 +702,42 @@ export function ProjectSchedule({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {onImport && (
+            <>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xml,.mpp,application/xml,text/xml"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.currentTarget.value = "";
+                  if (!file) return;
+                  if (/\.mpp$/i.test(file.name)) {
+                    toast.error("Binary .mpp files aren't supported in-browser. In MS Project: File → Save As → XML (.xml), then import here.");
+                    return;
+                  }
+                  try {
+                    const txt = await file.text();
+                    const parsed = parseMsProjectXml(txt);
+                    if (!parsed.length) { toast.error("No tasks found in file"); return; }
+                    setPendingImport(parsed);
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to parse MS Project XML");
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={() => importInputRef.current?.click()}
+              >
+                <Upload className="h-3.5 w-3.5" /> Import MS Project
+              </Button>
+            </>
+          )}
+
           {AddItemSlot}
         </div>
       </div>
