@@ -202,6 +202,11 @@
   background-color: #0B154B !important;
 }
 
+[data-theme="dark"] .ds02-sidebar,
+[data-theme="dark"] .ds02-sidebar [data-sidebar="sidebar"] {
+  background-color: #121318 !important;
+}
+
 /* Override shadcn sidebar active state — top→bottom gradient */
 .ds02-sidebar [data-active="true"],
 .ds02-sidebar [aria-current="page"] {
