@@ -17,10 +17,113 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, Upload, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+// ── MS Project XML import ────────────────────────────────────────────────────
+function parseMsProjectXml(xmlText: string): ScheduleItem[] {
+  const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+  if (doc.querySelector("parsererror")) throw new Error("Invalid XML file");
+  const ns = doc.documentElement.namespaceURI;
+  const q = (el: Element, tag: string) =>
+    (ns ? el.getElementsByTagNameNS(ns, tag) : el.getElementsByTagName(tag));
+  const text = (el: Element | null | undefined, tag: string) => {
+    if (!el) return "";
+    const n = q(el, tag)[0];
+    return n?.textContent?.trim() ?? "";
+  };
+  const toISO = (s: string) => (s ? s.slice(0, 10) : "");
+
+  // Resources: UID -> Name
+  const resources = new Map<string, string>();
+  const resRoot = q(doc.documentElement, "Resources")[0];
+  if (resRoot) {
+    Array.from(q(resRoot, "Resource")).forEach((r) => {
+      const uid = text(r, "UID");
+      const name = text(r, "Name");
+      if (uid) resources.set(uid, name);
+    });
+  }
+  // Assignments: TaskUID -> [ResourceName]
+  const assignments = new Map<string, string[]>();
+  const asgRoot = q(doc.documentElement, "Assignments")[0];
+  if (asgRoot) {
+    Array.from(q(asgRoot, "Assignment")).forEach((a) => {
+      const tuid = text(a, "TaskUID");
+      const ruid = text(a, "ResourceUID");
+      const nm = resources.get(ruid);
+      if (!tuid || !nm) return;
+      if (!assignments.has(tuid)) assignments.set(tuid, []);
+      assignments.get(tuid)!.push(nm);
+    });
+  }
+
+  const tasksRoot = q(doc.documentElement, "Tasks")[0];
+  if (!tasksRoot) throw new Error("No <Tasks> found in MS Project XML");
+  const rawTasks = Array.from(q(tasksRoot, "Task"));
+  type Raw = {
+    uid: string; name: string; start: string; finish: string;
+    outline: number; isSummary: boolean; isMilestone: boolean;
+    percent: number; preds: string[];
+  };
+  const list: Raw[] = rawTasks
+    .map((t) => {
+      const name = text(t, "Name");
+      if (!name) return null;
+      const preds = Array.from(q(t, "PredecessorLink"))
+        .map((p) => text(p, "PredecessorUID"))
+        .filter(Boolean);
+      return {
+        uid: text(t, "UID"),
+        name,
+        start: toISO(text(t, "Start")),
+        finish: toISO(text(t, "Finish")),
+        outline: Number(text(t, "OutlineLevel") || "1"),
+        isSummary: text(t, "Summary") === "1",
+        isMilestone: text(t, "Milestone") === "1",
+        percent: Number(text(t, "PercentComplete") || "0"),
+        preds,
+      } as Raw;
+    })
+    .filter((x): x is Raw => !!x);
+
+  const uidToName = new Map(list.map((r) => [r.uid, r.name]));
+  // Find parent: nearest preceding task with smaller OutlineLevel
+  const items: ScheduleItem[] = list.map((r, idx) => {
+    let parent: string | undefined;
+    for (let j = idx - 1; j >= 0; j--) {
+      if (list[j].outline < r.outline) { parent = list[j].name; break; }
+    }
+    const kind: ItemKind = r.isMilestone ? "Milestone" : r.isSummary ? "Activity" : "Task";
+    const dep = r.preds.map((u) => uidToName.get(u)).filter(Boolean).join(", ");
+    const assignee = (assignments.get(r.uid) ?? []).join(", ") || undefined;
+    const rag: Rag = r.percent >= 100 ? "green" : r.percent > 0 ? "blue" : "grey";
+    return {
+      name: r.name,
+      kind,
+      startDate: r.start,
+      endDate: r.finish,
+      owner: "",
+      rag,
+      dep,
+      roles: [],
+      progress: r.percent,
+      parent,
+      assignee,
+    };
+  });
+  // De-dupe names (MS Project allows duplicates; our model keys by name)
+  const seen = new Map<string, number>();
+  for (const it of items) {
+    const n = seen.get(it.name) ?? 0;
+    if (n > 0) it.name = `${it.name} (${n + 1})`;
+    seen.set(it.name, n + 1);
+  }
+  return items;
+}
 
 // ── Shared types (mirror parent file) ────────────────────────────────────────
 export type ItemKind = "Milestone" | "Activity" | "Task";
