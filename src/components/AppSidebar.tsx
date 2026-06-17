@@ -55,7 +55,7 @@ export function AppSidebar() {
     <Sidebar
       collapsible="icon"
       className="ds02-sidebar border-r-0"
-      style={{ fontFamily: "Poppins, sans-serif", backgroundColor: SIDEBAR_COLORS.bg }}
+      style={{ fontFamily: "Poppins, sans-serif" }}
     >
       {/* Header — Logo & Collapse Toggle */}
       <SidebarHeader

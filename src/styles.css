@@ -171,14 +171,14 @@
   --input:  rgba(255,255,255,0.06);
   --ring:   rgba(242,201,76,0.4);
 
-  --sidebar:                    #1c1c24;
+  --sidebar:                    #121318;
   --sidebar-foreground:         #c7c5d0;
-  --sidebar-primary:            #f2c94c;
-  --sidebar-primary-foreground: #121318;
-  --sidebar-accent:             rgba(242,201,76,0.15);
-  --sidebar-accent-foreground:  #f2c94c;
+  --sidebar-primary:            #DEC9FF;
+  --sidebar-primary-foreground: #1c274c;
+  --sidebar-accent:             rgba(255,255,255,0.08);
+  --sidebar-accent-foreground:  #ffffff;
   --sidebar-border:             rgba(255,255,255,0.08);
-  --sidebar-ring:               rgba(242,201,76,0.4);
+  --sidebar-ring:               rgba(222,201,255,0.4);
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
@@ -200,6 +200,11 @@
 .ds02-sidebar,
 .ds02-sidebar [data-sidebar="sidebar"] {
   background-color: #0B154B !important;
+}
+
+[data-theme="dark"] .ds02-sidebar,
+[data-theme="dark"] .ds02-sidebar [data-sidebar="sidebar"] {
+  background-color: #121318 !important;
 }
 
 /* Override shadcn sidebar active state — top→bottom gradient */
