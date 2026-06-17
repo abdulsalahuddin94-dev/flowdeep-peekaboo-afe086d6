@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Plus, Search, Command as CmdIcon, Briefcase, Users, Zap } from "lucide-react";
+import { Bell, Plus, Search, Command as CmdIcon, Briefcase, Users, Zap, Sun, Moon } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -231,9 +231,40 @@ export function AppTopbar() {
           Director Mode
         </Badge>
 
+        <ThemeToggle />
         <SignOutButton />
       </div>
     </header>
+  );
+}
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("ds02-theme");
+    if (stored === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      setDark(true);
+    }
+  }, []);
+
+  function toggle() {
+    const next = !dark;
+    setDark(next);
+    if (next) {
+      document.documentElement.setAttribute("data-theme", "dark");
+      localStorage.setItem("ds02-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      localStorage.setItem("ds02-theme", "light");
+    }
+  }
+
+  return (
+    <Button variant="outline" size="sm" onClick={toggle} className="h-8 w-8 p-0" title={dark ? "Switch to Light Mode" : "Switch to Dark Mode"}>
+      {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+    </Button>
   );
 }
 
