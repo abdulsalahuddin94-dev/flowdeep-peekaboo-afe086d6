@@ -12,6 +12,19 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
+/* DS02 + TeamSmart Sidebar Color Tokens */
+const SIDEBAR_COLORS = {
+  bg: "#0F1729",                    // Dark sidebar background
+  border: "rgba(255,255,255,0.08)", // Subtle border
+  navText: "#94A3B8",               // Muted nav item text
+  navTextHover: "#CBD5E1",           // Hover text
+  navActive: "#A78BFA",             // Lavender pill (TeamSmart)
+  navActiveText: "#FFFFFF",         // White on active pill
+  navHoverBg: "rgba(212,165,116,0.08)", // Warm golden tint
+  disabled: "#475569",              // Disabled state
+  accent: "#D4A574",                // Golden accent (secondary)
+};
+
 const main = [
   { title: "Dashboard",       url: "/",               icon: LayoutDashboard },
   { title: "Portfolio",       url: "/portfolio",       icon: Target },
@@ -38,36 +51,58 @@ export function AppSidebar() {
   const isActive = (url: string) => url === "/" ? pathname === "/" : pathname.startsWith(url);
 
   return (
-    <Sidebar collapsible="icon" className="ds02-sidebar border-r-0">
-      {/* Header */}
-      <SidebarHeader className="border-b border-white/8 px-3 py-4">
+    <Sidebar
+      collapsible="icon"
+      className="ds02-sidebar border-r-0 bg-[#0F1729]"
+      style={{ fontFamily: "Poppins, sans-serif" }}
+    >
+      {/* Header — Logo & Collapse Toggle */}
+      <SidebarHeader
+        className="border-b px-3 py-4"
+        style={{ borderColor: SIDEBAR_COLORS.border }}
+      >
         <div className="flex items-center justify-between gap-2">
           {!collapsed && (
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-secondary text-[#1c274c] font-bold text-sm">
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-sm"
+                style={{ background: SIDEBAR_COLORS.navActive, color: "#FFFFFF" }}
+              >
                 N
               </div>
               <div>
                 <div className="text-sm font-semibold text-white">Nexus PMO</div>
-                <div className="text-[10px] text-white/50 mt-0.5">Portfolio Director</div>
+                <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  Portfolio Director
+                </div>
               </div>
             </div>
           )}
+          {/* Collapse/Expand Button */}
           <button
             onClick={toggleSidebar}
-            className="ml-auto rounded-lg p-1.5 text-white/40 hover:bg-white/8 hover:text-white/80 transition-colors"
+            className="ml-auto rounded-lg p-1.5 transition-colors"
+            style={{
+              color: "rgba(255,255,255,0.4)",
+              hover: { backgroundColor: "rgba(255,255,255,0.08)" }
+            }}
             aria-label="Toggle sidebar"
           >
-            <ChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
+            <ChevronLeft
+              className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`}
+            />
           </button>
         </div>
       </SidebarHeader>
 
-      {/* Nav */}
+      {/* Navigation Menu — Expanded & Collapsed Variants */}
       <SidebarContent className="px-2 py-3">
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
+            <SidebarMenu
+              className="gap-3"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
               {allItems.map((item) => {
                 const active = isActive(item.url);
                 return (
@@ -77,24 +112,50 @@ export function AppSidebar() {
                       isActive={active}
                       tooltip={item.title}
                       className={`
-                        h-10 rounded-xl px-3 text-sm font-medium transition-all
-                        ${active
-                          ? "bg-accent-secondary text-[#1c274c] hover:bg-accent-secondary/90"
-                          : "text-white/70 hover:bg-white/8 hover:text-white"
-                        }
+                        h-10 rounded-lg px-3 text-sm font-medium transition-all duration-200
+                        flex items-center gap-3
                       `}
+                      style={{
+                        background: active ? SIDEBAR_COLORS.navActive : "transparent",
+                        color: active ? SIDEBAR_COLORS.navActiveText : SIDEBAR_COLORS.navText,
+                        fontSize: "14px",
+                        fontWeight: active ? "600" : "400",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!active) {
+                          e.currentTarget.style.background = SIDEBAR_COLORS.navHoverBg;
+                          e.currentTarget.style.color = SIDEBAR_COLORS.navTextHover;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!active) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = SIDEBAR_COLORS.navText;
+                        }
+                      }}
                     >
-                      <Link to={item.url} className="flex items-center gap-3">
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{item.title}</span>
-                        {"badge" in item && item.badge && !collapsed && (
-                          <span className={`ml-auto text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${
-                            "badgeTone" in item && item.badgeTone === "red"
-                              ? "bg-rag-red/20 text-rag-red"
-                              : "bg-white/15 text-white/70"
-                          }`}>
-                            {item.badge}
-                          </span>
+                      <Link to={item.url} className="flex items-center gap-3 w-full">
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        {!collapsed && (
+                          <>
+                            <span className="truncate flex-1">{item.title}</span>
+                            {/* Badge — only visible in expanded mode */}
+                            {"badge" in item && item.badge && (
+                              <span
+                                className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 ml-auto"
+                                style={{
+                                  background: "badgeTone" in item && item.badgeTone === "red"
+                                    ? "rgba(239,68,68,0.2)"
+                                    : "rgba(255,255,255,0.15)",
+                                  color: "badgeTone" in item && item.badgeTone === "red"
+                                    ? "#EF4444"
+                                    : "rgba(255,255,255,0.7)"
+                                }}
+                              >
+                                {item.badge}
+                              </span>
+                            )}
+                          </>
                         )}
                       </Link>
                     </SidebarMenuButton>
@@ -106,36 +167,86 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer */}
-      <SidebarFooter className="border-t border-white/8 px-3 py-3">
-        <SidebarMenu className="gap-0.5">
+      {/* Footer — Help, Logout, User Profile */}
+      <SidebarFooter
+        className="border-t px-3 py-3"
+        style={{
+          borderColor: SIDEBAR_COLORS.border,
+          fontFamily: "Poppins, sans-serif"
+        }}
+      >
+        <SidebarMenu className="gap-3">
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Help & Docs"
-              className="h-10 rounded-xl px-3 text-sm font-medium text-white/70 hover:bg-white/8 hover:text-white transition-all"
+              className="h-10 rounded-lg px-3 text-sm font-medium transition-all duration-200"
+              style={{
+                color: SIDEBAR_COLORS.navText,
+                fontSize: "14px",
+                fontWeight: "400"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = SIDEBAR_COLORS.navHoverBg;
+                e.currentTarget.style.color = SIDEBAR_COLORS.navTextHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = SIDEBAR_COLORS.navText;
+              }}
             >
-              <HelpCircle className="h-4 w-4 shrink-0" />
-              <span>Help & Docs</span>
+              <HelpCircle className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Help & Docs</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Logout"
-              className="h-10 rounded-xl px-3 text-sm font-medium text-white/70 hover:bg-white/8 hover:text-white transition-all"
+              className="h-10 rounded-lg px-3 text-sm font-medium transition-all duration-200"
+              style={{
+                color: SIDEBAR_COLORS.navText,
+                fontSize: "14px",
+                fontWeight: "400"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = SIDEBAR_COLORS.navHoverBg;
+                e.currentTarget.style.color = SIDEBAR_COLORS.navTextHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = SIDEBAR_COLORS.navText;
+              }}
             >
-              <LogOut className="h-4 w-4 shrink-0" />
-              <span>Logout</span>
+              <LogOut className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Logout</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+
+        {/* User Profile Card — Expanded Only */}
         {!collapsed && (
-          <div className="mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2">
+          <div
+            className="mt-4 flex items-center gap-2.5 rounded-lg px-2 py-2"
+            style={{
+              background: SIDEBAR_COLORS.navHoverBg,
+              borderRadius: "12px"
+            }}
+          >
             <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="bg-accent-secondary text-[#1c274c] text-xs font-bold">AK</AvatarFallback>
+              <AvatarFallback
+                className="text-xs font-bold text-white"
+                style={{ background: SIDEBAR_COLORS.navActive }}
+              >
+                AK
+              </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="truncate text-xs font-semibold text-white">Aisha Khoury</div>
-              <div className="truncate text-[10px] text-white/50">Portfolio Director</div>
+              <div
+                className="truncate text-[10px]"
+                style={{ color: "rgba(255,255,255,0.5)" }}
+              >
+                Portfolio Director
+              </div>
             </div>
           </div>
         )}

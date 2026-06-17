@@ -2,10 +2,43 @@
 @source "../src";
 @import "tw-animate-css";
 
+/* Google Fonts Import — DS02 Multi-Font Strategy */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+
 /* Active Design System: DS02 — Dark default / Light optional */
 /* Default mode: DARK. Light mode activated via data-theme="light" on <html> */
 
 @custom-variant dark (&:not([data-theme="light"] *));
+
+/* Sidebar Component — DS02 + TeamSmart Integration */
+.ds02-sidebar {
+  font-family: "Poppins", sans-serif !important;
+  background-color: #0F1729 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ds02-sidebar [data-sidebar-menu-button] {
+  color: #94A3B8;
+  font-family: "Poppins", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 200ms ease;
+}
+
+.ds02-sidebar [data-sidebar-menu-button]:hover:not([data-state="active"]) {
+  color: #CBD5E1;
+  background-color: rgba(212, 165, 116, 0.08);
+}
+
+.ds02-sidebar [data-sidebar-menu-button][data-state="active"] {
+  background-color: #A78BFA !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+}
+
+.ds02-sidebar [data-sidebar-footer] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
 
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
