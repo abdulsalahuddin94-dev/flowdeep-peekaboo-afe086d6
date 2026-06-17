@@ -238,3 +238,50 @@
   }
   .num-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 }
+
+/* ── Themed Scrollbars (DS02) ────────────────────────────────────────────── */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--accent) 55%, transparent) transparent;
+}
+
+/* WebKit / Chromium */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--accent) 45%, transparent);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 200ms ease;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Sidebar gets a lighter, on-dark thumb regardless of theme */
+.ds02-sidebar *::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.ds02-sidebar *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.32);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.ds02-sidebar * {
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+
