@@ -6,7 +6,7 @@
 
 ---
 
-## ▶ ACTIVE DESIGN SYSTEM: DS01
+## ▶ ACTIVE DESIGN SYSTEM: DS02
 
 > To switch: change the line above to `DS02` (or any defined system).
 > All colour tokens, card styles, and mode rules come from the active system only.
