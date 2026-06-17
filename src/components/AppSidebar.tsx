@@ -82,10 +82,9 @@ export function AppSidebar() {
           <button
             onClick={toggleSidebar}
             className="ml-auto rounded-lg p-1.5 transition-colors"
-            style={{
-              color: "rgba(255,255,255,0.4)",
-              hover: { backgroundColor: "rgba(255,255,255,0.08)" }
-            }}
+            style={{ color: "rgba(255,255,255,0.4)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
             aria-label="Toggle sidebar"
           >
             <ChevronLeft
@@ -152,7 +151,7 @@ export function AppSidebar() {
                                     : "rgba(255,255,255,0.7)"
                                 }}
                               >
-                                {item.badge}
+                                {(item as { badge: number | string }).badge}
                               </span>
                             )}
                           </>
