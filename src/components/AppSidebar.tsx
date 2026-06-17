@@ -234,7 +234,7 @@ export function AppSidebar() {
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback
                 className="text-xs font-bold text-white"
-                style={{ background: SIDEBAR_COLORS.navActive }}
+                style={{ background: SIDEBAR_COLORS.navActiveSolid, color: SIDEBAR_COLORS.navActiveText }}
               >
                 AK
               </AvatarFallback>
