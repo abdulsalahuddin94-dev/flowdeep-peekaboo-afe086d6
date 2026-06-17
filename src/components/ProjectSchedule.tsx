@@ -1134,6 +1134,44 @@ export function ProjectSchedule({
         </div>
         <div>Range: {fmt(minDate)} – {fmt(maxDate)}</div>
       </div>
+
+      <AlertDialog open={!!pendingImport} onOpenChange={(o) => { if (!o) setPendingImport(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import {pendingImport?.length ?? 0} items from MS Project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Choose how to bring these tasks, activities, and milestones into the schedule.
+              "Replace" clears the current schedule; "Append" adds them after existing items.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (pendingImport) {
+                  onImport?.(pendingImport, "append");
+                  toast.success(`Appended ${pendingImport.length} items from MS Project`);
+                }
+                setPendingImport(null);
+              }}
+            >
+              Append
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingImport) {
+                  onImport?.(pendingImport, "replace");
+                  toast.success(`Imported ${pendingImport.length} items from MS Project`);
+                }
+                setPendingImport(null);
+              }}
+            >
+              Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
