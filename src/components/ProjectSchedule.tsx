@@ -217,6 +217,8 @@ export function ProjectSchedule({
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingImport, setPendingImport] = useState<ScheduleItem[] | null>(null);
   // Live preview overrides while dragging/resizing a bar
   const [dragPreview, setDragPreview] = useState<Record<string, { startDate: string; endDate: string }>>({});
   // Undo history: each entry is the list of patches needed to restore the prior state
