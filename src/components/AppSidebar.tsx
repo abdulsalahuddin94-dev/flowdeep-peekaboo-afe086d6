@@ -151,7 +151,7 @@ export function AppSidebar() {
                                     : "rgba(255,255,255,0.7)"
                                 }}
                               >
-                                {item.badge}
+                                {(item as { badge: number | string }).badge}
                               </span>
                             )}
                           </>
