@@ -275,6 +275,10 @@ function ProjectDetail() {
                 }
               />
             }
+            onImport={(imported, mode) => {
+              const asMilestones = imported.map((it) => ({ ...it }) as Milestone);
+              setMilestones((prev) => (mode === "replace" ? asMilestones : [...prev, ...asMilestones]));
+            }}
           />
 
         </TabsContent>

@@ -17,10 +17,117 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, UserPlus } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, Upload, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+// ── MS Project XML import ────────────────────────────────────────────────────
+function parseMsProjectXml(xmlText: string): ScheduleItem[] {
+  const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+  if (doc.querySelector("parsererror")) throw new Error("Invalid XML file");
+  const ns = doc.documentElement.namespaceURI;
+  const q = (el: Element, tag: string) =>
+    (ns ? el.getElementsByTagNameNS(ns, tag) : el.getElementsByTagName(tag));
+  const text = (el: Element | null | undefined, tag: string) => {
+    if (!el) return "";
+    const n = q(el, tag)[0];
+    return n?.textContent?.trim() ?? "";
+  };
+  const toISO = (s: string) => (s ? s.slice(0, 10) : "");
+
+  // Resources: UID -> Name
+  const resources = new Map<string, string>();
+  const resRoot = q(doc.documentElement, "Resources")[0];
+  if (resRoot) {
+    Array.from(q(resRoot, "Resource")).forEach((r) => {
+      const uid = text(r, "UID");
+      const name = text(r, "Name");
+      if (uid) resources.set(uid, name);
+    });
+  }
+  // Assignments: TaskUID -> [ResourceName]
+  const assignments = new Map<string, string[]>();
+  const asgRoot = q(doc.documentElement, "Assignments")[0];
+  if (asgRoot) {
+    Array.from(q(asgRoot, "Assignment")).forEach((a) => {
+      const tuid = text(a, "TaskUID");
+      const ruid = text(a, "ResourceUID");
+      const nm = resources.get(ruid);
+      if (!tuid || !nm) return;
+      if (!assignments.has(tuid)) assignments.set(tuid, []);
+      assignments.get(tuid)!.push(nm);
+    });
+  }
+
+  const tasksRoot = q(doc.documentElement, "Tasks")[0];
+  if (!tasksRoot) throw new Error("No <Tasks> found in MS Project XML");
+  const rawTasks = Array.from(q(tasksRoot, "Task"));
+  type Raw = {
+    uid: string; name: string; start: string; finish: string;
+    outline: number; isSummary: boolean; isMilestone: boolean;
+    percent: number; preds: string[];
+  };
+  const list: Raw[] = rawTasks
+    .map((t) => {
+      const name = text(t, "Name");
+      if (!name) return null;
+      const preds = Array.from(q(t, "PredecessorLink"))
+        .map((p) => text(p, "PredecessorUID"))
+        .filter(Boolean);
+      return {
+        uid: text(t, "UID"),
+        name,
+        start: toISO(text(t, "Start")),
+        finish: toISO(text(t, "Finish")),
+        outline: Number(text(t, "OutlineLevel") || "1"),
+        isSummary: text(t, "Summary") === "1",
+        isMilestone: text(t, "Milestone") === "1",
+        percent: Number(text(t, "PercentComplete") || "0"),
+        preds,
+      } as Raw;
+    })
+    .filter((x): x is Raw => !!x);
+
+  const uidToName = new Map(list.map((r) => [r.uid, r.name]));
+  // Find parent: nearest preceding task with smaller OutlineLevel
+  const items: ScheduleItem[] = list.map((r, idx) => {
+    let parent: string | undefined;
+    for (let j = idx - 1; j >= 0; j--) {
+      if (list[j].outline < r.outline) { parent = list[j].name; break; }
+    }
+    const kind: ItemKind = r.isMilestone ? "Milestone" : r.isSummary ? "Activity" : "Task";
+    const dep = r.preds.map((u) => uidToName.get(u)).filter(Boolean).join(", ");
+    const assignee = (assignments.get(r.uid) ?? []).join(", ") || undefined;
+    const rag: Rag = r.percent >= 100 ? "green" : r.percent > 0 ? "blue" : "grey";
+    return {
+      name: r.name,
+      kind,
+      startDate: r.start,
+      endDate: r.finish,
+      owner: "",
+      rag,
+      dep,
+      roles: [],
+      progress: r.percent,
+      parent,
+      assignee,
+    };
+  });
+  // De-dupe names (MS Project allows duplicates; our model keys by name)
+  const seen = new Map<string, number>();
+  for (const it of items) {
+    const n = seen.get(it.name) ?? 0;
+    if (n > 0) it.name = `${it.name} (${n + 1})`;
+    seen.set(it.name, n + 1);
+  }
+  return items;
+}
 
 // ── Shared types (mirror parent file) ────────────────────────────────────────
 export type ItemKind = "Milestone" | "Activity" | "Task";
@@ -98,11 +205,13 @@ export function ProjectSchedule({
   AddItemSlot,
   onItemPatch,
   onRequestSkill,
+  onImport,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
   onItemPatch?: (name: string, patch: Partial<ScheduleItem>) => void;
   onRequestSkill?: (itemName: string, role: RoleReq) => void;
+  onImport?: (items: ScheduleItem[], mode: "replace" | "append") => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
@@ -112,6 +221,8 @@ export function ProjectSchedule({
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(items.map(i => i.name)));
   const [leftPct, setLeftPct] = useState(48);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingImport, setPendingImport] = useState<ScheduleItem[] | null>(null);
   // Live preview overrides while dragging/resizing a bar
   const [dragPreview, setDragPreview] = useState<Record<string, { startDate: string; endDate: string }>>({});
   // Undo history: each entry is the list of patches needed to restore the prior state
@@ -597,6 +708,42 @@ export function ProjectSchedule({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {onImport && (
+            <>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xml,.mpp,application/xml,text/xml"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.currentTarget.value = "";
+                  if (!file) return;
+                  if (/\.mpp$/i.test(file.name)) {
+                    toast.error("Binary .mpp files aren't supported in-browser. In MS Project: File → Save As → XML (.xml), then import here.");
+                    return;
+                  }
+                  try {
+                    const txt = await file.text();
+                    const parsed = parseMsProjectXml(txt);
+                    if (!parsed.length) { toast.error("No tasks found in file"); return; }
+                    setPendingImport(parsed);
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to parse MS Project XML");
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={() => importInputRef.current?.click()}
+              >
+                <Upload className="h-3.5 w-3.5" /> Import MS Project
+              </Button>
+            </>
+          )}
+
           {AddItemSlot}
         </div>
       </div>
@@ -987,6 +1134,44 @@ export function ProjectSchedule({
         </div>
         <div>Range: {fmt(minDate)} – {fmt(maxDate)}</div>
       </div>
+
+      <AlertDialog open={!!pendingImport} onOpenChange={(o) => { if (!o) setPendingImport(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import {pendingImport?.length ?? 0} items from MS Project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Choose how to bring these tasks, activities, and milestones into the schedule.
+              "Replace" clears the current schedule; "Append" adds them after existing items.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (pendingImport) {
+                  onImport?.(pendingImport, "append");
+                  toast.success(`Appended ${pendingImport.length} items from MS Project`);
+                }
+                setPendingImport(null);
+              }}
+            >
+              Append
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingImport) {
+                  onImport?.(pendingImport, "replace");
+                  toast.success(`Imported ${pendingImport.length} items from MS Project`);
+                }
+                setPendingImport(null);
+              }}
+            >
+              Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
