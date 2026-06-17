@@ -12,17 +12,18 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
-/* DS02 + TeamSmart Sidebar Color Tokens */
+/* DS02 Sidebar Color Tokens — Light mode navy + lavender gradient active */
 const SIDEBAR_COLORS = {
-  bg: "#0F1729",                    // Dark sidebar background
+  bg: "#0B154B",                    // Deep navy sidebar background (light mode)
   border: "rgba(255,255,255,0.08)", // Subtle border
-  navText: "#94A3B8",               // Muted nav item text
-  navTextHover: "#CBD5E1",           // Hover text
-  navActive: "#A78BFA",             // Lavender pill (TeamSmart)
-  navActiveText: "#FFFFFF",         // White on active pill
-  navHoverBg: "rgba(212,165,116,0.08)", // Warm golden tint
-  disabled: "#475569",              // Disabled state
-  accent: "#D4A574",                // Golden accent (secondary)
+  navText: "rgba(255,255,255,0.7)", // Muted nav item text
+  navTextHover: "#FFFFFF",          // Hover text
+  navActive: "linear-gradient(180deg, #DEC9FF 0%, #857999 100%)", // Selected gradient
+  navActiveSolid: "#DEC9FF",        // Fallback / logo chip
+  navActiveText: "#1C274C",         // Dark navy text on active pill
+  navHoverBg: "rgba(255,255,255,0.08)",
+  disabled: "#475569",
+  accent: "#F2C94C",
 };
 
 const main = [
@@ -53,8 +54,8 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="ds02-sidebar border-r-0 bg-[#0F1729]"
-      style={{ fontFamily: "Poppins, sans-serif" }}
+      className="ds02-sidebar border-r-0"
+      style={{ fontFamily: "Poppins, sans-serif", backgroundColor: SIDEBAR_COLORS.bg }}
     >
       {/* Header — Logo & Collapse Toggle */}
       <SidebarHeader
@@ -66,7 +67,7 @@ export function AppSidebar() {
             <div className="flex items-center gap-2.5">
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-sm"
-                style={{ background: SIDEBAR_COLORS.navActive, color: "#FFFFFF" }}
+                style={{ background: SIDEBAR_COLORS.navActiveSolid, color: SIDEBAR_COLORS.navActiveText }}
               >
                 N
               </div>
@@ -233,7 +234,7 @@ export function AppSidebar() {
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback
                 className="text-xs font-bold text-white"
-                style={{ background: SIDEBAR_COLORS.navActive }}
+                style={{ background: SIDEBAR_COLORS.navActiveSolid, color: SIDEBAR_COLORS.navActiveText }}
               >
                 AK
               </AvatarFallback>

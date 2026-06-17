@@ -9,15 +9,15 @@
 
 @custom-variant dark (&:not([data-theme="light"] *));
 
-/* Sidebar Component — DS02 + TeamSmart Integration */
+/* Sidebar Component — DS02 navy + lavender gradient */
 .ds02-sidebar {
   font-family: "Poppins", sans-serif !important;
-  background-color: #0F1729 !important;
+  background-color: #0B154B !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .ds02-sidebar [data-sidebar-menu-button] {
-  color: #94A3B8;
+  color: rgba(255, 255, 255, 0.7);
   font-family: "Poppins", sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -25,13 +25,13 @@
 }
 
 .ds02-sidebar [data-sidebar-menu-button]:hover:not([data-state="active"]) {
-  color: #CBD5E1;
-  background-color: rgba(212, 165, 116, 0.08);
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .ds02-sidebar [data-sidebar-menu-button][data-state="active"] {
-  background-color: #A78BFA !important;
-  color: #FFFFFF !important;
+  background: linear-gradient(180deg, #DEC9FF 0%, #857999 100%) !important;
+  color: #1C274C !important;
   font-weight: 600;
 }
 
@@ -127,15 +127,15 @@
   --rag-blue:  #3B82F6;
   --rag-grey:  #64748B;
 
-  /* Sidebar: always dark in DS02 */
-  --sidebar:                    #1c1c24;
+  /* Sidebar: navy bg + lavender gradient active (light mode) */
+  --sidebar:                    #0B154B;
   --sidebar-foreground:         rgba(255,255,255,0.7);
-  --sidebar-primary:            #ccc4ec;
+  --sidebar-primary:            #DEC9FF;
   --sidebar-primary-foreground: #1c274c;
   --sidebar-accent:             rgba(255,255,255,0.08);
-  --sidebar-accent-foreground:  rgba(255,255,255,0.9);
+  --sidebar-accent-foreground:  #ffffff;
   --sidebar-border:             rgba(255,255,255,0.08);
-  --sidebar-ring:               rgba(204,196,236,0.4);
+  --sidebar-ring:               rgba(222,201,255,0.4);
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1);
   --shadow-md: 0 2px 4px rgba(0,0,0,0.06), 0 4px 6px rgba(0,0,0,0.1);
@@ -196,16 +196,16 @@
   h1,h2,h3,h4,h5 { font-weight: 600; letter-spacing: -0.01em; }
 }
 
-/* ── DS02 Sidebar — always dark, lavender active ─────────────────────────── */
+/* ── DS02 Sidebar — navy bg + lavender gradient active ───────────────────── */
 .ds02-sidebar,
 .ds02-sidebar [data-sidebar="sidebar"] {
-  background-color: #1c1c24 !important;
+  background-color: #0B154B !important;
 }
 
-/* Override shadcn sidebar active state */
+/* Override shadcn sidebar active state — top→bottom gradient */
 .ds02-sidebar [data-active="true"],
 .ds02-sidebar [aria-current="page"] {
-  background-color: #ccc4ec !important;
+  background: linear-gradient(180deg, #DEC9FF 0%, #857999 100%) !important;
   color: #1c274c !important;
 }
 
