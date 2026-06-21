@@ -174,21 +174,12 @@ function ProcurementPage() {
       />
 
       <Tabs defaultValue="rfp">
-<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="rfp">RFI / RFP Requests</TabsTrigger>
           <TabsTrigger value="contracts">Contracts</TabsTrigger>
           <TabsTrigger value="eval">Vendor Evaluation</TabsTrigger>
           <TabsTrigger value="erp">ERP Sync</TabsTrigger>
           <TabsTrigger value="subs">Subcontracted Packages</TabsTrigger>
-=======
-        <TabsList className="bg-secondary/40">
-          <TabsTrigger value="rfp" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">RFI / RFP Requests</TabsTrigger>
-          <TabsTrigger value="contracts" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Contracts</TabsTrigger>
-          <TabsTrigger value="eval" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Vendor Evaluation</TabsTrigger>
-          <TabsTrigger value="erp" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">ERP Sync</TabsTrigger>
-          <TabsTrigger value="subs" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Subcontracted Packages</TabsTrigger>
->>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         {/* ── RFP tab ─────────────────────────────────────────────────── */}

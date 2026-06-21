@@ -41,7 +41,6 @@ function SettingsPage() {
     <div>
       <PageHeader title="Settings" subtitle="Workspace, profile, notifications, integrations & security" />
       <Tabs defaultValue="workspace">
-<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="workspace">Workspace</TabsTrigger>
           <TabsTrigger value="profile">My Profile</TabsTrigger>
@@ -50,16 +49,6 @@ function SettingsPage() {
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
-=======
-        <TabsList className="bg-secondary/40">
-          <TabsTrigger value="workspace" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Workspace</TabsTrigger>
-          <TabsTrigger value="profile" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">My Profile</TabsTrigger>
-          <TabsTrigger value="notif" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Notifications</TabsTrigger>
-          <TabsTrigger value="integrations" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Integrations</TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Security</TabsTrigger>
-          <TabsTrigger value="users" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Users</TabsTrigger>
-          <TabsTrigger value="roles" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Roles & Permissions</TabsTrigger>
->>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         <TabsContent value="workspace" className="mt-5 glass-card p-6 space-y-4 max-w-2xl">

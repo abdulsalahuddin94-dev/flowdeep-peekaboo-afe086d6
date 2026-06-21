@@ -51,21 +51,12 @@ function PortfolioPage() {
         }
       />
       <Tabs defaultValue="all">
-<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="all">All Projects</TabsTrigger>
           <TabsTrigger value="mine">My Projects</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>
           <TabsTrigger value="bc">Business Cases</TabsTrigger>
           <TabsTrigger value="gov">Governance History</TabsTrigger>
-=======
-        <TabsList className="bg-secondary/40">
-          <TabsTrigger value="all" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">All Projects</TabsTrigger>
-          <TabsTrigger value="mine" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">My Projects</TabsTrigger>
-          <TabsTrigger value="archived" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Archived</TabsTrigger>
-          <TabsTrigger value="bc" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Business Cases</TabsTrigger>
-          <TabsTrigger value="gov" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Governance History</TabsTrigger>
->>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         <TabsContent value="all" className="mt-5"><AllProjectsTab projectList={projectList} /></TabsContent>
