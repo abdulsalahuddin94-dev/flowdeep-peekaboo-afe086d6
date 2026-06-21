@@ -174,15 +174,9 @@
   --sidebar:                    #121318;
   --sidebar-foreground:         #c7c5d0;
   --sidebar-primary:            #DEC9FF;
-<<<<<<< HEAD
-  --sidebar-primary-foreground: #1c274c;
-  --sidebar-accent:             rgba(255,255,255,0.08);
-  --sidebar-accent-foreground:  #ffffff;
-=======
   --sidebar-primary-foreground: #1c1c24;
   --sidebar-accent:             rgba(222,201,255,0.15);
   --sidebar-accent-foreground:  #DEC9FF;
->>>>>>> dd5c880 (Update DS02 Button Colors: Light #515B92 | Dark #DEC9FF)
   --sidebar-border:             rgba(255,255,255,0.08);
   --sidebar-ring:               rgba(222,201,255,0.4);
 
