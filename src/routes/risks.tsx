@@ -50,7 +50,7 @@ function RisksPage() {
           <TabsTrigger value="issues">Issues</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="register" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="register" className="mt-5">
           <Table>
             <TableHeader><TableRow>
               <TableHead>ID</TableHead><TableHead>Project</TableHead><TableHead>Title</TableHead>
@@ -82,7 +82,7 @@ function RisksPage() {
           <RiskHeatmap />
         </TabsContent>
 
-        <TabsContent value="issues" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="issues" className="mt-5">
           <Table>
             <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Project</TableHead><TableHead>Issue</TableHead><TableHead>Priority</TableHead><TableHead>Owner</TableHead><TableHead>Age</TableHead></TableRow></TableHeader>
             <TableBody>{[

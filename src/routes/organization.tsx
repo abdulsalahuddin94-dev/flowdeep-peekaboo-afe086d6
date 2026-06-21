@@ -34,7 +34,7 @@ function OrganizationPage() {
         <TabsContent value="business-lines" className="mt-5">
           <SectionHeader title="Business Lines" desc="First-level project classification used across Portfolio filters."
             cta={<AddBusinessLineDialog />} />
-          <div className="glass-card overflow-hidden">
+          <div className="">
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Name</TableHead><TableHead>Description</TableHead>
@@ -59,7 +59,7 @@ function OrganizationPage() {
         <TabsContent value="departments" className="mt-5">
           <SectionHeader title="Departments / Units" desc="Org chart units. A project may span multiple departments."
             cta={<AddDepartmentDialog />} />
-          <div className="glass-card overflow-hidden">
+          <div className="">
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Department</TableHead><TableHead>Parent</TableHead><TableHead>Head</TableHead>

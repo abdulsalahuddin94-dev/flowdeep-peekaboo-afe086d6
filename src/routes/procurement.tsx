@@ -183,7 +183,7 @@ function ProcurementPage() {
         </TabsList>
 
         {/* ── RFP tab ─────────────────────────────────────────────────── */}
-        <TabsContent value="rfp" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="rfp" className="mt-5">
           <Table>
             <TableHeader><TableRow>
               <TableHead>ID</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead>
@@ -214,7 +214,7 @@ function ProcurementPage() {
         </TabsContent>
 
         {/* ── Contracts tab ───────────────────────────────────────────── */}
-        <TabsContent value="contracts" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="contracts" className="mt-5">
           <Table>
             <TableHeader><TableRow>
               <TableHead>ID</TableHead><TableHead>Vendor</TableHead><TableHead>Project</TableHead>
@@ -239,7 +239,7 @@ function ProcurementPage() {
         </TabsContent>
 
         {/* ── Vendor evaluation tab ────────────────────────────────────── */}
-        <TabsContent value="eval" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="eval" className="mt-5">
           <Table>
             <TableHeader><TableRow>
               <TableHead>Vendor</TableHead><TableHead>Score</TableHead><TableHead>Delivery</TableHead>
@@ -291,7 +291,7 @@ function ProcurementPage() {
 
           {/* Out-of-sync reconciliation */}
           {openIssues.length > 0 ? (
-            <div className="glass-card overflow-hidden">
+            <div className="">
               <div className="flex items-center justify-between border-b border-border px-5 py-3">
                 <div className="label-eyebrow">Out-of-sync records — reconciliation required</div>
                 <Badge variant="outline" className="border-rag-red/40 bg-rag-red/10 text-rag-red">
@@ -346,7 +346,7 @@ function ProcurementPage() {
         </TabsContent>
 
         {/* ── Subcontracted packages tab ───────────────────────────────── */}
-        <TabsContent value="subs" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="subs" className="mt-5">
           <Table>
             <TableHeader><TableRow>
               <TableHead>Package</TableHead><TableHead>Project</TableHead><TableHead>Subcontractor</TableHead>

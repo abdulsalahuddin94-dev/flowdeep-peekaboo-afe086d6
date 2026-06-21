@@ -118,7 +118,7 @@ function ResourcesPage() {
         </TabsContent>
 
         {/* ── People tab ────────────────────────────────────────────────────── */}
-        <TabsContent value="people" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="people" className="mt-5">
           <Table>
             <TableHeader>
               <TableRow>
