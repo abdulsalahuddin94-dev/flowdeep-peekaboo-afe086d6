@@ -316,7 +316,7 @@ function ProjectDetail() {
                   </div>
                 ))}
               </div>
-              <div className="glass-card overflow-hidden">
+              <div className="">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -357,7 +357,7 @@ function ProjectDetail() {
                   <Plus className="h-3.5 w-3.5" />Add Member
                 </Button>
               </div>
-              <div className="glass-card overflow-hidden">
+              <div className="">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -994,7 +994,7 @@ function BusinessTripsTab({ pm }: { pm: string }) {
           onAdd={(t) => setTrips((prev) => [...prev, { ...t, id: `T-${String(prev.length + 1).padStart(2, "0")}` }])}
         />
       </div>
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <Table>
           <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Purpose</TableHead><TableHead>Destination</TableHead><TableHead>Dates</TableHead><TableHead>Travelers</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
           <TableBody>{trips.map((r) => (
@@ -1960,7 +1960,7 @@ function RisksTab({ project }: { project: typeof projects[number] }) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <Table>
           <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Score</TableHead><TableHead>Owner</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
           <TableBody>{items.map((r) => (
@@ -2197,7 +2197,7 @@ function ChangeRequestsTab({ project: _project }: { project: typeof projects[num
           </DialogContent>
         </Dialog>
       </div>
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <Table>
           <TableHeader><TableRow><TableHead>CR</TableHead><TableHead>Title</TableHead><TableHead>Impact</TableHead><TableHead>Timeline</TableHead><TableHead>Budget</TableHead><TableHead>Decision</TableHead></TableRow></TableHeader>
           <TableBody>{crs.map((r) => (
@@ -2291,7 +2291,7 @@ function ProcurementProjectTab({ projectName, addRfp }: { projectName: string; a
         ))}
       </div>
 
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="label-eyebrow">Tender Packages</div>
           <Dialog open={newPkgOpen} onOpenChange={setNewPkgOpen}>
@@ -2429,7 +2429,7 @@ function ProcurementProjectTab({ projectName, addRfp }: { projectName: string; a
         </Table>
       </div>
 
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="label-eyebrow">Contracts</div>
           <Link to="/procurement" className="text-xs text-accent hover:underline">Open Procurement module →</Link>
@@ -2448,7 +2448,7 @@ function ProcurementProjectTab({ projectName, addRfp }: { projectName: string; a
         </Table>
       </div>
 
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <div className="px-4 py-3 border-b border-border label-eyebrow">Open RFPs</div>
         <Table>
           <TableHeader><TableRow><TableHead>RFP</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Due</TableHead><TableHead>Bidders</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
@@ -2546,7 +2546,7 @@ function StakeholdersTab() {
         </Dialog>
       </div>
 
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <Table>
           <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Org</TableHead><TableHead>Influence</TableHead><TableHead>Interest</TableHead><TableHead>Strategy</TableHead></TableRow></TableHeader>
           <TableBody>{items.map((s) => (

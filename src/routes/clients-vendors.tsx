@@ -66,7 +66,7 @@ function ClientsVendorsPage() {
         {/* ── Clients tab ──────────────────────────────────────────────── */}
         <TabsContent value="clients" className="mt-5">
           <Toolbar add={<AddClientDialog />} />
-          <div className="glass-card overflow-hidden">
+          <div className="">
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Client</TableHead><TableHead>Primary Contact</TableHead>
@@ -305,7 +305,7 @@ function VendorsTab() {
         ))}
         <div className="ml-auto"><AddVendorDialog /></div>
       </div>
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Vendor</TableHead><TableHead>Type</TableHead><TableHead>Category</TableHead>

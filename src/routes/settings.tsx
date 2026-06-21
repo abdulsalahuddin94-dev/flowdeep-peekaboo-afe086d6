@@ -149,7 +149,7 @@ function SettingsPage() {
               <UserPlus className="h-3.5 w-3.5" />Invite User
             </Button>
           </div>
-          <div className="glass-card overflow-hidden">
+          <div className="">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -276,7 +276,7 @@ function RolesTab() {
         </Button>
       </div>
 
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <Table>
           <TableHeader>
             <TableRow>

@@ -305,7 +305,7 @@ function ProjectGrid({ items, onOpen }: { items: Project[]; onOpen: (p: Project)
 
 function ProjectListView({ items, onOpen }: { items: Project[]; onOpen: (p: Project) => void }) {
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="">
       <Table>
         <TableHeader><TableRow>
           <TableHead className="w-6" /><TableHead>Project</TableHead><TableHead>Business Line</TableHead>
@@ -435,7 +435,7 @@ function ProjectSlideOver({ project, onClose }: { project: Project | null; onClo
 
 function ArchivedTab() {
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="">
       <Table>
         <TableHeader><TableRow>
           <TableHead>Project</TableHead><TableHead>Business Line</TableHead><TableHead>PM</TableHead>
@@ -466,7 +466,7 @@ function ArchivedTab() {
 
 function BusinessCasesTab() {
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="">
       <Table>
         <TableHeader><TableRow>
           <TableHead>#</TableHead><TableHead>Project</TableHead><TableHead>Pillar</TableHead>
@@ -517,7 +517,7 @@ function GovernanceTab() {
     { d: "May 03", actor: "Finance", action: "Locked baseline", target: "ERP Upgrade", note: "Baseline v3 frozen" },
   ];
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="">
       <Table>
         <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Actor</TableHead><TableHead>Action</TableHead><TableHead>Target</TableHead><TableHead>Note</TableHead></TableRow></TableHeader>
         <TableBody>{entries.map((e, i) => (

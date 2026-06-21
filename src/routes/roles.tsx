@@ -35,7 +35,7 @@ function RolesPage() {
         subtitle="70-permission matrix across 10 domains · 8 default roles"
         actions={<NewRoleDialog />}
       />
-      <div className="glass-card overflow-hidden">
+      <div className="">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Role</TableHead><TableHead>Description</TableHead>

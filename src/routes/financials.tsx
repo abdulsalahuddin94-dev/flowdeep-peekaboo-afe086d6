@@ -47,7 +47,7 @@ function FinancialsPage() {
           <TabsTrigger value="rev">Revenue Recognition</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="projects" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="projects" className="mt-5">
           <Table>
             <TableHeader><TableRow>
               <TableHead>Project</TableHead><TableHead>Business Line</TableHead><TableHead>Budget</TableHead>
@@ -104,7 +104,7 @@ function FinancialsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="cr" className="mt-5 glass-card overflow-hidden">
+        <TabsContent value="cr" className="mt-5">
           <Table>
             <TableHeader><TableRow><TableHead>CR</TableHead><TableHead>Project</TableHead><TableHead>Type</TableHead><TableHead>Impact</TableHead><TableHead>Stage</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>{[
