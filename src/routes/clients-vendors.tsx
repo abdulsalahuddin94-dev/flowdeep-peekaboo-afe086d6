@@ -58,9 +58,15 @@ function ClientsVendorsPage() {
     <div>
       <PageHeader title="Clients & Vendors" subtitle="External parties — clients with engagements, vendors and subcontractors approved for procurement" />
       <Tabs defaultValue="clients">
+<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="clients">Clients ({clients.length})</TabsTrigger>
           <TabsTrigger value="vendors">Vendors ({vendors.length})</TabsTrigger>
+=======
+        <TabsList className="bg-secondary/40">
+          <TabsTrigger value="clients" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Clients ({clients.length})</TabsTrigger>
+          <TabsTrigger value="vendors" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Vendors ({vendors.length})</TabsTrigger>
+>>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         {/* ── Clients tab ──────────────────────────────────────────────── */}

@@ -280,9 +280,15 @@ function PipelinePage() {
       )}
 
       <Tabs defaultValue="capital">
+<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="capital">Capital Projects</TabsTrigger>
           <TabsTrigger value="commercial">Commercial Bids</TabsTrigger>
+=======
+        <TabsList className="bg-secondary/40">
+          <TabsTrigger value="capital" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Capital Projects</TabsTrigger>
+          <TabsTrigger value="commercial" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Commercial Bids</TabsTrigger>
+>>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         <TabsContent value="capital" className="mt-5">

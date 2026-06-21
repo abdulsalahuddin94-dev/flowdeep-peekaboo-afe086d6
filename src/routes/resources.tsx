@@ -92,8 +92,13 @@ function ResourcesPage() {
       </div>
 
       <Tabs defaultValue="requests">
+<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="requests" className="relative">
+=======
+        <TabsList className="bg-secondary/40">
+          <TabsTrigger value="requests" className="relative data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+>>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
             Requests
             {pendingCount > 0 && (
               <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rag-amber px-1 text-[10px] font-bold text-black">
@@ -101,10 +106,10 @@ function ResourcesPage() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="people">People</TabsTrigger>
-          <TabsTrigger value="heatmap">Utilization Heatmap</TabsTrigger>
-          <TabsTrigger value="planning">Manpower Planning</TabsTrigger>
-          <TabsTrigger value="skills">Skill Demand</TabsTrigger>
+          <TabsTrigger value="people" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">People</TabsTrigger>
+          <TabsTrigger value="heatmap" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Utilization Heatmap</TabsTrigger>
+          <TabsTrigger value="planning" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Manpower Planning</TabsTrigger>
+          <TabsTrigger value="skills" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Skill Demand</TabsTrigger>
         </TabsList>
 
         {/* ── Requests tab ──────────────────────────────────────────────────── */}

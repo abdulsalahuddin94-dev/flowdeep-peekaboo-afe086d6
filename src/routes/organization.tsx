@@ -25,10 +25,17 @@ function OrganizationPage() {
     <div>
       <PageHeader title="Organization" subtitle="Define internal structure — required before projects can be created" />
       <Tabs defaultValue="business-lines">
+<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="business-lines">Business Lines</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="tags">Tags & Classifications</TabsTrigger>
+=======
+        <TabsList className="bg-secondary/40">
+          <TabsTrigger value="business-lines" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Business Lines</TabsTrigger>
+          <TabsTrigger value="departments" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Departments</TabsTrigger>
+          <TabsTrigger value="tags" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Tags & Classifications</TabsTrigger>
+>>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         <TabsContent value="business-lines" className="mt-5">

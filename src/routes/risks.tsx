@@ -44,10 +44,17 @@ function RisksPage() {
       </div>
 
       <Tabs defaultValue="register">
+<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="register">Register</TabsTrigger>
           <TabsTrigger value="heatmap">Heat Map</TabsTrigger>
           <TabsTrigger value="issues">Issues</TabsTrigger>
+=======
+        <TabsList className="bg-secondary/40">
+          <TabsTrigger value="register" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Register</TabsTrigger>
+          <TabsTrigger value="heatmap" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Heat Map</TabsTrigger>
+          <TabsTrigger value="issues" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Issues</TabsTrigger>
+>>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         <TabsContent value="register" className="mt-5 glass-card overflow-hidden">

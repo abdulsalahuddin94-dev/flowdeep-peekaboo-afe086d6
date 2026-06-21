@@ -40,11 +40,19 @@ function FinancialsPage() {
       </div>
 
       <Tabs defaultValue="projects">
+<<<<<<< HEAD
         <TabsList>
           <TabsTrigger value="projects">By Project</TabsTrigger>
           <TabsTrigger value="capex">CapEx / OpEx</TabsTrigger>
           <TabsTrigger value="cr">Change Requests</TabsTrigger>
           <TabsTrigger value="rev">Revenue Recognition</TabsTrigger>
+=======
+        <TabsList className="bg-secondary/40">
+          <TabsTrigger value="projects" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">By Project</TabsTrigger>
+          <TabsTrigger value="capex" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">CapEx / OpEx</TabsTrigger>
+          <TabsTrigger value="cr" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Change Requests</TabsTrigger>
+          <TabsTrigger value="rev" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Revenue Recognition</TabsTrigger>
+>>>>>>> 4d7877a (Style: Apply consistent accent colors to all TabsTriggers - match Dashboard role selector styling)
         </TabsList>
 
         <TabsContent value="projects" className="mt-5 glass-card overflow-hidden">
