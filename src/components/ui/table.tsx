@@ -7,7 +7,15 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
     <div className="relative w-full overflow-auto p-2">
       <table
         ref={ref}
-        className={cn("w-full caption-bottom text-sm border-separate border-spacing-y-1.5", className)}
+        className={cn(
+          "w-full caption-bottom text-sm border-separate border-spacing-0",
+          // Round only the outer corners of the whole table
+          "[&_thead_tr:first-child_th:first-child]:rounded-tl-[20px]",
+          "[&_thead_tr:first-child_th:last-child]:rounded-tr-[20px]",
+          "[&_tbody_tr:last-child_td:first-child]:rounded-bl-[20px]",
+          "[&_tbody_tr:last-child_td:last-child]:rounded-br-[20px]",
+          className,
+        )}
         {...props}
       />
     </div>
@@ -49,8 +57,6 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
       ref={ref}
       className={cn(
         "group bg-secondary/30 transition-colors hover:bg-accent/10 data-[state=selected]:bg-accent/15",
-        "[&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg",
-        "[&>th:first-child]:rounded-l-lg [&>th:last-child]:rounded-r-lg",
         className,
       )}
       {...props}
