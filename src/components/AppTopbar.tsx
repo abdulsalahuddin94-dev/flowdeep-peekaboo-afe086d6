@@ -69,7 +69,7 @@ export function AppTopbar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-md">
       <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link to="/" className="hover:text-accent">Home</Link>
