@@ -86,7 +86,7 @@ function AuthPage() {
           <p className="mt-1 text-xs text-muted-foreground">Sign in to manage your portfolio</p>
         </header>
         <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="w-full">
             <TabsTrigger value="signin">Sign in</TabsTrigger>
             <TabsTrigger value="signup">Create account</TabsTrigger>
           </TabsList>

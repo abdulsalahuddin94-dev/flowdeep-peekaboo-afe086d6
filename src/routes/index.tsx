@@ -36,7 +36,7 @@ function Dashboard() {
         subtitle="Saturday, June 6, 2026 · FY2026 portfolio overview"
         actions={
           <Tabs value={role} onValueChange={(v) => setRole(v as Role)}>
-            <TabsList className="bg-secondary/40">
+            <TabsList>
               {ROLES.map((r) => (
                 <TabsTrigger
                   key={r}

@@ -41,7 +41,7 @@ function SettingsPage() {
     <div>
       <PageHeader title="Settings" subtitle="Workspace, profile, notifications, integrations & security" />
       <Tabs defaultValue="workspace">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="workspace">Workspace</TabsTrigger>
           <TabsTrigger value="profile">My Profile</TabsTrigger>
           <TabsTrigger value="notif">Notifications</TabsTrigger>
@@ -225,16 +225,16 @@ function InviteUserDialog({
         <div className="space-y-3">
           <div className="space-y-1">
             <Label>Full name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" className="bg-secondary/40" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
           </div>
           <div className="space-y-1">
             <Label>Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@acme.com" className="bg-secondary/40" />
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@acme.com" />
           </div>
           <div className="space-y-1">
             <Label>Role</Label>
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger className="bg-secondary/40"><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {ROLE_OPTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
               </SelectContent>
@@ -326,7 +326,7 @@ function RolesTab() {
                 <div className="label-eyebrow mb-3">Permission matrix</div>
                 <div className="overflow-x-auto rounded-md border border-border">
                   <table className="w-full text-xs">
-                    <thead className="bg-secondary/40">
+                    <thead>
                       <tr>
                         <th className="p-2 text-left">Domain</th>
                         {ACTIONS.map((a) => <th key={a} className="p-2 text-center capitalize">{a}</th>)}
@@ -364,11 +364,11 @@ function RolesTab() {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Role name</Label>
-              <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="e.g. Programme Director" className="bg-secondary/40" />
+              <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="e.g. Programme Director" />
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
-              <Input value={newRoleDesc} onChange={(e) => setNewRoleDesc(e.target.value)} placeholder="Short description of responsibilities" className="bg-secondary/40" />
+              <Input value={newRoleDesc} onChange={(e) => setNewRoleDesc(e.target.value)} placeholder="Short description of responsibilities" />
             </div>
           </div>
           <DialogFooter>

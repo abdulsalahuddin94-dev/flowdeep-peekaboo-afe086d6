@@ -51,7 +51,7 @@ function PortfolioPage() {
         }
       />
       <Tabs defaultValue="all">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="all">All Projects</TabsTrigger>
           <TabsTrigger value="mine">My Projects</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>

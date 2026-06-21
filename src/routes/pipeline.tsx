@@ -280,7 +280,7 @@ function PipelinePage() {
       )}
 
       <Tabs defaultValue="capital">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="capital">Capital Projects</TabsTrigger>
           <TabsTrigger value="commercial">Commercial Bids</TabsTrigger>
         </TabsList>

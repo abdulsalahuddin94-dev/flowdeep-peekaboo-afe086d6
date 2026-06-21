@@ -44,7 +44,7 @@ function RisksPage() {
       </div>
 
       <Tabs defaultValue="register">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="register">Register</TabsTrigger>
           <TabsTrigger value="heatmap">Heat Map</TabsTrigger>
           <TabsTrigger value="issues">Issues</TabsTrigger>

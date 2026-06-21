@@ -92,7 +92,7 @@ function ResourcesPage() {
       </div>
 
       <Tabs defaultValue="requests">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="requests" className="relative">
             Requests
             {pendingCount > 0 && (
