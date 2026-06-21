@@ -222,7 +222,7 @@ function ProjectDetail() {
       <Tabs defaultValue="Overview">
         <TabsList className="overflow-x-auto whitespace-nowrap">
           {TABS.map((t) => (
-            <TabsTrigger key={t} value={t} className="text-xs data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">{t}</TabsTrigger>
+            <TabsTrigger key={t} value={t} className="text-xs">{t}</TabsTrigger>
           ))}
         </TabsList>
 
@@ -295,7 +295,7 @@ function ProjectDetail() {
                 <TabsTrigger
                   key={t.v}
                   value={t.v}
-                  className="rounded-none border-b-2 border-transparent bg-transparent px-4 py-2.5 text-xs text-muted-foreground data-[state=active]:border-accent data-[state=active]:bg-transparent data-[state=active]:text-accent data-[state=active]:shadow-none"
+                  className="text-xs"
                 >
                   {t.l}
                 </TabsTrigger>
