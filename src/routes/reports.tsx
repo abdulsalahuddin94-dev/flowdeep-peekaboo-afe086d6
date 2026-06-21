@@ -151,19 +151,19 @@ function ReportsPage() {
                 {content && (
                   <>
                     <p className="text-sm text-muted-foreground">{content.summary}</p>
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <table className="w-full text-sm">
-                        <tbody>
+                    <div className="overflow-hidden">
+                      <Table>
+                        <TableBody>
                           {content.rows.map((row) => (
-                            <tr key={row.label} className="border-b border-border last:border-0">
-                              <td className="px-4 py-2.5 text-muted-foreground">{row.label}</td>
-                              <td className={`px-4 py-2.5 text-right font-medium num-mono ${row.rag ? RAG_CLASS[row.rag] : "text-foreground"}`}>
+                            <TableRow key={row.label}>
+                              <TableCell className="text-muted-foreground">{row.label}</TableCell>
+                              <TableCell className={`text-right font-medium num-mono ${row.rag ? RAG_CLASS[row.rag] : "text-foreground"}`}>
                                 {row.value}
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                   </>
                 )}
