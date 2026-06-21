@@ -146,12 +146,12 @@
 
 /* ── DS02 Dark Mode ──────────────────────────────────────────────────────── */
 [data-theme="dark"] {
-  --background:     #121318;
+  --background:     #1D1D23;
   --foreground:     #ffffff;
-  --surface:        #1C1D24;
-  --card:           #1C1D24;
+  --surface:        #26262E;
+  --card:           #26262E;
   --card-foreground: #ffffff;
-  --popover:        #1C1D24;
+  --popover:        #26262E;
   --popover-foreground: #ffffff;
 
   --primary:             #DEC9FF;
@@ -168,7 +168,7 @@
 
   --destructive:            #EF4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255,255,255,0.08);
+  --border: rgba(255,255,255,0.12);
   --input:  rgba(255,255,255,0.06);
   --ring:   rgba(222,201,255,0.4);
 
