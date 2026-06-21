@@ -116,6 +116,12 @@
   --rag-blue:  #3B82F6;
   --rag-grey:  #64748B;
 
+  /* Table */
+  --table-header-bg: #e9e4df;
+  --table-header-fg: #262626;
+  --table-row-bg:    #f5efeb;
+  --table-row-hover: #e5dfd9;
+
   /* Header */
   --header:            #ffffff;
   --header-foreground: #262626;
