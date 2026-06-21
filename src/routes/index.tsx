@@ -41,7 +41,7 @@ function Dashboard() {
                 <TabsTrigger
                   key={r}
                   value={r}
-                  className="text-xs data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                  className="text-xs"
                 >
                   {r}
                 </TabsTrigger>
