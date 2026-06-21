@@ -93,8 +93,9 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ── DS02 Light Mode (default) ───────────────────────────────────────────── */
-:root {
+/* ── DS02 Light Mode (default or explicit data-theme="light") ───────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
   --background:     #ffffff;
   --foreground:     #262626;
   --surface:        #f5efeb;

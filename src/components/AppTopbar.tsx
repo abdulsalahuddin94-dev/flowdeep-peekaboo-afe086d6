@@ -249,16 +249,18 @@ function ThemeToggle() {
     }
   }, []);
 
-  function toggle() {
-    const next = !dark;
-    setDark(next);
-    if (next) {
+  useEffect(() => {
+    if (dark) {
       document.documentElement.setAttribute("data-theme", "dark");
       localStorage.setItem("ds02-theme", "dark");
     } else {
-      document.documentElement.removeAttribute("data-theme");
+      document.documentElement.setAttribute("data-theme", "light");
       localStorage.setItem("ds02-theme", "light");
     }
+  }, [dark]);
+
+  function toggle() {
+    setDark(!dark);
   }
 
   return (
