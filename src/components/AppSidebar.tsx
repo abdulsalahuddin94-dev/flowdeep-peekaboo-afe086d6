@@ -76,7 +76,7 @@ export function AppSidebar() {
             <SidebarMenu className="gap-3">
               {allItems.map((item) => {
                 const active = isActive(item.url);
-                const badge = "badge" in item ? item.badge : undefined;
+                const badge = ("badge" in item ? item.badge : undefined) as number | string | undefined;
                 const badgeDanger = "badgeTone" in item && item.badgeTone === "red";
                 return (
                   <SidebarMenuItem key={item.url}>
