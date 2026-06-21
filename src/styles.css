@@ -103,23 +103,23 @@
   --popover:        #ffffff;
   --popover-foreground: #262626;
 
-  --primary:             #f2c94c;
-  --primary-foreground:  #1c274c;
+  --primary:             #515B92;
+  --primary-foreground:  #ffffff;
   --secondary:           #e5e5e5;
   --secondary-foreground: #3d3d44;
   --muted:               #e5e5e5;
   --muted-foreground:    #737373;
 
-  --accent:             #f2c94c;
-  --accent-foreground:  #1c274c;
-  --accent-dim:         rgba(242,201,76,0.15);
-  --accent-glow:        rgba(242,201,76,0.30);
+  --accent:             #515B92;
+  --accent-foreground:  #ffffff;
+  --accent-dim:         rgba(81,91,146,0.12);
+  --accent-glow:        rgba(81,91,146,0.25);
 
   --destructive:            #EF4444;
   --destructive-foreground: #ffffff;
   --border: #d4d4d4;
   --input:  #ffffff;
-  --ring:   rgba(242,201,76,0.5);
+  --ring:   rgba(81,91,146,0.5);
 
   --rag-green: #10B981;
   --rag-amber: #F59E0B;
@@ -140,7 +140,7 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1);
   --shadow-md: 0 2px 4px rgba(0,0,0,0.06), 0 4px 6px rgba(0,0,0,0.1);
   --shadow-lg: 0 4px 6px rgba(0,0,0,0.07), 0 10px 15px rgba(0,0,0,0.1);
-  --shadow-accent: 0 7px 8px rgba(242,201,76,0.2);
+  --shadow-accent: 0 7px 8px rgba(81,91,146,0.2);
 }
 
 /* ── DS02 Dark Mode ──────────────────────────────────────────────────────── */
@@ -153,37 +153,43 @@
   --popover:        #1c1c24;
   --popover-foreground: #ffffff;
 
-  --primary:             #f2c94c;
-  --primary-foreground:  #121318;
+  --primary:             #DEC9FF;
+  --primary-foreground:  #1c1c24;
   --secondary:           #292931;
   --secondary-foreground: #c7c5d0;
   --muted:               #292931;
   --muted-foreground:    #737373;
 
-  --accent:             #f2c94c;
-  --accent-foreground:  #121318;
-  --accent-dim:         rgba(242,201,76,0.15);
-  --accent-glow:        rgba(242,201,76,0.25);
+  --accent:             #DEC9FF;
+  --accent-foreground:  #1c1c24;
+  --accent-dim:         rgba(222,201,255,0.15);
+  --accent-glow:        rgba(222,201,255,0.30);
 
   --destructive:            #EF4444;
   --destructive-foreground: #ffffff;
   --border: rgba(255,255,255,0.12);
   --input:  rgba(255,255,255,0.06);
-  --ring:   rgba(242,201,76,0.4);
+  --ring:   rgba(222,201,255,0.4);
 
   --sidebar:                    #121318;
   --sidebar-foreground:         #c7c5d0;
   --sidebar-primary:            #DEC9FF;
+<<<<<<< HEAD
   --sidebar-primary-foreground: #1c274c;
   --sidebar-accent:             rgba(255,255,255,0.08);
   --sidebar-accent-foreground:  #ffffff;
+=======
+  --sidebar-primary-foreground: #1c1c24;
+  --sidebar-accent:             rgba(222,201,255,0.15);
+  --sidebar-accent-foreground:  #DEC9FF;
+>>>>>>> dd5c880 (Update DS02 Button Colors: Light #515B92 | Dark #DEC9FF)
   --sidebar-border:             rgba(255,255,255,0.08);
   --sidebar-ring:               rgba(222,201,255,0.4);
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
-  --shadow-accent: 0 7px 8px rgba(242,201,76,0.2);
+  --shadow-accent: 0 7px 8px rgba(222,201,255,0.2);
 }
 
 @layer base {
