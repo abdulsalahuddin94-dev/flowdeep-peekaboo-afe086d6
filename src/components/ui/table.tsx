@@ -8,7 +8,7 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
       <table
         ref={ref}
         className={cn(
-          "w-full caption-bottom text-sm border-separate border-spacing-0 [border-spacing-block:6px]",
+          "w-full caption-bottom text-sm border-separate border-spacing-x-0 border-spacing-y-1.5",
           // Round only the outer corners of the whole table
           "[&_thead_tr:first-child_th:first-child]:rounded-tl-[20px]",
           "[&_thead_tr:first-child_th:last-child]:rounded-tr-[20px]",
