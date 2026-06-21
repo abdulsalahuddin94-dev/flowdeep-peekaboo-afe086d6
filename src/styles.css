@@ -116,6 +116,12 @@
   --rag-blue:  #3B82F6;
   --rag-grey:  #64748B;
 
+  /* Table */
+  --table-header-bg: #e9e4df;
+  --table-header-fg: #262626;
+  --table-row-bg:    #f5efeb;
+  --table-row-hover: #e5dfd9;
+
   /* Header */
   --header:            #ffffff;
   --header-foreground: #262626;
@@ -178,6 +184,12 @@
   --header:            #121318;
   --header-foreground: #ffffff;
   --header-border:     rgba(255,255,255,0.08);
+
+  /* Table */
+  --table-header-bg: #29292F;
+  --table-header-fg: #ffffff;
+  --table-row-bg:    #121318;
+  --table-row-hover: #303036;
 
   /* Sidebar */
   --sidebar:                    #121318;
