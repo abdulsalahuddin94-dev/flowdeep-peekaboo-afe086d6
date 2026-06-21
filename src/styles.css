@@ -185,6 +185,12 @@
   --header-foreground: #ffffff;
   --header-border:     rgba(255,255,255,0.08);
 
+  /* Table */
+  --table-header-bg: #29292F;
+  --table-header-fg: #ffffff;
+  --table-row-bg:    #121318;
+  --table-row-hover: #303036;
+
   /* Sidebar */
   --sidebar:                    #121318;
   --sidebar-foreground:         #c7c5d0;
