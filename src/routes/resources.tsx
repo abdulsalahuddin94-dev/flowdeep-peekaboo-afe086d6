@@ -101,10 +101,10 @@ function ResourcesPage() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="people" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">People</TabsTrigger>
-          <TabsTrigger value="heatmap" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Utilization Heatmap</TabsTrigger>
-          <TabsTrigger value="planning" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Manpower Planning</TabsTrigger>
-          <TabsTrigger value="skills" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">Skill Demand</TabsTrigger>
+          <TabsTrigger value="people">People</TabsTrigger>
+          <TabsTrigger value="heatmap">Utilization Heatmap</TabsTrigger>
+          <TabsTrigger value="planning">Manpower Planning</TabsTrigger>
+          <TabsTrigger value="skills">Skill Demand</TabsTrigger>
         </TabsList>
 
         {/* ── Requests tab ──────────────────────────────────────────────────── */}
