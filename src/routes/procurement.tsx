@@ -174,7 +174,7 @@ function ProcurementPage() {
       />
 
       <Tabs defaultValue="rfp">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="rfp">RFI / RFP Requests</TabsTrigger>
           <TabsTrigger value="contracts">Contracts</TabsTrigger>
           <TabsTrigger value="eval">Vendor Evaluation</TabsTrigger>

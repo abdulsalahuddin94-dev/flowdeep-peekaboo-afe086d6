@@ -220,7 +220,7 @@ function ProjectDetail() {
       </div>
 
       <Tabs defaultValue="Overview">
-        <TabsList className="bg-secondary/40 overflow-x-auto whitespace-nowrap">
+        <TabsList className="overflow-x-auto whitespace-nowrap">
           {TABS.map((t) => (
             <TabsTrigger key={t} value={t} className="text-xs">{t}</TabsTrigger>
           ))}
@@ -519,8 +519,8 @@ function CharterTab({ project }: { project: typeof projects[number] }) {
         <div className="label-eyebrow">{label}</div>
         {editMode ? (
           multiline
-            ? <Textarea value={fields[fieldKey]} onChange={(e) => patch(fieldKey, e.target.value)} className="bg-secondary/40 text-sm min-h-[64px]" rows={3} />
-            : <Input value={fields[fieldKey]} onChange={(e) => patch(fieldKey, e.target.value)} className="bg-secondary/40 text-sm" />
+            ? <Textarea value={fields[fieldKey]} onChange={(e) => patch(fieldKey, e.target.value)} className="text-sm min-h-[64px]" rows={3} />
+            : <Input value={fields[fieldKey]} onChange={(e) => patch(fieldKey, e.target.value)} className="text-sm" />
         ) : (
           <p className="text-sm text-foreground whitespace-pre-line">{fields[fieldKey]}</p>
         )}
@@ -795,7 +795,7 @@ function AddTeamMemberDialog({
           <div className="space-y-1">
             <Label>Name</Label>
             <Select onValueChange={setName}>
-              <SelectTrigger className="bg-secondary/40"><SelectValue placeholder="Select person" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
               <SelectContent>
                 {resourcePool.map((r) => (
                   <SelectItem key={r.name} value={r.name}>{r.name} — {r.role}</SelectItem>
@@ -809,16 +809,16 @@ function AddTeamMemberDialog({
           </div>
           <div className="space-y-1">
             <Label>Role on project</Label>
-            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Business Analyst" className="bg-secondary/40" />
+            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Business Analyst" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Allocation %</Label>
-              <Input type="number" min={10} max={100} value={alloc} onChange={(e) => setAlloc(e.target.value)} className="bg-secondary/40" />
+              <Input type="number" min={10} max={100} value={alloc} onChange={(e) => setAlloc(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label>Period</Label>
-              <Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="e.g. Jun–Sep" className="bg-secondary/40" />
+              <Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="e.g. Jun–Sep" />
             </div>
           </div>
         </div>
@@ -861,13 +861,13 @@ function RequestResourceDialog({
         <div className="space-y-3">
           <div className="space-y-1">
             <Label>Role / Skill needed</Label>
-            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Data Engineer" className="bg-secondary/40" />
+            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Data Engineer" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Skill level</Label>
               <Select value={skill} onValueChange={(v) => setSkill(v as any)}>
-                <SelectTrigger className="bg-secondary/40"><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["Junior", "Mid", "Senior", "Lead"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
@@ -875,23 +875,23 @@ function RequestResourceDialog({
             </div>
             <div className="space-y-1">
               <Label>FTE</Label>
-              <Input type="number" min={0.5} max={3} step={0.5} value={fte} onChange={(e) => setFte(e.target.value)} className="bg-secondary/40" />
+              <Input type="number" min={0.5} max={3} step={0.5} value={fte} onChange={(e) => setFte(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>From (yyyy-mm)</Label>
-              <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="2026-07" className="bg-secondary/40" />
+              <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="2026-07" />
             </div>
             <div className="space-y-1">
               <Label>Until (yyyy-mm)</Label>
-              <Input value={until} onChange={(e) => setUntil(e.target.value)} placeholder="2026-09" className="bg-secondary/40" />
+              <Input value={until} onChange={(e) => setUntil(e.target.value)} placeholder="2026-09" />
             </div>
           </div>
           <div className="space-y-1">
             <Label>Priority</Label>
             <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
-              <SelectTrigger className="bg-secondary/40"><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {["Critical", "High", "Medium", "Low"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
@@ -899,7 +899,7 @@ function RequestResourceDialog({
           </div>
           <div className="space-y-1">
             <Label>Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requirements…" className="bg-secondary/40 text-sm" rows={2} />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requirements…" className="text-sm" rows={2} />
           </div>
         </div>
         <DialogFooter>

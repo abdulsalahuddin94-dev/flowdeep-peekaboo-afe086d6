@@ -25,7 +25,7 @@ function OrganizationPage() {
     <div>
       <PageHeader title="Organization" subtitle="Define internal structure — required before projects can be created" />
       <Tabs defaultValue="business-lines">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="business-lines">Business Lines</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="tags">Tags & Classifications</TabsTrigger>

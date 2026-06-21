@@ -40,7 +40,7 @@ function FinancialsPage() {
       </div>
 
       <Tabs defaultValue="projects">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="projects">By Project</TabsTrigger>
           <TabsTrigger value="capex">CapEx / OpEx</TabsTrigger>
           <TabsTrigger value="cr">Change Requests</TabsTrigger>

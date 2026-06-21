@@ -58,7 +58,7 @@ function ClientsVendorsPage() {
     <div>
       <PageHeader title="Clients & Vendors" subtitle="External parties — clients with engagements, vendors and subcontractors approved for procurement" />
       <Tabs defaultValue="clients">
-        <TabsList className="bg-secondary/40">
+        <TabsList>
           <TabsTrigger value="clients">Clients ({clients.length})</TabsTrigger>
           <TabsTrigger value="vendors">Vendors ({vendors.length})</TabsTrigger>
         </TabsList>
