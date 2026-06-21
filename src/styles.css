@@ -225,7 +225,7 @@
     transition: all 200ms ease;
   }
   .glass-card:hover {
-    border-color: var(--accent);
+    border-color: color-mix(in oklab, var(--accent) 50%, transparent);
     box-shadow: var(--shadow-md);
   }
   .label-eyebrow {
