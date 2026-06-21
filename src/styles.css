@@ -267,6 +267,17 @@
     50%     { opacity: 0.6; transform: scale(1.3); }
   }
   .num-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  /* Row actions: hidden until the parent row (.group) is hovered */
+  .row-actions {
+    opacity: 0;
+    transition: opacity 160ms ease;
+    pointer-events: none;
+  }
+  .group:hover .row-actions,
+  .group:focus-within .row-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* ── Themed Scrollbars (token-driven) ────────────────────────────────────── */
