@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { reports } from "@/lib/mock-data";
 import { FileBarChart, Calendar, Download, Play, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -150,19 +151,19 @@ function ReportsPage() {
                 {content && (
                   <>
                     <p className="text-sm text-muted-foreground">{content.summary}</p>
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <table className="w-full text-sm">
-                        <tbody>
+                    <div className="overflow-hidden">
+                      <Table>
+                        <TableBody>
                           {content.rows.map((row) => (
-                            <tr key={row.label} className="border-b border-border last:border-0">
-                              <td className="px-4 py-2.5 text-muted-foreground">{row.label}</td>
-                              <td className={`px-4 py-2.5 text-right font-medium num-mono ${row.rag ? RAG_CLASS[row.rag] : "text-foreground"}`}>
+                            <TableRow key={row.label}>
+                              <TableCell className="text-muted-foreground">{row.label}</TableCell>
+                              <TableCell className={`text-right font-medium num-mono ${row.rag ? RAG_CLASS[row.rag] : "text-foreground"}`}>
                                 {row.value}
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                   </>
                 )}

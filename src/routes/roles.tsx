@@ -71,20 +71,20 @@ function RolesPage() {
               <p className="mt-2 text-sm text-muted-foreground">{open.desc}</p>
               <div className="mt-5">
                 <div className="label-eyebrow mb-3">Permission matrix</div>
-                <div className="overflow-x-auto rounded-md border border-border">
-                  <table className="w-full text-xs">
-                    <thead className="bg-secondary/40">
-                      <tr><th className="p-2 text-left">Domain</th>{ACTIONS.map((a) => <th key={a} className="p-2 text-center capitalize">{a}</th>)}</tr>
-                    </thead>
-                    <tbody>{DOMAINS.map((d, i) => (
-                      <tr key={d} className="border-t border-border">
-                        <td className="p-2 text-foreground">{d}</td>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow><TableHead>Domain</TableHead>{ACTIONS.map((a) => <TableHead key={a} className="text-center capitalize">{a}</TableHead>)}</TableRow>
+                    </TableHeader>
+                    <TableBody>{DOMAINS.map((d, i) => (
+                      <TableRow key={d}>
+                        <TableCell className="text-foreground">{d}</TableCell>
                         {ACTIONS.map((a, j) => (
-                          <td key={a} className="p-2 text-center"><Checkbox defaultChecked={(i + j) % 3 !== 0} /></td>
+                          <TableCell key={a} className="text-center"><Checkbox defaultChecked={(i + j) % 3 !== 0} /></TableCell>
                         ))}
-                      </tr>
-                    ))}</tbody>
-                  </table>
+                      </TableRow>
+                    ))}</TableBody>
+                  </Table>
                 </div>
               </div>
               <div className="mt-5 flex gap-2">

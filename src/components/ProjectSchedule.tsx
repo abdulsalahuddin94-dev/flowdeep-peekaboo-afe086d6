@@ -17,6 +17,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -1168,39 +1169,39 @@ export function ProjectSchedule({
                   <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.deps} dependencies</span>
                   <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.assigned} assigned</span>
                 </div>
-                <div className="max-h-[50vh] overflow-auto rounded-md border border-border">
-                  <table className="w-full text-xs">
-                    <thead className="sticky top-0 bg-muted/60 text-muted-foreground">
-                      <tr>
-                        <th className="px-2 py-1.5 text-left font-medium">Name</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Type</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Start</th>
-                        <th className="px-2 py-1.5 text-left font-medium">End</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Depends on</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Assignee</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <div className="max-h-[50vh] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Start</TableHead>
+                        <TableHead>End</TableHead>
+                        <TableHead>Depends on</TableHead>
+                        <TableHead>Assignee</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {pendingImport.map((it, i) => (
-                        <tr key={i} className="border-t border-border/60 hover:bg-muted/30">
-                          <td className="px-2 py-1.5">
+                        <TableRow key={i}>
+                          <TableCell>
                             <div className="flex items-center gap-1.5">
                               {it.parent && <span className="text-muted-foreground/60">↳</span>}
                               <span className={it.kind === "Activity" ? "font-medium" : ""}>{it.name}</span>
                             </div>
                             {it.parent && <div className="pl-4 text-[10px] text-muted-foreground">in {it.parent}</div>}
-                          </td>
-                          <td className="px-2 py-1.5">
+                          </TableCell>
+                          <TableCell>
                             <span className={`rounded border px-1.5 py-0.5 text-[10px] ${kindColor(it.kind)}`}>{it.kind}</span>
-                          </td>
-                          <td className="px-2 py-1.5 text-muted-foreground">{it.startDate || "—"}</td>
-                          <td className="px-2 py-1.5 text-muted-foreground">{it.endDate || "—"}</td>
-                          <td className="px-2 py-1.5 text-muted-foreground">{it.dep || "—"}</td>
-                          <td className="px-2 py-1.5 text-muted-foreground">{it.assignee || "—"}</td>
-                        </tr>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{it.startDate || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{it.endDate || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{it.dep || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{it.assignee || "—"}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             );
