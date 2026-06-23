@@ -1403,9 +1403,8 @@ function AddMilestoneDialog({
   const [durationUnit, setDurationUnit] = useState<"hours" | "days">("days");
   const [weightScore, setWeightScore] = useState<number>(1);
 
-  // Roles + payment (shared)
-  const [roles, setRoles] = useState<RoleReq[]>([]);
-  const [roleDraft, setRoleDraft] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
+  // Single skill (one task = one assignee) + payment (shared)
+  const [skillRole, setSkillRole] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
   const [payKind, setPayKind] = useState<PaymentLinkKind>("None");
   const [payAmount, setPayAmount] = useState("");
   const [payPackage, setPayPackage] = useState<string>("");
@@ -1415,13 +1414,6 @@ function AddMilestoneDialog({
 
   // Parent options: every milestone and every task can be a parent (unlimited nesting).
   const parentOptions = items.filter((i) => i.kind === "Milestone" || i.kind === "Task");
-
-  function addRole() {
-    if (!roleDraft.role.trim()) { toast.error("Role is required"); return; }
-    setRoles((prev) => [...prev, { ...roleDraft, role: roleDraft.role.trim(), fte: Number(roleDraft.fte) || 0 }]);
-    setRoleDraft({ role: "", skill: "Mid", fte: 1 });
-  }
-  function removeRole(idx: number) { setRoles((prev) => prev.filter((_, i) => i !== idx)); }
 
   function reset() {
     setKind("Task"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
