@@ -1291,11 +1291,18 @@ function minISO(arr: (string | undefined)[]): string | undefined {
 }
 function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Milestone[] {
   const out = items.map((it) => ({ ...it }));
+  const childrenOf = new Map<string, Milestone[]>();
+  for (const it of out) {
+    if (!it.parent) continue;
+    if (!childrenOf.has(it.parent)) childrenOf.set(it.parent, []);
+    childrenOf.get(it.parent)!.push(it);
+  }
 
-  // Task: derive endDate from duration; assignee from fulfilled requests or "Waiting"
+  // Task leaves: derive endDate from duration; assignee from fulfilled requests or "Waiting"
   for (const it of out) {
     if (it.kind !== "Task") continue;
-    if (it.durationValue && it.startDate) {
+    const hasKids = (childrenOf.get(it.name)?.length ?? 0) > 0;
+    if (!hasKids && it.durationValue && it.startDate) {
       const days = it.durationUnit === "hours"
         ? Math.max(1, Math.ceil(it.durationValue / 8))
         : Math.max(1, it.durationValue);
@@ -1313,31 +1320,51 @@ function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Mi
     }
   }
 
-  // Activity: start = min(task.start), end = max(stored end, max(task.end))
-  // (overlap is naturally handled — duration spans first start to last end)
-  for (const it of out) {
-    if (it.kind !== "Activity") continue;
-    const tasks = out.filter((t) => t.kind === "Task" && t.parent === it.name);
-    if (!tasks.length) continue;
-    const ts = minISO(tasks.map((t) => t.startDate));
-    const te = maxISO(tasks.map((t) => t.endDate));
-    if (!it.startDate && ts) it.startDate = ts;
-    if (te && (!it.endDate || te > it.endDate)) it.endDate = te;
-  }
+  // Recursive rollup: parent dates and progress derived from children (any depth).
+  const byName = new Map(out.map((it) => [it.name, it] as const));
+  const visiting = new Set<string>();
 
-  // Milestone: end = max(stored end, max child end) + lag; diamond (start = end)
-  for (const it of out) {
-    if (it.kind !== "Milestone") continue;
-    const children = out.filter((c) => c.parent === it.name);
-    if (children.length) {
-      const me = maxISO(children.map((c) => c.endDate));
-      if (me) {
-        const withLag = addDaysISO(me, it.lagDays ?? 0);
+  function rollup(name: string): { start?: string; end?: string; progress: number } {
+    const it = byName.get(name)!;
+    const kids = childrenOf.get(name) ?? [];
+    if (!kids.length) {
+      return { start: it.startDate, end: it.endDate, progress: it.progress ?? 0 };
+    }
+    if (visiting.has(name)) return { start: it.startDate, end: it.endDate, progress: it.progress ?? 0 };
+    visiting.add(name);
+
+    let totalW = 0; let weighted = 0;
+    let minS: string | undefined; let maxE: string | undefined;
+    for (const c of kids) {
+      const r = rollup(c.name);
+      const w = c.kind === "Task" ? Math.max(0, c.weightScore ?? 1) : 0; // milestones don't add weight
+      if (w > 0) { totalW += w; weighted += w * r.progress; }
+      if (r.start && (!minS || r.start < minS)) minS = r.start;
+      if (r.end && (!maxE || r.end > maxE)) maxE = r.end;
+    }
+    visiting.delete(name);
+
+    const prog = totalW > 0 ? Math.round(weighted / totalW) : (it.progress ?? 0);
+    if (it.kind === "Task") {
+      if (minS) it.startDate = minS;
+      if (maxE) it.endDate = maxE;
+      it.progress = prog;
+    } else if (it.kind === "Milestone") {
+      // Milestone is a diamond: keep stored end (or roll up to last child + lag); start = end.
+      if (maxE) {
+        const withLag = addDaysISO(maxE, it.lagDays ?? 0);
         if (!it.endDate || withLag > it.endDate) it.endDate = withLag;
       }
+      if (it.endDate) it.startDate = it.endDate;
+      it.progress = prog;
     }
-    if (it.endDate) it.startDate = it.endDate;
+    return { start: it.startDate, end: it.endDate, progress: prog };
   }
+
+  // Roll up from all root items (recursion covers descendants).
+  const allNames = new Set(out.map((i) => i.name));
+  const roots = out.filter((i) => !i.parent || !allNames.has(i.parent));
+  for (const r of roots) rollup(r.name);
 
   return out;
 }
