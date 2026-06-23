@@ -171,6 +171,16 @@ function fmt(d: Date) { return d.toLocaleDateString(undefined, { month: "short",
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+// Color per nesting level (cycles for deeper levels)
+const LEVEL_COLORS = [
+  "hsl(217 91% 60%)",  // L1 — blue
+  "hsl(160 84% 39%)",  // L2 — emerald
+  "hsl(38 92% 50%)",   // L3 — amber
+  "hsl(280 75% 60%)",  // L4 — violet
+  "hsl(340 82% 60%)",  // L5 — pink
+  "hsl(190 80% 45%)",  // L6 — cyan
+];
+
 // ── Column config ────────────────────────────────────────────────────────────
 const COLUMNS = [
   { key: "type",     label: "Type",        w: 90 },
