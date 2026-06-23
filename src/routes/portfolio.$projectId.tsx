@@ -1369,9 +1369,9 @@ function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Mi
   return out;
 }
 
-// ── Add Milestone / Activity / Task dialog ───────────────────────────────────
+// ── Add Milestone / Task dialog ──────────────────────────────────────────────
 function AddMilestoneDialog({
-  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting,
+  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting: _onUpdateExisting,
 }: {
   defaultOwner: string;
   packages: TenderPackage[];
@@ -1382,7 +1382,7 @@ function AddMilestoneDialog({
   onUpdateExisting: (name: string, patch: Partial<Milestone>) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<ItemKind>("Activity");
+  const [kind, setKind] = useState<ItemKind>("Task");
   const [name, setName] = useState("");
   const [owner, setOwner] = useState(defaultOwner);
   const [status, setStatus] = useState("Not Started");
@@ -1391,22 +1391,16 @@ function AddMilestoneDialog({
   // Milestone-specific
   const [endDate, setEndDate] = useState("");
   const [lagDays, setLagDays] = useState<number>(0);
-
-  // Activity-specific
-  const [startDate, setStartDate] = useState("");
-  const [activityEnd, setActivityEnd] = useState("");
-  const [parentMilestone, setParentMilestone] = useState<string>("__none__");
-  const [newMilestoneName, setNewMilestoneName] = useState("");
-  const [newMilestoneEnd, setNewMilestoneEnd] = useState("");
+  const [milestoneType, setMilestoneType] = useState<MilestoneType>("finish");
 
   // Task-specific
-  const [parentActivity, setParentActivity] = useState<string>("__none__");
-  const [newActivityName, setNewActivityName] = useState("");
-  const [newActivityStart, setNewActivityStart] = useState("");
-  const [newActivityEnd, setNewActivityEnd] = useState("");
-  const [newActivityParentMs, setNewActivityParentMs] = useState<string>("__none__");
+  const [parentName, setParentName] = useState<string>("__none__");
+  const [startDate, setStartDate] = useState("");
+  const [endMode, setEndMode] = useState<"date" | "duration">("duration");
+  const [taskEndDate, setTaskEndDate] = useState("");
   const [durationValue, setDurationValue] = useState<number>(1);
   const [durationUnit, setDurationUnit] = useState<"hours" | "days">("days");
+  const [weightScore, setWeightScore] = useState<number>(1);
 
   // Roles + payment (shared)
   const [roles, setRoles] = useState<RoleReq[]>([]);
@@ -1418,8 +1412,8 @@ function AddMilestoneDialog({
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
   const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
 
-  const milestoneOptions = items.filter((i) => i.kind === "Milestone");
-  const activityOptions = items.filter((i) => i.kind === "Activity");
+  // Parent options: every milestone and every task can be a parent (unlimited nesting).
+  const parentOptions = items.filter((i) => i.kind === "Milestone" || i.kind === "Task");
 
   function addRole() {
     if (!roleDraft.role.trim()) { toast.error("Role is required"); return; }
@@ -1429,11 +1423,10 @@ function AddMilestoneDialog({
   function removeRole(idx: number) { setRoles((prev) => prev.filter((_, i) => i !== idx)); }
 
   function reset() {
-    setKind("Activity"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
-    setEndDate(""); setLagDays(0);
-    setStartDate(""); setActivityEnd(""); setParentMilestone("__none__"); setNewMilestoneName(""); setNewMilestoneEnd("");
-    setParentActivity("__none__"); setNewActivityName(""); setNewActivityStart(""); setNewActivityEnd(""); setNewActivityParentMs("__none__");
-    setDurationValue(1); setDurationUnit("days");
+    setKind("Task"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+    setEndDate(""); setLagDays(0); setMilestoneType("finish");
+    setParentName("__none__"); setStartDate(""); setEndMode("duration"); setTaskEndDate("");
+    setDurationValue(1); setDurationUnit("days"); setWeightScore(1);
     setRoles([]); setRoleDraft({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
@@ -1454,98 +1447,31 @@ function AddMilestoneDialog({
       newItems.push({
         name: name.trim(), kind: "Milestone",
         startDate: endDate, endDate, owner: owner || defaultOwner, rag, dep,
-        roles: [], payment: buildPayment(), progress: 0, lagDays: Number(lagDays) || 0,
-      });
-    }
-
-    // Collect cascading updates to existing items (parent end-date extensions)
-    const updates: Array<{ name: string; patch: Partial<Milestone> }> = [];
-
-    if (kind === "Activity") {
-      if (!startDate) { toast.error("Start date is required"); return; }
-      if (activityEnd && activityEnd < startDate) { toast.error("End date must be after start date"); return; }
-      let parent: string | undefined;
-      if (parentMilestone === "__new__") {
-        if (!newMilestoneName.trim() || !newMilestoneEnd) {
-          toast.error("New milestone name and end date are required"); return;
-        }
-        newItems.push({
-          name: newMilestoneName.trim(), kind: "Milestone",
-          startDate: newMilestoneEnd, endDate: newMilestoneEnd,
-          owner: owner || defaultOwner, rag: "blue", dep: "",
-          roles: [], payment: { kind: "None", amount: "" }, progress: 0, lagDays: 0,
-        });
-        parent = newMilestoneName.trim();
-      } else if (parentMilestone !== "__none__") {
-        parent = parentMilestone;
-      }
-
-      // If activity end exceeds parent milestone's stored end → confirm
-      if (activityEnd && parent && parentMilestone !== "__new__") {
-        const ms = items.find((i) => i.name === parent && i.kind === "Milestone");
-        if (ms?.endDate && activityEnd > ms.endDate) {
-          const ok = window.confirm(
-            `Activity ends ${activityEnd}, which is after parent milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
-          );
-          if (ok) updates.push({ name: ms.name, patch: { endDate: activityEnd, startDate: activityEnd } });
-        }
-      }
-
-      newItems.push({
-        name: name.trim(), kind: "Activity",
-        startDate, endDate: activityEnd || startDate, owner: owner || defaultOwner, rag, dep,
-        roles, payment: buildPayment(), progress: 0, parent,
+        roles: [], payment: buildPayment(), progress: 0,
+        lagDays: Number(lagDays) || 0,
+        milestoneType,
       });
     }
 
     if (kind === "Task") {
-      let parent: string | undefined;
-      if (parentActivity === "__new__") {
-        if (!newActivityName.trim() || !newActivityStart) {
-          toast.error("New activity name and start date are required"); return;
-        }
-        let actParent: string | undefined;
-        if (newActivityParentMs !== "__none__") actParent = newActivityParentMs;
-        newItems.push({
-          name: newActivityName.trim(), kind: "Activity",
-          startDate: newActivityStart, endDate: newActivityEnd || newActivityStart,
-          owner: owner || defaultOwner, rag: "blue", dep: "",
-          roles: [], payment: { kind: "None", amount: "" }, progress: 0, parent: actParent,
-        });
-        parent = newActivityName.trim();
-      } else if (parentActivity !== "__none__") {
-        parent = parentActivity;
-      }
       if (!startDate) { toast.error("Start date is required"); return; }
-      if (!durationValue || durationValue <= 0) { toast.error("Duration must be > 0"); return; }
-
-      const days = durationUnit === "hours"
-        ? Math.max(1, Math.ceil(Number(durationValue) / 8))
-        : Math.max(1, Number(durationValue));
-      const taskEnd = addDaysISO(startDate, days - 1);
-
-      // Cascade: task → activity → milestone end-date checks (only for existing parents)
-      if (parent && parentActivity !== "__new__") {
-        const act = items.find((i) => i.name === parent && i.kind === "Activity");
-        if (act?.endDate && taskEnd > act.endDate) {
-          const ok = window.confirm(
-            `Task ends ${taskEnd}, after parent activity "${act.name}" (${act.endDate}). Extend the activity end date?`,
-          );
-          if (ok) {
-            updates.push({ name: act.name, patch: { endDate: taskEnd } });
-            // Also check milestone above
-            if (act.parent) {
-              const ms = items.find((i) => i.name === act.parent && i.kind === "Milestone");
-              if (ms?.endDate && taskEnd > ms.endDate) {
-                const ok2 = window.confirm(
-                  `This also exceeds milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
-                );
-                if (ok2) updates.push({ name: ms.name, patch: { endDate: taskEnd, startDate: taskEnd } });
-              }
-            }
-          }
-        }
+      let computedEnd: string;
+      let durVal: number | undefined;
+      let durUnit: "hours" | "days" | undefined;
+      if (endMode === "date") {
+        if (!taskEndDate) { toast.error("End date is required"); return; }
+        if (taskEndDate < startDate) { toast.error("End date must be on/after start date"); return; }
+        computedEnd = taskEndDate;
+      } else {
+        if (!durationValue || durationValue <= 0) { toast.error("Duration must be > 0"); return; }
+        const days = durationUnit === "hours"
+          ? Math.max(1, Math.ceil(Number(durationValue) / 8))
+          : Math.max(1, Number(durationValue));
+        computedEnd = addDaysISO(startDate, days - 1);
+        durVal = Number(durationValue);
+        durUnit = durationUnit;
       }
+      const parent = parentName === "__none__" ? undefined : parentName;
 
       // Each skill/role creates a pending resource request
       const requestIds: string[] = [];
@@ -1567,9 +1493,10 @@ function AddMilestoneDialog({
 
       newItems.push({
         name: name.trim(), kind: "Task",
-        startDate, endDate: taskEnd, owner: owner || defaultOwner, rag, dep,
+        startDate, endDate: computedEnd, owner: owner || defaultOwner, rag, dep,
         roles, payment: buildPayment(), progress: 0, parent,
-        durationValue: Number(durationValue), durationUnit,
+        durationValue: durVal, durationUnit: durUnit,
+        weightScore: Math.max(1, Math.min(10, Number(weightScore) || 1)),
         resourceRequestIds: requestIds.length ? requestIds : undefined,
       });
 
@@ -1579,12 +1506,10 @@ function AddMilestoneDialog({
     }
 
     onAdd(newItems);
-    for (const u of updates) onUpdateExisting(u.name, u.patch);
     toast.success(`${kind} added`);
     setOpen(false);
     reset();
   }
-
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
@@ -1600,110 +1525,103 @@ function AddMilestoneDialog({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Milestone">Milestone</SelectItem>
-                <SelectItem value="Activity">Activity</SelectItem>
                 <SelectItem value="Task">Task</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. UAT Sign-off" /></div>
 
-          {/* MILESTONE: only end date + lag */}
+          {/* MILESTONE: subtype + end date + lag */}
           {kind === "Milestone" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>End date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
-              <div>
-                <Label>Lag (days)</Label>
-                <Input type="number" min="0" value={lagDays} onChange={(e) => setLagDays(Number(e.target.value))} />
-                <p className="mt-1 text-[10px] text-muted-foreground">Buffer added after the last child activity ends.</p>
-              </div>
-            </div>
-          )}
-
-          {/* ACTIVITY: parent milestone + start date */}
-          {kind === "Activity" && (
             <>
               <div>
-                <Label>Parent milestone</Label>
-                <Select value={parentMilestone} onValueChange={setParentMilestone}>
+                <Label>Milestone type</Label>
+                <Select value={milestoneType} onValueChange={(v) => setMilestoneType(v as MilestoneType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— None —</SelectItem>
-                    {milestoneOptions.map((m) => (
-                      <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
-                    ))}
-                    <SelectItem value="__new__">+ Create new milestone…</SelectItem>
+                    <SelectItem value="start">Start milestone</SelectItem>
+                    <SelectItem value="finish">Finish milestone</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-[10px] text-muted-foreground">Progress is rolled up automatically from child tasks (weighted by score).</p>
               </div>
-              {parentMilestone === "__new__" && (
-                <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-border p-2">
-                  <div className="col-span-2 text-[11px] text-muted-foreground">New milestone</div>
-                  <div><Label className="text-xs">Name</Label><Input value={newMilestoneName} onChange={(e) => setNewMilestoneName(e.target.value)} /></div>
-                  <div><Label className="text-xs">End date</Label><Input type="date" value={newMilestoneEnd} onChange={(e) => setNewMilestoneEnd(e.target.value)} /></div>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-2">
-                <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-                <div><Label>End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={activityEnd} onChange={(e) => setActivityEnd(e.target.value)} /></div>
+                <div><Label>Date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+                <div>
+                  <Label>Lag (days)</Label>
+                  <Input type="number" min="0" value={lagDays} onChange={(e) => setLagDays(Number(e.target.value))} />
+                  <p className="mt-1 text-[10px] text-muted-foreground">Buffer after the last child ends.</p>
+                </div>
               </div>
-              <p className="text-[11px] text-muted-foreground">If left empty, the end date is derived from child tasks. Overlapping tasks count once toward the activity duration.</p>
             </>
           )}
 
-          {/* TASK: parent activity, duration, parallel */}
+          {/* TASK: parent (any milestone or task) + start + (end date | duration) + weight */}
           {kind === "Task" && (
             <>
               <div>
-                <Label>Parent activity</Label>
-                <Select value={parentActivity} onValueChange={setParentActivity}>
+                <Label>Parent <span className="text-muted-foreground">(milestone or task — leave none for top level)</span></Label>
+                <Select value={parentName} onValueChange={setParentName}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— None —</SelectItem>
-                    {activityOptions.map((a) => (
-                      <SelectItem key={a.name} value={a.name}>{a.name}</SelectItem>
-                    ))}
-                    <SelectItem value="__new__">+ Create new activity…</SelectItem>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="__none__">— None (top level) —</SelectItem>
+                    {parentOptions.filter((p) => p.kind === "Milestone").length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">Milestones</div>
+                        {parentOptions.filter((p) => p.kind === "Milestone").map((m) => (
+                          <SelectItem key={`ms-${m.name}`} value={m.name}>◆ {m.name}</SelectItem>
+                        ))}
+                      </>
+                    )}
+                    {parentOptions.filter((p) => p.kind === "Task").length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">Tasks</div>
+                        {parentOptions.filter((p) => p.kind === "Task").map((t) => (
+                          <SelectItem key={`tk-${t.name}`} value={t.name}>{t.name}</SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
-              {parentActivity === "__new__" && (
-                <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-border p-2">
-                  <div className="col-span-2 text-[11px] text-muted-foreground">New activity</div>
-                  <div><Label className="text-xs">Name</Label><Input value={newActivityName} onChange={(e) => setNewActivityName(e.target.value)} /></div>
-                  <div><Label className="text-xs">Start date</Label><Input type="date" value={newActivityStart} onChange={(e) => setNewActivityStart(e.target.value)} /></div>
-                  <div className="col-span-2"><Label className="text-xs">End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={newActivityEnd} onChange={(e) => setNewActivityEnd(e.target.value)} /></div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Parent milestone</Label>
-                    <Select value={newActivityParentMs} onValueChange={setNewActivityParentMs}>
+
+              <div>
+                <Label>Start date</Label>
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>End</Label>
+                <ToggleGroup type="single" value={endMode} onValueChange={(v) => v && setEndMode(v as "date" | "duration")} className="justify-start">
+                  <ToggleGroupItem value="date" className="h-8 px-3 text-xs">End date</ToggleGroupItem>
+                  <ToggleGroupItem value="duration" className="h-8 px-3 text-xs">Duration</ToggleGroupItem>
+                </ToggleGroup>
+                {endMode === "date" ? (
+                  <Input className="mt-2" type="date" value={taskEndDate} onChange={(e) => setTaskEndDate(e.target.value)} />
+                ) : (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Input type="number" min="0" step="0.5" value={durationValue} onChange={(e) => setDurationValue(Number(e.target.value))} placeholder="Duration" />
+                    <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as "hours" | "days")}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">— None —</SelectItem>
-                        {milestoneOptions.map((m) => (
-                          <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
-                        ))}
+                        <SelectItem value="hours">Hours</SelectItem>
+                        <SelectItem value="days">Days</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              )}
-              <div className="grid grid-cols-3 gap-2">
-                <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-                <div>
-                  <Label>Duration</Label>
-                  <Input type="number" min="0" step="0.5" value={durationValue} onChange={(e) => setDurationValue(Number(e.target.value))} />
-                </div>
-                <div>
-                  <Label>Unit</Label>
-                  <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as "hours" | "days")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hours">Hours</SelectItem>
-                      <SelectItem value="days">Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                )}
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {endMode === "duration"
+                    ? "End date is calculated from start + duration."
+                    : "Duration is calculated from start → end."}
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground">If multiple tasks in this activity share dates, the overlapping period is counted once toward the activity's duration.</p>
+
+              <div>
+                <Label>Weight score (1–10)</Label>
+                <Input type="number" min={1} max={10} step={1} value={weightScore} onChange={(e) => setWeightScore(Number(e.target.value))} />
+                <p className="mt-1 text-[10px] text-muted-foreground">Relative weight inside its parent. Parent progress = Σ(child weight × child %) ÷ Σ(weights).</p>
+              </div>
             </>
           )}
 
@@ -1724,10 +1642,10 @@ function AddMilestoneDialog({
           </div>
           <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
 
-          {kind !== "Milestone" && (
+          {kind === "Task" && (
             <div className="rounded-md border border-border p-3 space-y-2">
               <Label className="text-sm">Payment link</Label>
-              <p className="text-xs text-muted-foreground">Connect this {kind.toLowerCase()} to a client revenue event or a working-package (contract) payment milestone.</p>
+              <p className="text-xs text-muted-foreground">Connect this task to a client revenue event or a working-package (contract) payment milestone.</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs text-muted-foreground">Type</Label>
