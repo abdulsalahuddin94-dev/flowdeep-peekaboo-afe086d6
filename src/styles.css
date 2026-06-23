@@ -235,24 +235,24 @@
   font-family: "Poppins", sans-serif;
 }
 
-.ds02-sidebar [data-sidebar-menu-button] {
+.ds02-sidebar [data-sidebar="menu-button"] {
   color: var(--sidebar-foreground);
   font-family: "Poppins", sans-serif;
   font-size: 14px;
   font-weight: 400;
   transition: all 200ms ease;
 }
-.ds02-sidebar [data-sidebar-menu-button]:hover:not([data-active="true"]):not([aria-current="page"]) {
+.ds02-sidebar [data-sidebar="menu-button"]:hover:not([data-active="true"]):not([aria-current="page"]) {
   color: var(--sidebar-accent-foreground);
   background-color: var(--sidebar-accent);
 }
-.ds02-sidebar [data-sidebar-menu-button][data-active="true"],
-.ds02-sidebar [data-sidebar-menu-button][aria-current="page"] {
-  background: var(--sidebar-active-bg);
-  color: var(--sidebar-active-fg);
+.ds02-sidebar [data-sidebar="menu-button"][data-active="true"],
+.ds02-sidebar [data-sidebar="menu-button"][aria-current="page"] {
+  background: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-fg) !important;
   font-weight: 600;
 }
-.ds02-sidebar [data-sidebar-footer] {
+.ds02-sidebar [data-sidebar="footer"] {
   border-color: var(--sidebar-border);
 }
 
