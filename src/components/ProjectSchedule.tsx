@@ -171,6 +171,16 @@ function fmt(d: Date) { return d.toLocaleDateString(undefined, { month: "short",
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+// Color per nesting level (cycles for deeper levels)
+const LEVEL_COLORS = [
+  "hsl(217 91% 60%)",  // L1 — blue
+  "hsl(160 84% 39%)",  // L2 — emerald
+  "hsl(38 92% 50%)",   // L3 — amber
+  "hsl(280 75% 60%)",  // L4 — violet
+  "hsl(340 82% 60%)",  // L5 — pink
+  "hsl(190 80% 45%)",  // L6 — cyan
+];
+
 // ── Column config ────────────────────────────────────────────────────────────
 const COLUMNS = [
   { key: "type",     label: "Type",        w: 90 },
@@ -792,6 +802,12 @@ export function ProjectSchedule({
                       ) : (
                         <span className="inline-block h-4 w-4" />
                       )}
+                      <span
+                        className="inline-block h-2 w-2 shrink-0 rounded-full ring-1 ring-border/60"
+                        style={{ background: LEVEL_COLORS[depth % LEVEL_COLORS.length] }}
+                        aria-hidden
+                        title={`Level ${depth + 1}`}
+                      />
                       {isMs && <Diamond className="h-3 w-3 shrink-0 text-accent" />}
                       <EditableText
                         value={item.name}
