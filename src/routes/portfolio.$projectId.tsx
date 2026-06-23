@@ -1466,15 +1466,19 @@ function AddMilestoneDialog({
       }
       const parent = parentName === "__none__" ? undefined : parentName;
 
-      // Each skill/role creates a pending resource request
+      // One task = one skill = at most one resource request
       const requestIds: string[] = [];
       const fromMonth = startDate.slice(0, 7);
-      for (const r of roles) {
+      const normalizedRole = skillRole.role.trim();
+      const taskRoles: RoleReq[] = normalizedRole
+        ? [{ role: normalizedRole, skill: skillRole.skill, fte: Number(skillRole.fte) || 0 }]
+        : [];
+      if (normalizedRole) {
         const id = addResourceRequest({
           project: projectName,
-          role: r.role,
-          skill: r.skill,
-          fte: r.fte,
+          role: normalizedRole,
+          skill: skillRole.skill,
+          fte: Number(skillRole.fte) || 0,
           from: fromMonth,
           until: fromMonth,
           priority: "Medium",
@@ -1487,16 +1491,17 @@ function AddMilestoneDialog({
       newItems.push({
         name: name.trim(), kind: "Task",
         startDate, endDate: computedEnd, owner: owner || defaultOwner, rag, dep,
-        roles, payment: buildPayment(), progress: 0, parent,
+        roles: taskRoles, payment: buildPayment(), progress: 0, parent,
         durationValue: durVal, durationUnit: durUnit,
         weightScore: Math.max(1, Math.min(10, Number(weightScore) || 1)),
         resourceRequestIds: requestIds.length ? requestIds : undefined,
       });
 
       if (requestIds.length) {
-        toast.success(`${requestIds.length} resource request${requestIds.length === 1 ? "" : "s"} sent`);
+        toast.success("Resource request sent");
       }
     }
+
 
     onAdd(newItems);
     toast.success(`${kind} added`);
