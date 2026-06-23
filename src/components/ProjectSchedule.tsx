@@ -1159,17 +1159,15 @@ export function ProjectSchedule({
                 if (it.assignee) a.assigned += 1;
                 return a;
               },
-              { Milestone: 0, Activity: 0, Task: 0, deps: 0, assigned: 0 } as Record<string, number>,
+              { Milestone: 0, Task: 0, deps: 0, assigned: 0 } as Record<string, number>,
             );
             const kindColor = (k: ItemKind) =>
               k === "Milestone" ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-              : k === "Activity" ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
               : "bg-muted text-muted-foreground border-border";
             return (
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">{counts.Milestone} milestones</span>
-                  <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-blue-300">{counts.Activity} activities</span>
                   <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.Task} tasks</span>
                   <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.deps} dependencies</span>
                   <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground">{counts.assigned} assigned</span>
@@ -1192,7 +1190,7 @@ export function ProjectSchedule({
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               {it.parent && <span className="text-muted-foreground/60">↳</span>}
-                              <span className={it.kind === "Activity" ? "font-medium" : ""}>{it.name}</span>
+                              <span className={it.kind === "Milestone" ? "font-medium" : ""}>{it.name}</span>
                             </div>
                             {it.parent && <div className="pl-4 text-[10px] text-muted-foreground">in {it.parent}</div>}
                           </TableCell>
