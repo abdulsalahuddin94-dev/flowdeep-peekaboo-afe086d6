@@ -1420,7 +1420,7 @@ function AddMilestoneDialog({
     setEndDate(""); setLagDays(0); setMilestoneType("finish");
     setParentName("__none__"); setStartDate(""); setEndMode("duration"); setTaskEndDate("");
     setDurationValue(1); setDurationUnit("days"); setWeightScore(1);
-    setRoles([]); setRoleDraft({ role: "", skill: "Mid", fte: 1 });
+    setSkillRole({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
 
