@@ -102,7 +102,7 @@ function parseMsProjectXml(xmlText: string): ScheduleItem[] {
     for (let j = idx - 1; j >= 0; j--) {
       if (list[j].outline < r.outline) { parent = list[j].name; break; }
     }
-    const kind: ItemKind = r.isMilestone ? "Milestone" : r.isSummary ? "Activity" : "Task";
+    const kind: ItemKind = r.isMilestone ? "Milestone" : "Task";
     const dep = r.preds.map((u) => uidToName.get(u)).filter(Boolean).join(", ");
     const assignee = (assignments.get(r.uid) ?? []).join(", ") || undefined;
     const rag: Rag = r.percent >= 100 ? "green" : r.percent > 0 ? "blue" : "grey";
