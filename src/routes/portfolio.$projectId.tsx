@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil, ArrowUpRight } from "lucide-react";
 import type { Rag } from "@/lib/mock-data";
@@ -112,39 +113,39 @@ function ProjectDetail() {
   const [reqResourceOpen, setReqResourceOpen] = useState(false);
   const [milestones, setMilestones] = useState<Milestone[]>([
     // ── Phase 1: Discovery — completed, all green, all assigned ──────────────
-    { name: "Discovery & Requirements", kind: "Activity", startDate: "2025-04-15", endDate: "2025-05-16", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DSC", amount: "$80K" }, progress: 100 },
-    { name: "Stakeholder workshops", kind: "Task", startDate: "2025-04-15", endDate: "2025-04-25", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 100, parent: "Discovery & Requirements", assignee: "Sara Al-Rashid" },
-    { name: "Requirements doc", kind: "Task", startDate: "2025-04-28", endDate: "2025-05-12", owner: "Sara", rag: "green", dep: "Stakeholder workshops", roles: [{ role: "Business Analyst", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 100, parent: "Discovery & Requirements", assignee: "John Smith" },
-    { name: "Discovery Sign-off", kind: "Milestone", startDate: "2025-05-16", endDate: "2025-05-16", owner: "Sara", rag: "green", dep: "Discovery & Requirements", roles: [], payment: { kind: "Client Revenue", amount: "$120K" }, progress: 100, assignee: "Sara Al-Rashid" },
+    { name: "Discovery & Requirements", kind: "Task", startDate: "2025-04-15", endDate: "2025-05-16", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DSC", amount: "$80K" }, progress: 100, parent: "Discovery Sign-off", weightScore: 8 },
+    { name: "Stakeholder workshops", kind: "Task", startDate: "2025-04-15", endDate: "2025-04-25", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 100, parent: "Discovery & Requirements", assignee: "Sara Al-Rashid", weightScore: 5 },
+    { name: "Requirements doc", kind: "Task", startDate: "2025-04-28", endDate: "2025-05-12", owner: "Sara", rag: "green", dep: "Stakeholder workshops", roles: [{ role: "Business Analyst", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 100, parent: "Discovery & Requirements", assignee: "John Smith", weightScore: 5 },
+    { name: "Discovery Sign-off", kind: "Milestone", startDate: "2025-05-16", endDate: "2025-05-16", owner: "Sara", rag: "green", dep: "Discovery & Requirements", roles: [], payment: { kind: "Client Revenue", amount: "$120K" }, progress: 100, assignee: "Sara Al-Rashid", milestoneType: "finish" },
 
     // ── Phase 2: Design — at risk (amber), mixed assignee states ────────────
-    { name: "Solution Design", kind: "Activity", startDate: "2025-05-19", endDate: "2025-06-27", owner: "Mei", rag: "amber", dep: "Discovery Sign-off", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DSN", amount: "$150K" }, progress: 70 },
-    { name: "Architecture blueprint", kind: "Task", startDate: "2025-05-19", endDate: "2025-06-06", owner: "Mei", rag: "green", dep: "Discovery Sign-off", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 100, parent: "Solution Design", assignee: "Mei Chen" },
-    { name: "UX wireframes", kind: "Task", startDate: "2025-05-26", endDate: "2025-06-20", owner: "Mei", rag: "amber", dep: "Architecture blueprint", roles: [{ role: "UX Designer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 60, parent: "Solution Design", assignee: "Waiting" },
-    { name: "Security review", kind: "Task", startDate: "2025-06-09", endDate: "2025-06-27", owner: "Mei", rag: "amber", dep: "Architecture blueprint", roles: [{ role: "Security Lead", skill: "Senior", fte: 0.5 }], payment: { kind: "None", amount: "" }, progress: 30, parent: "Solution Design" },
-    { name: "Design Approved", kind: "Milestone", startDate: "2025-06-27", endDate: "2025-06-27", owner: "Mei", rag: "amber", dep: "Solution Design", roles: [], payment: { kind: "Client Revenue", amount: "$180K" }, progress: 0, assignee: "Mei Chen" },
+    { name: "Solution Design", kind: "Task", startDate: "2025-05-19", endDate: "2025-06-27", owner: "Mei", rag: "amber", dep: "Discovery Sign-off", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DSN", amount: "$150K" }, progress: 70, parent: "Design Approved", weightScore: 8 },
+    { name: "Architecture blueprint", kind: "Task", startDate: "2025-05-19", endDate: "2025-06-06", owner: "Mei", rag: "green", dep: "Discovery Sign-off", roles: [{ role: "Solution Architect", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 100, parent: "Solution Design", assignee: "Mei Chen", weightScore: 4 },
+    { name: "UX wireframes", kind: "Task", startDate: "2025-05-26", endDate: "2025-06-20", owner: "Mei", rag: "amber", dep: "Architecture blueprint", roles: [{ role: "UX Designer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 60, parent: "Solution Design", assignee: "Waiting", weightScore: 4 },
+    { name: "Security review", kind: "Task", startDate: "2025-06-09", endDate: "2025-06-27", owner: "Mei", rag: "amber", dep: "Architecture blueprint", roles: [{ role: "Security Lead", skill: "Senior", fte: 0.5 }], payment: { kind: "None", amount: "" }, progress: 30, parent: "Solution Design", weightScore: 2 },
+    { name: "Design Approved", kind: "Milestone", startDate: "2025-06-27", endDate: "2025-06-27", owner: "Mei", rag: "amber", dep: "Solution Design", roles: [], payment: { kind: "Client Revenue", amount: "$180K" }, progress: 0, assignee: "Mei Chen", milestoneType: "finish" },
 
     // ── Phase 3: Build — in progress (blue), assignees fulfilled ────────────
-    { name: "Build & Integration", kind: "Activity", startDate: "2025-06-30", endDate: "2025-08-22", owner: "Priya", rag: "blue", dep: "Design Approved", roles: [{ role: "Integration Dev", skill: "Mid", fte: 2 }, { role: "Backend Dev", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-BLD", amount: "$320K" }, progress: 45 },
-    { name: "Backend API", kind: "Task", startDate: "2025-06-30", endDate: "2025-07-25", owner: "Diego", rag: "blue", dep: "Design Approved", roles: [{ role: "Backend Dev", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 65, parent: "Build & Integration", assignee: "Diego Ortiz" },
-    { name: "Frontend UI", kind: "Task", startDate: "2025-07-07", endDate: "2025-08-08", owner: "Priya", rag: "blue", dep: "Backend API", roles: [{ role: "Frontend Dev", skill: "Mid", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 40, parent: "Build & Integration", assignee: "Priya Iyer" },
-    { name: "Data migration scripts", kind: "Task", startDate: "2025-07-14", endDate: "2025-08-15", owner: "Diego", rag: "amber", dep: "Backend API", roles: [{ role: "Data Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 25, parent: "Build & Integration", assignee: "Waiting" },
-    { name: "Third-party integrations", kind: "Task", startDate: "2025-07-21", endDate: "2025-08-22", owner: "Priya", rag: "grey", dep: "Frontend UI", roles: [{ role: "Integration Dev", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Build & Integration" },
-    { name: "Build Complete", kind: "Milestone", startDate: "2025-08-22", endDate: "2025-08-22", owner: "Priya", rag: "blue", dep: "Build & Integration", roles: [], payment: { kind: "Client Revenue", amount: "$250K" }, progress: 0, assignee: "Priya Iyer" },
+    { name: "Build & Integration", kind: "Task", startDate: "2025-06-30", endDate: "2025-08-22", owner: "Priya", rag: "blue", dep: "Design Approved", roles: [{ role: "Integration Dev", skill: "Mid", fte: 2 }, { role: "Backend Dev", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-BLD", amount: "$320K" }, progress: 45, parent: "Build Complete", weightScore: 10 },
+    { name: "Backend API", kind: "Task", startDate: "2025-06-30", endDate: "2025-07-25", owner: "Diego", rag: "blue", dep: "Design Approved", roles: [{ role: "Backend Dev", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 65, parent: "Build & Integration", assignee: "Diego Ortiz", weightScore: 4 },
+    { name: "Frontend UI", kind: "Task", startDate: "2025-07-07", endDate: "2025-08-08", owner: "Priya", rag: "blue", dep: "Backend API", roles: [{ role: "Frontend Dev", skill: "Mid", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 40, parent: "Build & Integration", assignee: "Priya Iyer", weightScore: 3 },
+    { name: "Data migration scripts", kind: "Task", startDate: "2025-07-14", endDate: "2025-08-15", owner: "Diego", rag: "amber", dep: "Backend API", roles: [{ role: "Data Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 25, parent: "Build & Integration", assignee: "Waiting", weightScore: 2 },
+    { name: "Third-party integrations", kind: "Task", startDate: "2025-07-21", endDate: "2025-08-22", owner: "Priya", rag: "grey", dep: "Frontend UI", roles: [{ role: "Integration Dev", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Build & Integration", weightScore: 1 },
+    { name: "Build Complete", kind: "Milestone", startDate: "2025-08-22", endDate: "2025-08-22", owner: "Priya", rag: "blue", dep: "Build & Integration", roles: [], payment: { kind: "Client Revenue", amount: "$250K" }, progress: 0, assignee: "Priya Iyer", milestoneType: "finish" },
 
     // ── Phase 4: Testing — blocked (red), waiting/unrequested mix ───────────
-    { name: "Testing & QA", kind: "Activity", startDate: "2025-08-25", endDate: "2025-09-19", owner: "Priya", rag: "red", dep: "Build Complete", roles: [{ role: "QA Engineer", skill: "Senior", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-QA", amount: "$95K" }, progress: 10 },
-    { name: "SIT execution", kind: "Task", startDate: "2025-08-25", endDate: "2025-09-05", owner: "Priya", rag: "red", dep: "Build Complete", roles: [{ role: "QA Engineer", skill: "Senior", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 15, parent: "Testing & QA", assignee: "Waiting" },
-    { name: "UAT execution", kind: "Task", startDate: "2025-09-08", endDate: "2025-09-19", owner: project.pm, rag: "red", dep: "SIT execution", roles: [{ role: "QA Lead", skill: "Lead", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Testing & QA" },
-    { name: "Performance & load test", kind: "Task", startDate: "2025-09-01", endDate: "2025-09-12", owner: "Mei", rag: "amber", dep: "Build Complete", roles: [{ role: "Performance Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 5, parent: "Testing & QA", assignee: "Waiting" },
-    { name: "UAT Sign-off", kind: "Milestone", startDate: "2025-09-19", endDate: "2025-09-19", owner: project.pm, rag: "red", dep: "Testing & QA", roles: [], payment: { kind: "Client Revenue", amount: "$200K" }, progress: 0 },
+    { name: "Testing & QA", kind: "Task", startDate: "2025-08-25", endDate: "2025-09-19", owner: "Priya", rag: "red", dep: "Build Complete", roles: [{ role: "QA Engineer", skill: "Senior", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-QA", amount: "$95K" }, progress: 10, parent: "UAT Sign-off", weightScore: 8 },
+    { name: "SIT execution", kind: "Task", startDate: "2025-08-25", endDate: "2025-09-05", owner: "Priya", rag: "red", dep: "Build Complete", roles: [{ role: "QA Engineer", skill: "Senior", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 15, parent: "Testing & QA", assignee: "Waiting", weightScore: 4 },
+    { name: "UAT execution", kind: "Task", startDate: "2025-09-08", endDate: "2025-09-19", owner: project.pm, rag: "red", dep: "SIT execution", roles: [{ role: "QA Lead", skill: "Lead", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Testing & QA", weightScore: 4 },
+    { name: "Performance & load test", kind: "Task", startDate: "2025-09-01", endDate: "2025-09-12", owner: "Mei", rag: "amber", dep: "Build Complete", roles: [{ role: "Performance Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 5, parent: "Testing & QA", assignee: "Waiting", weightScore: 2 },
+    { name: "UAT Sign-off", kind: "Milestone", startDate: "2025-09-19", endDate: "2025-09-19", owner: project.pm, rag: "red", dep: "Testing & QA", roles: [], payment: { kind: "Client Revenue", amount: "$200K" }, progress: 0, milestoneType: "finish" },
 
     // ── Phase 5: Deploy — not started (grey), no skill requests yet ─────────
-    { name: "Deployment & Hypercare", kind: "Activity", startDate: "2025-09-22", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "UAT Sign-off", roles: [{ role: "DevOps Engineer", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DPL", amount: "$60K" }, progress: 0 },
-    { name: "Production cutover", kind: "Task", startDate: "2025-09-22", endDate: "2025-09-26", owner: project.pm, rag: "grey", dep: "UAT Sign-off", roles: [{ role: "DevOps Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare" },
-    { name: "Hypercare support", kind: "Task", startDate: "2025-09-29", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "Production cutover", roles: [{ role: "Support Lead", skill: "Mid", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare" },
-    { name: "Knowledge transfer", kind: "Task", startDate: "2025-10-06", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "Production cutover", roles: [{ role: "Trainer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare" },
-    { name: "Go-Live", kind: "Milestone", startDate: project.endDate, endDate: project.endDate, owner: project.pm, rag: "blue", dep: "Deployment & Hypercare", roles: [], payment: { kind: "Client Revenue", amount: "$500K" }, progress: 0 },
+    { name: "Deployment & Hypercare", kind: "Task", startDate: "2025-09-22", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "UAT Sign-off", roles: [{ role: "DevOps Engineer", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DPL", amount: "$60K" }, progress: 0, parent: "Go-Live", weightScore: 10 },
+    { name: "Production cutover", kind: "Task", startDate: "2025-09-22", endDate: "2025-09-26", owner: project.pm, rag: "grey", dep: "UAT Sign-off", roles: [{ role: "DevOps Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare", weightScore: 5 },
+    { name: "Hypercare support", kind: "Task", startDate: "2025-09-29", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "Production cutover", roles: [{ role: "Support Lead", skill: "Mid", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare", weightScore: 3 },
+    { name: "Knowledge transfer", kind: "Task", startDate: "2025-10-06", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "Production cutover", roles: [{ role: "Trainer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare", weightScore: 2 },
+    { name: "Go-Live", kind: "Milestone", startDate: project.endDate, endDate: project.endDate, owner: project.pm, rag: "blue", dep: "Deployment & Hypercare", roles: [], payment: { kind: "Client Revenue", amount: "$500K" }, progress: 0, milestoneType: "finish" },
   ]);
   const [reports, setReports] = useState<StatusReport[]>(() => [
     { week: 18, by: project.pm, when: "3 days ago", rag: project.rag, text: "Integration layer testing delayed by 1 week. Fallback plan in review with IT Director. No impact on go-live yet." },
@@ -1240,7 +1241,8 @@ function RequestResourcesDialog({ projectName }: { projectName: string }) {
 
 
 // ── v11 Types ─────────────────────────────────────────────────────────────────
-type ItemKind = "Milestone" | "Activity" | "Task";
+type ItemKind = "Milestone" | "Task";
+type MilestoneType = "start" | "finish";
 type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 type PaymentLinkKind = "None" | "Client Revenue" | "Package Cost";
 type PaymentLink = { kind: PaymentLinkKind; amount: string; packageId?: string };
@@ -1250,10 +1252,12 @@ type Milestone = {
   payment?: PaymentLink; progress?: number; parent?: string;
   assignee?: string;
   lagDays?: number;              // milestone only — buffer added after last child
+  milestoneType?: MilestoneType; // milestone only — "start" | "finish" (visual)
   durationValue?: number;        // task only
   durationUnit?: "hours" | "days"; // task only
   isParallel?: boolean;          // task only — excluded from activity sum
   resourceRequestIds?: string[]; // task only — fulfilled requests set assignee
+  weightScore?: number;          // task only — relative weight (1-10) for parent rollup
 };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
@@ -1288,11 +1292,18 @@ function minISO(arr: (string | undefined)[]): string | undefined {
 }
 function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Milestone[] {
   const out = items.map((it) => ({ ...it }));
+  const childrenOf = new Map<string, Milestone[]>();
+  for (const it of out) {
+    if (!it.parent) continue;
+    if (!childrenOf.has(it.parent)) childrenOf.set(it.parent, []);
+    childrenOf.get(it.parent)!.push(it);
+  }
 
-  // Task: derive endDate from duration; assignee from fulfilled requests or "Waiting"
+  // Task leaves: derive endDate from duration; assignee from fulfilled requests or "Waiting"
   for (const it of out) {
     if (it.kind !== "Task") continue;
-    if (it.durationValue && it.startDate) {
+    const hasKids = (childrenOf.get(it.name)?.length ?? 0) > 0;
+    if (!hasKids && it.durationValue && it.startDate) {
       const days = it.durationUnit === "hours"
         ? Math.max(1, Math.ceil(it.durationValue / 8))
         : Math.max(1, it.durationValue);
@@ -1310,38 +1321,58 @@ function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Mi
     }
   }
 
-  // Activity: start = min(task.start), end = max(stored end, max(task.end))
-  // (overlap is naturally handled — duration spans first start to last end)
-  for (const it of out) {
-    if (it.kind !== "Activity") continue;
-    const tasks = out.filter((t) => t.kind === "Task" && t.parent === it.name);
-    if (!tasks.length) continue;
-    const ts = minISO(tasks.map((t) => t.startDate));
-    const te = maxISO(tasks.map((t) => t.endDate));
-    if (!it.startDate && ts) it.startDate = ts;
-    if (te && (!it.endDate || te > it.endDate)) it.endDate = te;
-  }
+  // Recursive rollup: parent dates and progress derived from children (any depth).
+  const byName = new Map(out.map((it) => [it.name, it] as const));
+  const visiting = new Set<string>();
 
-  // Milestone: end = max(stored end, max child end) + lag; diamond (start = end)
-  for (const it of out) {
-    if (it.kind !== "Milestone") continue;
-    const children = out.filter((c) => c.parent === it.name);
-    if (children.length) {
-      const me = maxISO(children.map((c) => c.endDate));
-      if (me) {
-        const withLag = addDaysISO(me, it.lagDays ?? 0);
+  function rollup(name: string): { start?: string; end?: string; progress: number } {
+    const it = byName.get(name)!;
+    const kids = childrenOf.get(name) ?? [];
+    if (!kids.length) {
+      return { start: it.startDate, end: it.endDate, progress: it.progress ?? 0 };
+    }
+    if (visiting.has(name)) return { start: it.startDate, end: it.endDate, progress: it.progress ?? 0 };
+    visiting.add(name);
+
+    let totalW = 0; let weighted = 0;
+    let minS: string | undefined; let maxE: string | undefined;
+    for (const c of kids) {
+      const r = rollup(c.name);
+      const w = c.kind === "Task" ? Math.max(0, c.weightScore ?? 1) : 0; // milestones don't add weight
+      if (w > 0) { totalW += w; weighted += w * r.progress; }
+      if (r.start && (!minS || r.start < minS)) minS = r.start;
+      if (r.end && (!maxE || r.end > maxE)) maxE = r.end;
+    }
+    visiting.delete(name);
+
+    const prog = totalW > 0 ? Math.round(weighted / totalW) : (it.progress ?? 0);
+    if (it.kind === "Task") {
+      if (minS) it.startDate = minS;
+      if (maxE) it.endDate = maxE;
+      it.progress = prog;
+    } else if (it.kind === "Milestone") {
+      // Milestone is a diamond: keep stored end (or roll up to last child + lag); start = end.
+      if (maxE) {
+        const withLag = addDaysISO(maxE, it.lagDays ?? 0);
         if (!it.endDate || withLag > it.endDate) it.endDate = withLag;
       }
+      if (it.endDate) it.startDate = it.endDate;
+      it.progress = prog;
     }
-    if (it.endDate) it.startDate = it.endDate;
+    return { start: it.startDate, end: it.endDate, progress: prog };
   }
+
+  // Roll up from all root items (recursion covers descendants).
+  const allNames = new Set(out.map((i) => i.name));
+  const roots = out.filter((i) => !i.parent || !allNames.has(i.parent));
+  for (const r of roots) rollup(r.name);
 
   return out;
 }
 
-// ── Add Milestone / Activity / Task dialog ───────────────────────────────────
+// ── Add Milestone / Task dialog ──────────────────────────────────────────────
 function AddMilestoneDialog({
-  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting,
+  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting: _onUpdateExisting,
 }: {
   defaultOwner: string;
   packages: TenderPackage[];
@@ -1352,7 +1383,7 @@ function AddMilestoneDialog({
   onUpdateExisting: (name: string, patch: Partial<Milestone>) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<ItemKind>("Activity");
+  const [kind, setKind] = useState<ItemKind>("Task");
   const [name, setName] = useState("");
   const [owner, setOwner] = useState(defaultOwner);
   const [status, setStatus] = useState("Not Started");
@@ -1361,22 +1392,16 @@ function AddMilestoneDialog({
   // Milestone-specific
   const [endDate, setEndDate] = useState("");
   const [lagDays, setLagDays] = useState<number>(0);
-
-  // Activity-specific
-  const [startDate, setStartDate] = useState("");
-  const [activityEnd, setActivityEnd] = useState("");
-  const [parentMilestone, setParentMilestone] = useState<string>("__none__");
-  const [newMilestoneName, setNewMilestoneName] = useState("");
-  const [newMilestoneEnd, setNewMilestoneEnd] = useState("");
+  const [milestoneType, setMilestoneType] = useState<MilestoneType>("finish");
 
   // Task-specific
-  const [parentActivity, setParentActivity] = useState<string>("__none__");
-  const [newActivityName, setNewActivityName] = useState("");
-  const [newActivityStart, setNewActivityStart] = useState("");
-  const [newActivityEnd, setNewActivityEnd] = useState("");
-  const [newActivityParentMs, setNewActivityParentMs] = useState<string>("__none__");
+  const [parentName, setParentName] = useState<string>("__none__");
+  const [startDate, setStartDate] = useState("");
+  const [endMode, setEndMode] = useState<"date" | "duration">("duration");
+  const [taskEndDate, setTaskEndDate] = useState("");
   const [durationValue, setDurationValue] = useState<number>(1);
   const [durationUnit, setDurationUnit] = useState<"hours" | "days">("days");
+  const [weightScore, setWeightScore] = useState<number>(1);
 
   // Roles + payment (shared)
   const [roles, setRoles] = useState<RoleReq[]>([]);
@@ -1388,8 +1413,8 @@ function AddMilestoneDialog({
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
   const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
 
-  const milestoneOptions = items.filter((i) => i.kind === "Milestone");
-  const activityOptions = items.filter((i) => i.kind === "Activity");
+  // Parent options: every milestone and every task can be a parent (unlimited nesting).
+  const parentOptions = items.filter((i) => i.kind === "Milestone" || i.kind === "Task");
 
   function addRole() {
     if (!roleDraft.role.trim()) { toast.error("Role is required"); return; }
@@ -1399,11 +1424,10 @@ function AddMilestoneDialog({
   function removeRole(idx: number) { setRoles((prev) => prev.filter((_, i) => i !== idx)); }
 
   function reset() {
-    setKind("Activity"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
-    setEndDate(""); setLagDays(0);
-    setStartDate(""); setActivityEnd(""); setParentMilestone("__none__"); setNewMilestoneName(""); setNewMilestoneEnd("");
-    setParentActivity("__none__"); setNewActivityName(""); setNewActivityStart(""); setNewActivityEnd(""); setNewActivityParentMs("__none__");
-    setDurationValue(1); setDurationUnit("days");
+    setKind("Task"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+    setEndDate(""); setLagDays(0); setMilestoneType("finish");
+    setParentName("__none__"); setStartDate(""); setEndMode("duration"); setTaskEndDate("");
+    setDurationValue(1); setDurationUnit("days"); setWeightScore(1);
     setRoles([]); setRoleDraft({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
@@ -1424,98 +1448,31 @@ function AddMilestoneDialog({
       newItems.push({
         name: name.trim(), kind: "Milestone",
         startDate: endDate, endDate, owner: owner || defaultOwner, rag, dep,
-        roles: [], payment: buildPayment(), progress: 0, lagDays: Number(lagDays) || 0,
-      });
-    }
-
-    // Collect cascading updates to existing items (parent end-date extensions)
-    const updates: Array<{ name: string; patch: Partial<Milestone> }> = [];
-
-    if (kind === "Activity") {
-      if (!startDate) { toast.error("Start date is required"); return; }
-      if (activityEnd && activityEnd < startDate) { toast.error("End date must be after start date"); return; }
-      let parent: string | undefined;
-      if (parentMilestone === "__new__") {
-        if (!newMilestoneName.trim() || !newMilestoneEnd) {
-          toast.error("New milestone name and end date are required"); return;
-        }
-        newItems.push({
-          name: newMilestoneName.trim(), kind: "Milestone",
-          startDate: newMilestoneEnd, endDate: newMilestoneEnd,
-          owner: owner || defaultOwner, rag: "blue", dep: "",
-          roles: [], payment: { kind: "None", amount: "" }, progress: 0, lagDays: 0,
-        });
-        parent = newMilestoneName.trim();
-      } else if (parentMilestone !== "__none__") {
-        parent = parentMilestone;
-      }
-
-      // If activity end exceeds parent milestone's stored end → confirm
-      if (activityEnd && parent && parentMilestone !== "__new__") {
-        const ms = items.find((i) => i.name === parent && i.kind === "Milestone");
-        if (ms?.endDate && activityEnd > ms.endDate) {
-          const ok = window.confirm(
-            `Activity ends ${activityEnd}, which is after parent milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
-          );
-          if (ok) updates.push({ name: ms.name, patch: { endDate: activityEnd, startDate: activityEnd } });
-        }
-      }
-
-      newItems.push({
-        name: name.trim(), kind: "Activity",
-        startDate, endDate: activityEnd || startDate, owner: owner || defaultOwner, rag, dep,
-        roles, payment: buildPayment(), progress: 0, parent,
+        roles: [], payment: buildPayment(), progress: 0,
+        lagDays: Number(lagDays) || 0,
+        milestoneType,
       });
     }
 
     if (kind === "Task") {
-      let parent: string | undefined;
-      if (parentActivity === "__new__") {
-        if (!newActivityName.trim() || !newActivityStart) {
-          toast.error("New activity name and start date are required"); return;
-        }
-        let actParent: string | undefined;
-        if (newActivityParentMs !== "__none__") actParent = newActivityParentMs;
-        newItems.push({
-          name: newActivityName.trim(), kind: "Activity",
-          startDate: newActivityStart, endDate: newActivityEnd || newActivityStart,
-          owner: owner || defaultOwner, rag: "blue", dep: "",
-          roles: [], payment: { kind: "None", amount: "" }, progress: 0, parent: actParent,
-        });
-        parent = newActivityName.trim();
-      } else if (parentActivity !== "__none__") {
-        parent = parentActivity;
-      }
       if (!startDate) { toast.error("Start date is required"); return; }
-      if (!durationValue || durationValue <= 0) { toast.error("Duration must be > 0"); return; }
-
-      const days = durationUnit === "hours"
-        ? Math.max(1, Math.ceil(Number(durationValue) / 8))
-        : Math.max(1, Number(durationValue));
-      const taskEnd = addDaysISO(startDate, days - 1);
-
-      // Cascade: task → activity → milestone end-date checks (only for existing parents)
-      if (parent && parentActivity !== "__new__") {
-        const act = items.find((i) => i.name === parent && i.kind === "Activity");
-        if (act?.endDate && taskEnd > act.endDate) {
-          const ok = window.confirm(
-            `Task ends ${taskEnd}, after parent activity "${act.name}" (${act.endDate}). Extend the activity end date?`,
-          );
-          if (ok) {
-            updates.push({ name: act.name, patch: { endDate: taskEnd } });
-            // Also check milestone above
-            if (act.parent) {
-              const ms = items.find((i) => i.name === act.parent && i.kind === "Milestone");
-              if (ms?.endDate && taskEnd > ms.endDate) {
-                const ok2 = window.confirm(
-                  `This also exceeds milestone "${ms.name}" (${ms.endDate}). Extend the milestone end date?`,
-                );
-                if (ok2) updates.push({ name: ms.name, patch: { endDate: taskEnd, startDate: taskEnd } });
-              }
-            }
-          }
-        }
+      let computedEnd: string;
+      let durVal: number | undefined;
+      let durUnit: "hours" | "days" | undefined;
+      if (endMode === "date") {
+        if (!taskEndDate) { toast.error("End date is required"); return; }
+        if (taskEndDate < startDate) { toast.error("End date must be on/after start date"); return; }
+        computedEnd = taskEndDate;
+      } else {
+        if (!durationValue || durationValue <= 0) { toast.error("Duration must be > 0"); return; }
+        const days = durationUnit === "hours"
+          ? Math.max(1, Math.ceil(Number(durationValue) / 8))
+          : Math.max(1, Number(durationValue));
+        computedEnd = addDaysISO(startDate, days - 1);
+        durVal = Number(durationValue);
+        durUnit = durationUnit;
       }
+      const parent = parentName === "__none__" ? undefined : parentName;
 
       // Each skill/role creates a pending resource request
       const requestIds: string[] = [];
@@ -1537,9 +1494,10 @@ function AddMilestoneDialog({
 
       newItems.push({
         name: name.trim(), kind: "Task",
-        startDate, endDate: taskEnd, owner: owner || defaultOwner, rag, dep,
+        startDate, endDate: computedEnd, owner: owner || defaultOwner, rag, dep,
         roles, payment: buildPayment(), progress: 0, parent,
-        durationValue: Number(durationValue), durationUnit,
+        durationValue: durVal, durationUnit: durUnit,
+        weightScore: Math.max(1, Math.min(10, Number(weightScore) || 1)),
         resourceRequestIds: requestIds.length ? requestIds : undefined,
       });
 
@@ -1549,12 +1507,10 @@ function AddMilestoneDialog({
     }
 
     onAdd(newItems);
-    for (const u of updates) onUpdateExisting(u.name, u.patch);
     toast.success(`${kind} added`);
     setOpen(false);
     reset();
   }
-
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
@@ -1570,110 +1526,103 @@ function AddMilestoneDialog({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Milestone">Milestone</SelectItem>
-                <SelectItem value="Activity">Activity</SelectItem>
                 <SelectItem value="Task">Task</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. UAT Sign-off" /></div>
 
-          {/* MILESTONE: only end date + lag */}
+          {/* MILESTONE: subtype + end date + lag */}
           {kind === "Milestone" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>End date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
-              <div>
-                <Label>Lag (days)</Label>
-                <Input type="number" min="0" value={lagDays} onChange={(e) => setLagDays(Number(e.target.value))} />
-                <p className="mt-1 text-[10px] text-muted-foreground">Buffer added after the last child activity ends.</p>
-              </div>
-            </div>
-          )}
-
-          {/* ACTIVITY: parent milestone + start date */}
-          {kind === "Activity" && (
             <>
               <div>
-                <Label>Parent milestone</Label>
-                <Select value={parentMilestone} onValueChange={setParentMilestone}>
+                <Label>Milestone type</Label>
+                <Select value={milestoneType} onValueChange={(v) => setMilestoneType(v as MilestoneType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— None —</SelectItem>
-                    {milestoneOptions.map((m) => (
-                      <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
-                    ))}
-                    <SelectItem value="__new__">+ Create new milestone…</SelectItem>
+                    <SelectItem value="start">Start milestone</SelectItem>
+                    <SelectItem value="finish">Finish milestone</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-[10px] text-muted-foreground">Progress is rolled up automatically from child tasks (weighted by score).</p>
               </div>
-              {parentMilestone === "__new__" && (
-                <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-border p-2">
-                  <div className="col-span-2 text-[11px] text-muted-foreground">New milestone</div>
-                  <div><Label className="text-xs">Name</Label><Input value={newMilestoneName} onChange={(e) => setNewMilestoneName(e.target.value)} /></div>
-                  <div><Label className="text-xs">End date</Label><Input type="date" value={newMilestoneEnd} onChange={(e) => setNewMilestoneEnd(e.target.value)} /></div>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-2">
-                <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-                <div><Label>End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={activityEnd} onChange={(e) => setActivityEnd(e.target.value)} /></div>
+                <div><Label>Date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+                <div>
+                  <Label>Lag (days)</Label>
+                  <Input type="number" min="0" value={lagDays} onChange={(e) => setLagDays(Number(e.target.value))} />
+                  <p className="mt-1 text-[10px] text-muted-foreground">Buffer after the last child ends.</p>
+                </div>
               </div>
-              <p className="text-[11px] text-muted-foreground">If left empty, the end date is derived from child tasks. Overlapping tasks count once toward the activity duration.</p>
             </>
           )}
 
-          {/* TASK: parent activity, duration, parallel */}
+          {/* TASK: parent (any milestone or task) + start + (end date | duration) + weight */}
           {kind === "Task" && (
             <>
               <div>
-                <Label>Parent activity</Label>
-                <Select value={parentActivity} onValueChange={setParentActivity}>
+                <Label>Parent <span className="text-muted-foreground">(milestone or task — leave none for top level)</span></Label>
+                <Select value={parentName} onValueChange={setParentName}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— None —</SelectItem>
-                    {activityOptions.map((a) => (
-                      <SelectItem key={a.name} value={a.name}>{a.name}</SelectItem>
-                    ))}
-                    <SelectItem value="__new__">+ Create new activity…</SelectItem>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="__none__">— None (top level) —</SelectItem>
+                    {parentOptions.filter((p) => p.kind === "Milestone").length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">Milestones</div>
+                        {parentOptions.filter((p) => p.kind === "Milestone").map((m) => (
+                          <SelectItem key={`ms-${m.name}`} value={m.name}>◆ {m.name}</SelectItem>
+                        ))}
+                      </>
+                    )}
+                    {parentOptions.filter((p) => p.kind === "Task").length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">Tasks</div>
+                        {parentOptions.filter((p) => p.kind === "Task").map((t) => (
+                          <SelectItem key={`tk-${t.name}`} value={t.name}>{t.name}</SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
-              {parentActivity === "__new__" && (
-                <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-border p-2">
-                  <div className="col-span-2 text-[11px] text-muted-foreground">New activity</div>
-                  <div><Label className="text-xs">Name</Label><Input value={newActivityName} onChange={(e) => setNewActivityName(e.target.value)} /></div>
-                  <div><Label className="text-xs">Start date</Label><Input type="date" value={newActivityStart} onChange={(e) => setNewActivityStart(e.target.value)} /></div>
-                  <div className="col-span-2"><Label className="text-xs">End date <span className="text-muted-foreground">(optional)</span></Label><Input type="date" value={newActivityEnd} onChange={(e) => setNewActivityEnd(e.target.value)} /></div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Parent milestone</Label>
-                    <Select value={newActivityParentMs} onValueChange={setNewActivityParentMs}>
+
+              <div>
+                <Label>Start date</Label>
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>End</Label>
+                <ToggleGroup type="single" value={endMode} onValueChange={(v) => v && setEndMode(v as "date" | "duration")} className="justify-start">
+                  <ToggleGroupItem value="date" className="h-8 px-3 text-xs">End date</ToggleGroupItem>
+                  <ToggleGroupItem value="duration" className="h-8 px-3 text-xs">Duration</ToggleGroupItem>
+                </ToggleGroup>
+                {endMode === "date" ? (
+                  <Input className="mt-2" type="date" value={taskEndDate} onChange={(e) => setTaskEndDate(e.target.value)} />
+                ) : (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Input type="number" min="0" step="0.5" value={durationValue} onChange={(e) => setDurationValue(Number(e.target.value))} placeholder="Duration" />
+                    <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as "hours" | "days")}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">— None —</SelectItem>
-                        {milestoneOptions.map((m) => (
-                          <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
-                        ))}
+                        <SelectItem value="hours">Hours</SelectItem>
+                        <SelectItem value="days">Days</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              )}
-              <div className="grid grid-cols-3 gap-2">
-                <div><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-                <div>
-                  <Label>Duration</Label>
-                  <Input type="number" min="0" step="0.5" value={durationValue} onChange={(e) => setDurationValue(Number(e.target.value))} />
-                </div>
-                <div>
-                  <Label>Unit</Label>
-                  <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as "hours" | "days")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hours">Hours</SelectItem>
-                      <SelectItem value="days">Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                )}
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {endMode === "duration"
+                    ? "End date is calculated from start + duration."
+                    : "Duration is calculated from start → end."}
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground">If multiple tasks in this activity share dates, the overlapping period is counted once toward the activity's duration.</p>
+
+              <div>
+                <Label>Weight score (1–10)</Label>
+                <Input type="number" min={1} max={10} step={1} value={weightScore} onChange={(e) => setWeightScore(Number(e.target.value))} />
+                <p className="mt-1 text-[10px] text-muted-foreground">Relative weight inside its parent. Parent progress = Σ(child weight × child %) ÷ Σ(weights).</p>
+              </div>
             </>
           )}
 
@@ -1694,10 +1643,10 @@ function AddMilestoneDialog({
           </div>
           <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
 
-          {kind !== "Milestone" && (
+          {kind === "Task" && (
             <div className="rounded-md border border-border p-3 space-y-2">
               <Label className="text-sm">Payment link</Label>
-              <p className="text-xs text-muted-foreground">Connect this {kind.toLowerCase()} to a client revenue event or a working-package (contract) payment milestone.</p>
+              <p className="text-xs text-muted-foreground">Connect this task to a client revenue event or a working-package (contract) payment milestone.</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs text-muted-foreground">Type</Label>
