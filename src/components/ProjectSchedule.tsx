@@ -131,7 +131,8 @@ function parseMsProjectXml(xmlText: string): ScheduleItem[] {
 }
 
 // ── Shared types (mirror parent file) ────────────────────────────────────────
-export type ItemKind = "Milestone" | "Activity" | "Task";
+export type ItemKind = "Milestone" | "Task";
+export type MilestoneType = "start" | "finish";
 export type Rag = "green" | "amber" | "red" | "blue" | "grey";
 export type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 export type PaymentLink = { kind: "None" | "Client Revenue" | "Package Cost"; amount: string; packageId?: string };
@@ -148,6 +149,10 @@ export type ScheduleItem = {
   progress?: number;
   parent?: string;
   assignee?: string;
+  /** Task only — relative weight (1-10) used to roll up progress to parent. */
+  weightScore?: number;
+  /** Milestone only — "start" or "finish" affects icon only. */
+  milestoneType?: MilestoneType;
 };
 
 type Scale = "day" | "week" | "month";
