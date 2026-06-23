@@ -792,6 +792,12 @@ export function ProjectSchedule({
                       ) : (
                         <span className="inline-block h-4 w-4" />
                       )}
+                      <span
+                        className="inline-block h-2 w-2 shrink-0 rounded-full ring-1 ring-border/60"
+                        style={{ background: LEVEL_COLORS[depth % LEVEL_COLORS.length] }}
+                        aria-hidden
+                        title={`Level ${depth + 1}`}
+                      />
                       {isMs && <Diamond className="h-3 w-3 shrink-0 text-accent" />}
                       <EditableText
                         value={item.name}
