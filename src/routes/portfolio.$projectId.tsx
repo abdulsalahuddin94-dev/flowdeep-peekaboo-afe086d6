@@ -1240,7 +1240,8 @@ function RequestResourcesDialog({ projectName }: { projectName: string }) {
 
 
 // ── v11 Types ─────────────────────────────────────────────────────────────────
-type ItemKind = "Milestone" | "Activity" | "Task";
+type ItemKind = "Milestone" | "Task";
+type MilestoneType = "start" | "finish";
 type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 type PaymentLinkKind = "None" | "Client Revenue" | "Package Cost";
 type PaymentLink = { kind: PaymentLinkKind; amount: string; packageId?: string };
@@ -1250,10 +1251,12 @@ type Milestone = {
   payment?: PaymentLink; progress?: number; parent?: string;
   assignee?: string;
   lagDays?: number;              // milestone only — buffer added after last child
+  milestoneType?: MilestoneType; // milestone only — "start" | "finish" (visual)
   durationValue?: number;        // task only
   durationUnit?: "hours" | "days"; // task only
   isParallel?: boolean;          // task only — excluded from activity sum
   resourceRequestIds?: string[]; // task only — fulfilled requests set assignee
+  weightScore?: number;          // task only — relative weight (1-10) for parent rollup
 };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
