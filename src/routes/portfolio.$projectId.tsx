@@ -1682,28 +1682,18 @@ function AddMilestoneDialog({
           {kind === "Task" && (
             <div className="rounded-md border border-border p-3">
               <div className="mb-2 flex items-center justify-between">
-                <Label className="text-sm">Skills required</Label>
-                <span className="text-xs text-muted-foreground">{roles.length} skill{roles.length === 1 ? "" : "s"} · sent as resource request{roles.length === 1 ? "" : "s"}</span>
+                <Label className="text-sm">Skill required</Label>
+                <span className="text-xs text-muted-foreground">One task · one assignee</span>
               </div>
-              {roles.length > 0 && (
-                <div className="mb-3 space-y-1.5">
-                  {roles.map((r, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-md bg-secondary/40 px-2 py-1.5 text-xs">
-                      <span className="text-foreground"><span className="font-medium">{r.role}</span> · {r.skill} · {r.fte} FTE</span>
-                      <button type="button" onClick={() => removeRole(i)} className="text-muted-foreground hover:text-rag-red"><XCircle className="h-4 w-4" /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="grid grid-cols-[1fr_110px_80px_auto] gap-2 items-end">
+              <div className="grid grid-cols-[1fr_110px_80px] gap-2 items-end">
                 <div>
                   <Label className="text-xs text-muted-foreground">Skill / Role</Label>
-                  <Input list="role-suggestions" value={roleDraft.role} onChange={(e) => setRoleDraft((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
+                  <Input list="role-suggestions" value={skillRole.role} onChange={(e) => setSkillRole((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
                   <datalist id="role-suggestions">{roleSuggestions.map((r) => <option key={r} value={r} />)}</datalist>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Level</Label>
-                  <Select value={roleDraft.skill} onValueChange={(v) => setRoleDraft((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
+                  <Select value={skillRole.skill} onValueChange={(v) => setSkillRole((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Junior">Junior</SelectItem>
@@ -1715,11 +1705,10 @@ function AddMilestoneDialog({
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">FTE</Label>
-                  <Input type="number" min="0" step="0.5" value={roleDraft.fte} onChange={(e) => setRoleDraft((d) => ({ ...d, fte: Number(e.target.value) }))} />
+                  <Input type="number" min="0" step="0.5" value={skillRole.fte} onChange={(e) => setSkillRole((d) => ({ ...d, fte: Number(e.target.value) }))} />
                 </div>
-                <Button type="button" size="sm" variant="outline" onClick={addRole}><Plus className="h-4 w-4" /></Button>
               </div>
-              <p className="mt-2 text-[10px] text-muted-foreground">Assignee fills automatically once the request is fulfilled in Resources.</p>
+              <p className="mt-2 text-[10px] text-muted-foreground">Leave the role blank to skip the resource request. Assignee fills automatically once the request is fulfilled in Resources.</p>
             </div>
           )}
         </div>
