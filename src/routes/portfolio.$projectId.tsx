@@ -1403,9 +1403,8 @@ function AddMilestoneDialog({
   const [durationUnit, setDurationUnit] = useState<"hours" | "days">("days");
   const [weightScore, setWeightScore] = useState<number>(1);
 
-  // Roles + payment (shared)
-  const [roles, setRoles] = useState<RoleReq[]>([]);
-  const [roleDraft, setRoleDraft] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
+  // Single skill (one task = one assignee) + payment (shared)
+  const [skillRole, setSkillRole] = useState<RoleReq>({ role: "", skill: "Mid", fte: 1 });
   const [payKind, setPayKind] = useState<PaymentLinkKind>("None");
   const [payAmount, setPayAmount] = useState("");
   const [payPackage, setPayPackage] = useState<string>("");
@@ -1416,19 +1415,12 @@ function AddMilestoneDialog({
   // Parent options: every milestone and every task can be a parent (unlimited nesting).
   const parentOptions = items.filter((i) => i.kind === "Milestone" || i.kind === "Task");
 
-  function addRole() {
-    if (!roleDraft.role.trim()) { toast.error("Role is required"); return; }
-    setRoles((prev) => [...prev, { ...roleDraft, role: roleDraft.role.trim(), fte: Number(roleDraft.fte) || 0 }]);
-    setRoleDraft({ role: "", skill: "Mid", fte: 1 });
-  }
-  function removeRole(idx: number) { setRoles((prev) => prev.filter((_, i) => i !== idx)); }
-
   function reset() {
     setKind("Task"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
     setEndDate(""); setLagDays(0); setMilestoneType("finish");
     setParentName("__none__"); setStartDate(""); setEndMode("duration"); setTaskEndDate("");
     setDurationValue(1); setDurationUnit("days"); setWeightScore(1);
-    setRoles([]); setRoleDraft({ role: "", skill: "Mid", fte: 1 });
+    setSkillRole({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
 
@@ -1474,15 +1466,19 @@ function AddMilestoneDialog({
       }
       const parent = parentName === "__none__" ? undefined : parentName;
 
-      // Each skill/role creates a pending resource request
+      // One task = one skill = at most one resource request
       const requestIds: string[] = [];
       const fromMonth = startDate.slice(0, 7);
-      for (const r of roles) {
+      const normalizedRole = skillRole.role.trim();
+      const taskRoles: RoleReq[] = normalizedRole
+        ? [{ role: normalizedRole, skill: skillRole.skill, fte: Number(skillRole.fte) || 0 }]
+        : [];
+      if (normalizedRole) {
         const id = addResourceRequest({
           project: projectName,
-          role: r.role,
-          skill: r.skill,
-          fte: r.fte,
+          role: normalizedRole,
+          skill: skillRole.skill,
+          fte: Number(skillRole.fte) || 0,
           from: fromMonth,
           until: fromMonth,
           priority: "Medium",
@@ -1495,16 +1491,17 @@ function AddMilestoneDialog({
       newItems.push({
         name: name.trim(), kind: "Task",
         startDate, endDate: computedEnd, owner: owner || defaultOwner, rag, dep,
-        roles, payment: buildPayment(), progress: 0, parent,
+        roles: taskRoles, payment: buildPayment(), progress: 0, parent,
         durationValue: durVal, durationUnit: durUnit,
         weightScore: Math.max(1, Math.min(10, Number(weightScore) || 1)),
         resourceRequestIds: requestIds.length ? requestIds : undefined,
       });
 
       if (requestIds.length) {
-        toast.success(`${requestIds.length} resource request${requestIds.length === 1 ? "" : "s"} sent`);
+        toast.success("Resource request sent");
       }
     }
+
 
     onAdd(newItems);
     toast.success(`${kind} added`);
@@ -1685,28 +1682,18 @@ function AddMilestoneDialog({
           {kind === "Task" && (
             <div className="rounded-md border border-border p-3">
               <div className="mb-2 flex items-center justify-between">
-                <Label className="text-sm">Skills required</Label>
-                <span className="text-xs text-muted-foreground">{roles.length} skill{roles.length === 1 ? "" : "s"} · sent as resource request{roles.length === 1 ? "" : "s"}</span>
+                <Label className="text-sm">Skill required</Label>
+                <span className="text-xs text-muted-foreground">One task · one assignee</span>
               </div>
-              {roles.length > 0 && (
-                <div className="mb-3 space-y-1.5">
-                  {roles.map((r, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-md bg-secondary/40 px-2 py-1.5 text-xs">
-                      <span className="text-foreground"><span className="font-medium">{r.role}</span> · {r.skill} · {r.fte} FTE</span>
-                      <button type="button" onClick={() => removeRole(i)} className="text-muted-foreground hover:text-rag-red"><XCircle className="h-4 w-4" /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="grid grid-cols-[1fr_110px_80px_auto] gap-2 items-end">
+              <div className="grid grid-cols-[1fr_110px_80px] gap-2 items-end">
                 <div>
                   <Label className="text-xs text-muted-foreground">Skill / Role</Label>
-                  <Input list="role-suggestions" value={roleDraft.role} onChange={(e) => setRoleDraft((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
+                  <Input list="role-suggestions" value={skillRole.role} onChange={(e) => setSkillRole((d) => ({ ...d, role: e.target.value }))} placeholder="e.g. QA Engineer" />
                   <datalist id="role-suggestions">{roleSuggestions.map((r) => <option key={r} value={r} />)}</datalist>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Level</Label>
-                  <Select value={roleDraft.skill} onValueChange={(v) => setRoleDraft((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
+                  <Select value={skillRole.skill} onValueChange={(v) => setSkillRole((d) => ({ ...d, skill: v as RoleReq["skill"] }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Junior">Junior</SelectItem>
@@ -1718,11 +1705,10 @@ function AddMilestoneDialog({
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">FTE</Label>
-                  <Input type="number" min="0" step="0.5" value={roleDraft.fte} onChange={(e) => setRoleDraft((d) => ({ ...d, fte: Number(e.target.value) }))} />
+                  <Input type="number" min="0" step="0.5" value={skillRole.fte} onChange={(e) => setSkillRole((d) => ({ ...d, fte: Number(e.target.value) }))} />
                 </div>
-                <Button type="button" size="sm" variant="outline" onClick={addRole}><Plus className="h-4 w-4" /></Button>
               </div>
-              <p className="mt-2 text-[10px] text-muted-foreground">Assignee fills automatically once the request is fulfilled in Resources.</p>
+              <p className="mt-2 text-[10px] text-muted-foreground">Leave the role blank to skip the resource request. Assignee fills automatically once the request is fulfilled in Resources.</p>
             </div>
           )}
         </div>
