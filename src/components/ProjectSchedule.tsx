@@ -797,12 +797,14 @@ export function ProjectSchedule({
               </div>
               {visibleRows.map(({ item, depth, hasChildren }) => {
                 const isOpen = expanded.has(item.name);
-                const isCrit = criticalSet.has(item.name);
+                const isOff = offTrackSet.has(item.name);
+                const isRisk = atRiskSet.has(item.name) && !isOff;
+                const rowTint = isOff ? "bg-rag-red/5" : isRisk ? "bg-rag-amber/5" : "";
                 const isMs = item.kind === "Milestone";
                 return (
                   <ContextMenu key={item.name}>
                     <ContextMenuTrigger asChild>
-                  <div className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
+                  <div className={`flex border-b border-border/60 text-xs ${rowTint}`} style={{ height: ROW_H }}>
                     <div className="flex items-center gap-1 px-2 overflow-hidden" style={{ width: widths.name, paddingLeft: 8 + depth * 14 }}>
                       {hasChildren ? (
                         <button
