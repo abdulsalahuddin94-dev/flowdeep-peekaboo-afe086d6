@@ -159,6 +159,7 @@ function ProjectDetail() {
   ]);
   const [planningProgressOpen, setPlanningProgressOpen] = useState(false);
   const [progressInitial, setProgressInitial] = useState<string | undefined>(undefined);
+  const [progressScope, setProgressScope] = useState<string | undefined>(undefined);
   const [stageGateOpen, setStageGateOpen] = useState(false);
   const [gateData, setGateData] = useState<GateStage[]>(INITIAL_GATE_DATA);
   const currentStage = PLANNING_STAGES.find((s) => s.state === "active") ?? PLANNING_STAGES[0];
@@ -265,7 +266,16 @@ function ProjectDetail() {
         <TabsContent value="Project Schedule" className="mt-5">
           <ProjectSchedule
             items={useMemo(() => computeDerivedSchedule(milestones, resourceRequests), [milestones, resourceRequests])}
-            onProgressClick={(name) => { setProgressInitial(name); setPlanningProgressOpen(true); }}
+            onProgressClick={(name, kind) => {
+              if (kind === "Milestone") {
+                setProgressScope(name);
+                setProgressInitial(undefined);
+              } else {
+                setProgressScope(undefined);
+                setProgressInitial(name);
+              }
+              setPlanningProgressOpen(true);
+            }}
             onItemPatch={(name, patch) =>
               setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } as Milestone : m)))
             }
@@ -548,8 +558,9 @@ function ProjectDetail() {
 
       <ProgressUpdateDialog
         open={planningProgressOpen}
-        onOpenChange={(v) => { setPlanningProgressOpen(v); if (!v) setProgressInitial(undefined); }}
+        onOpenChange={(v) => { setPlanningProgressOpen(v); if (!v) { setProgressInitial(undefined); setProgressScope(undefined); } }}
         initialTaskName={progressInitial}
+        scopeMilestone={progressScope}
         items={computeDerivedSchedule(milestones, resourceRequests)}
         onSetProgress={(name, progress) =>
           setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, progress } : m)))
@@ -1012,7 +1023,7 @@ const SEED_PACKAGES: TenderPackage[] = [
 
 // ── Progress Update dialog (shown when the Progress KPI is clicked) ─────────
 function ProgressUpdateDialog({
-  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove, initialTaskName,
+  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove, initialTaskName, scopeMilestone,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1021,11 +1032,29 @@ function ProgressUpdateDialog({
   onRequestApproval: (name: string) => void;
   onApprove: (name: string) => void;
   initialTaskName?: string;
+  scopeMilestone?: string;
 }) {
-  const leaves = useMemo(
+  // All leaf tasks (no children)
+  const allLeaves = useMemo(
     () => items.filter((m) => m.kind === "Task" && !items.some((c) => c.parent === m.name)),
     [items],
   );
+  // When scoped to a milestone, only include leaves whose ancestor chain reaches that milestone.
+  const leaves = useMemo(() => {
+    if (!scopeMilestone) return allLeaves;
+    const byName = new Map(items.map((i) => [i.name, i]));
+    const isDescendant = (name: string): boolean => {
+      let cur = byName.get(name);
+      const seen = new Set<string>();
+      while (cur?.parent && !seen.has(cur.parent)) {
+        if (cur.parent === scopeMilestone) return true;
+        seen.add(cur.parent);
+        cur = byName.get(cur.parent);
+      }
+      return false;
+    };
+    return allLeaves.filter((l) => isDescendant(l.name));
+  }, [allLeaves, items, scopeMilestone]);
   const milestoneItems = useMemo(() => items.filter((m) => m.kind === "Milestone"), [items]);
 
   // Project-wide weighted actual vs planned (based on leaf-task weightScore).
@@ -1053,6 +1082,7 @@ function ProgressUpdateDialog({
     setDraftPct(first?.progress ?? 0);
   }, [open, leaves, initialTaskName]);
 
+
   const current = leaves.find((t) => t.name === selected);
   const currentPlanned = current ? computePlannedProgress(current.startDate, current.endDate) : 0;
   const needsApproval = !!current?.requiresApproval && draftPct >= 100 && current?.approvalStatus !== "approved";
@@ -1072,13 +1102,15 @@ function ProgressUpdateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Progress Update</DialogTitle>
+          <DialogTitle>
+            {scopeMilestone ? `Progress Update — ${scopeMilestone}` : "Progress Update"}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* Overall project planned vs actual */}
+        {/* Overall planned vs actual (scoped to milestone when applicable) */}
         <div className="rounded-lg border border-border bg-secondary/30 p-3">
           <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="label-eyebrow">Overall project</span>
+            <span className="label-eyebrow">{scopeMilestone ? "Milestone roll-up" : "Overall project"}</span>
             <span className={actualPct >= plannedPct ? "text-rag-green" : "text-rag-amber"}>
               {actualPct >= plannedPct ? "On / ahead of plan" : `${plannedPct - actualPct}% behind plan`}
             </span>
@@ -1171,7 +1203,7 @@ function ProgressUpdateDialog({
         </div>
 
         {/* Milestones read-only */}
-        {milestoneItems.length > 0 && (
+        {!scopeMilestone && milestoneItems.length > 0 && (
           <div className="rounded-md border border-border">
             <div className="border-b border-border bg-secondary/30 px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">
               Milestones (auto-rolled)

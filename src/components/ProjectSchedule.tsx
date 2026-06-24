@@ -259,7 +259,7 @@ export function ProjectSchedule({
   onAddSubtask?: (parentName: string) => void;
   onEditItem?: (name: string) => void;
   onDeleteItem?: (name: string) => void;
-  onProgressClick?: (name: string) => void;
+  onProgressClick?: (name: string, kind: ItemKind) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [healthHighlight, setHealthHighlight] = useState(false);
@@ -1088,12 +1088,12 @@ export function ProjectSchedule({
                           tabIndex={canClick ? 0 : undefined}
                           aria-label={`Update progress for ${item.name}`}
                           title={canClick ? "Click to update progress" : `Actual ${actual}% / Planned ${planned}%`}
-                          onClick={() => canClick && onProgressClick?.(item.name)}
+                          onClick={() => canClick && onProgressClick?.(item.name, item.kind)}
                           onKeyDown={(e) => {
                             if (!canClick) return;
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              onProgressClick?.(item.name);
+                              onProgressClick?.(item.name, item.kind);
                             }
                           }}
                           className={`flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden ${canClick ? "cursor-pointer hover:bg-secondary/30" : ""}`}
