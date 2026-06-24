@@ -22,7 +22,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, Upload, UserPlus } from "lucide-react";
+import {
+  ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash2, Upload, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
