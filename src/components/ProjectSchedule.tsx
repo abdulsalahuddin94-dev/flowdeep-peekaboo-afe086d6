@@ -707,8 +707,8 @@ export function ProjectSchedule({
           </ToggleGroup>
 
           <div className="flex items-center gap-2">
-            <Switch id="critpath" checked={critical} onCheckedChange={setCritical} />
-            <Label htmlFor="critpath" className="text-xs text-muted-foreground">Critical path</Label>
+            <Switch id="health" checked={healthHighlight} onCheckedChange={setHealthHighlight} />
+            <Label htmlFor="health" className="text-xs text-muted-foreground">Schedule health</Label>
           </div>
 
           <DropdownMenu>
