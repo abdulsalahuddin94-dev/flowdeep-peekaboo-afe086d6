@@ -147,7 +147,7 @@ function AddBusinessLineDialog() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground" onClick={() => { toast.success("Business Line created"); setOpen(false); }}>Save</Button>
+          <Button className="bg-accent text-accent-foreground" onClick={() => { toast.success("Business Type created"); setOpen(false); }}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
