@@ -852,6 +852,24 @@ export function ProjectSchedule({
             </>
           )}
 
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1 text-xs">
+                <Download className="h-3.5 w-3.5" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel>Export schedule</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={exportCSV}>CSV (.csv) — Excel / Sheets</DropdownMenuItem>
+              <DropdownMenuItem onSelect={exportMsProjectXML}>MS Project XML (.xml)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={exportJSON}>JSON (.json)</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => { setTimeout(() => window.print(), 50); }}>Print / Save as PDF…</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+
           {AddItemSlot}
         </div>
       </div>
