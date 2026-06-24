@@ -180,3 +180,8 @@ export function useTags() {
   const { tags, addTag } = useAppContext();
   return { tags, addTag };
 }
+
+export function useCalendars() {
+  const { calendars, addCalendar, updateCalendar } = useAppContext();
+  return { calendars, addCalendar, updateCalendar };
+}
