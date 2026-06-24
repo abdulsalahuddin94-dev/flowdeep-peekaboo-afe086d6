@@ -793,8 +793,17 @@ export function ProjectSchedule({
   <Name>Schedule Export</Name>
   <Tasks>${taskXml}</Tasks>
 </Project>`;
-    download(`schedule-${new Date().toISOString().slice(0,10)}.xml`, xml, "application/xml");
+    return xml;
+  }
+  function exportMsProjectXML() {
+    downloadBlob(`schedule-${dateStamp()}.xml`, new Blob([buildMsProjectXml()], { type: "application/xml" }));
     toast.success("Exported MS Project XML");
+  }
+  function exportMsProjectFile(ext: "mpp" | "mpt") {
+    // .mpp/.mpt are proprietary binary formats; export MS Project XML payload
+    // with the requested extension so users can import into MS Project (then Save As .mpp/.mpt).
+    downloadBlob(`schedule-${dateStamp()}.${ext}`, new Blob([buildMsProjectXml()], { type: "application/octet-stream" }));
+    toast.success(`Exported .${ext} (MS Project XML payload — open in MS Project)`);
   }
 
 
