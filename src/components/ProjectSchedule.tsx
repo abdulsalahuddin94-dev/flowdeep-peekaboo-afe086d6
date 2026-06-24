@@ -1362,7 +1362,7 @@ export function ProjectSchedule({
 
                   const days = Math.max(1, diffDays(e, s) + 1);
                   const w = days * dayWidth;
-                  const barH = hasChildren ? 12 : 18;
+                  const barH = hasChildren ? 16 : 26;
                   const barTop = top + (ROW_H - barH) / 2;
 
                   if (hasChildren) {
