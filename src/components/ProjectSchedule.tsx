@@ -957,6 +957,31 @@ export function ProjectSchedule({
                       </div>
                     )}
                   </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-48">
+                      {onAddSubtask && (
+                        <ContextMenuItem onSelect={() => onAddSubtask(item.name)}>
+                          <Plus className="mr-2 h-3.5 w-3.5" /> Add subtask
+                        </ContextMenuItem>
+                      )}
+                      {onEditItem && (
+                        <ContextMenuItem onSelect={() => onEditItem(item.name)}>
+                          <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                        </ContextMenuItem>
+                      )}
+                      {onDeleteItem && (
+                        <>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            onSelect={() => setPendingDelete(item.name)}
+                            className="text-rag-red focus:text-rag-red"
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                          </ContextMenuItem>
+                        </>
+                      )}
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })}
             </div>
