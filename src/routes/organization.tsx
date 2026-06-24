@@ -332,8 +332,10 @@ function CalendarDialog({ open, onOpenChange, calendar }: { open: boolean; onOpe
   }
   function addHoliday() {
     if (!newDate) { toast.error("Pick a date"); return; }
-    setHolidays((prev) => [...prev, { date: newDate, label: newLabel.trim() || "Holiday" }].sort((a, b) => a.date.localeCompare(b.date)));
-    setNewDate(""); setNewLabel("");
+    const iso = format(newDate, "yyyy-MM-dd");
+    if (holidays.some((h) => h.date === iso)) { toast.error("Holiday already added for that date"); return; }
+    setHolidays((prev) => [...prev, { date: iso, label: newLabel.trim() || "Holiday" }].sort((a, b) => a.date.localeCompare(b.date)));
+    setNewDate(undefined); setNewLabel("");
   }
   function removeHoliday(date: string) {
     setHolidays((prev) => prev.filter((h) => h.date !== date));
