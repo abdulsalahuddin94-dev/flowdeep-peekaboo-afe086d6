@@ -29,6 +29,7 @@ function OrganizationPage() {
           <TabsTrigger value="business-lines">Business Types</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="tags">Tags & Classifications</TabsTrigger>
+          <TabsTrigger value="calendars">Calendars</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business-lines" className="mt-5">
