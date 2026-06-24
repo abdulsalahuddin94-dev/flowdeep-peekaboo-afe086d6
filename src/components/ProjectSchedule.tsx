@@ -1195,7 +1195,12 @@ export function ProjectSchedule({
           <span className="flex items-center gap-1"><Diamond className="h-3 w-3 text-accent" /> Milestone</span>
           <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-accent" /> Task (fill = % complete)</span>
           <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-foreground/80" /> Summary (rolled up from subtasks)</span>
-          {critical && <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-rag-red" /> Critical path</span>}
+          {healthHighlight && (
+            <>
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-rag-amber" /> At risk (≤ 7% behind)</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-rag-red" /> Off track (&gt; 7% behind)</span>
+            </>
+          )}
         </div>
         <div>Range: {fmt(minDate)} – {fmt(maxDate)}</div>
       </div>
