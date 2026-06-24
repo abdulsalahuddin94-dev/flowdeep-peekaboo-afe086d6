@@ -8,11 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays, CalendarIcon, PartyPopper } from "lucide-react";
 import { businessLines, departments, type WorkCalendar } from "@/lib/mock-data";
 import { useTags, useProjects, useCalendars } from "@/lib/projects-store";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/organization")({
@@ -319,16 +322,20 @@ function CalendarDialog({ open, onOpenChange, calendar }: { open: boolean; onOpe
   const [workingDays, setWorkingDays] = useState<number[]>(calendar?.workingDays ?? [1, 2, 3, 4, 5]);
   const [hoursPerDay, setHoursPerDay] = useState<number>(calendar?.hoursPerDay ?? 8);
   const [holidays, setHolidays] = useState<{ date: string; label: string }[]>(calendar?.holidays ?? []);
-  const [newDate, setNewDate] = useState("");
+  const [newDate, setNewDate] = useState<Date | undefined>(undefined);
   const [newLabel, setNewLabel] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const holidayDates = holidays.map((h) => parseISO(h.date));
 
   function toggleDay(d: number) {
     setWorkingDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
   }
   function addHoliday() {
     if (!newDate) { toast.error("Pick a date"); return; }
-    setHolidays((prev) => [...prev, { date: newDate, label: newLabel.trim() || "Holiday" }].sort((a, b) => a.date.localeCompare(b.date)));
-    setNewDate(""); setNewLabel("");
+    const iso = format(newDate, "yyyy-MM-dd");
+    if (holidays.some((h) => h.date === iso)) { toast.error("Holiday already added for that date"); return; }
+    setHolidays((prev) => [...prev, { date: iso, label: newLabel.trim() || "Holiday" }].sort((a, b) => a.date.localeCompare(b.date)));
+    setNewDate(undefined); setNewLabel("");
   }
   function removeHoliday(date: string) {
     setHolidays((prev) => prev.filter((h) => h.date !== date));
@@ -380,25 +387,57 @@ function CalendarDialog({ open, onOpenChange, calendar }: { open: boolean; onOpe
           </div>
           <div>
             <Label>Official holidays</Label>
-            <div className="mt-1.5 flex gap-2">
-              <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-44" />
-              <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Label (e.g. Labour Day)" />
-              <Button type="button" variant="outline" onClick={addHoliday}><Plus className="h-4 w-4" /></Button>
+            <div className="mt-1.5 flex flex-col gap-2 rounded-lg border border-border bg-secondary/30 p-3 sm:flex-row sm:items-center">
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" className={`w-full justify-start gap-2 sm:w-44 ${!newDate ? "text-muted-foreground" : ""}`}>
+                    <CalendarIcon className="h-4 w-4 text-accent" />
+                    {newDate ? format(newDate, "MMM d, yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={newDate}
+                    onSelect={(d) => { setNewDate(d); if (d) setPickerOpen(false); }}
+                    initialFocus
+                    modifiers={{ holiday: holidayDates }}
+                    modifiersClassNames={{ holiday: "bg-rag-red/20 text-rag-red font-semibold rounded-md" }}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Label (e.g. Labour Day)" className="flex-1" />
+              <Button type="button" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={addHoliday}>
+                <Plus className="mr-1 h-4 w-4" />Add
+              </Button>
             </div>
-            <ScrollArea className="mt-2 h-44 rounded-md border border-border">
+            <ScrollArea className="mt-2 h-48 rounded-lg border border-border bg-card">
               <div className="divide-y divide-border/60">
-                {holidays.length === 0 && <div className="px-3 py-6 text-center text-xs text-muted-foreground">No holidays yet</div>}
-                {holidays.map((h) => (
-                  <div key={h.date} className="flex items-center justify-between px-3 py-2">
-                    <div className="min-w-0">
-                      <div className="text-sm text-foreground">{h.label}</div>
-                      <div className="text-xs text-muted-foreground">{h.date}</div>
-                    </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-rag-red" onClick={() => removeHoliday(h.date)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                {holidays.length === 0 && (
+                  <div className="flex flex-col items-center justify-center gap-2 px-3 py-10 text-center">
+                    <PartyPopper className="h-6 w-6 text-muted-foreground/60" />
+                    <div className="text-xs text-muted-foreground">No holidays yet — pick a date above to add one</div>
                   </div>
-                ))}
+                )}
+                {holidays.map((h) => {
+                  const d = parseISO(h.date);
+                  return (
+                    <div key={h.date} className="group flex items-center gap-3 px-3 py-2 transition hover:bg-accent/5">
+                      <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-md border border-rag-red/30 bg-rag-red/10 text-rag-red">
+                        <span className="text-[9px] font-semibold uppercase leading-none">{format(d, "MMM")}</span>
+                        <span className="text-sm font-bold leading-none">{format(d, "d")}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-foreground">{h.label}</div>
+                        <div className="text-[11px] text-muted-foreground">{format(d, "EEEE, yyyy")}</div>
+                      </div>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-rag-red" onClick={() => removeHoliday(h.date)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
