@@ -1125,11 +1125,8 @@ export function ProjectSchedule({
                               Appr
                             </span>
                           )}
-                          {isMs && (
-                            <span className="shrink-0 text-[9px] text-muted-foreground" title="Auto-rolled from subtasks">
-                              auto
-                            </span>
-                          )}
+                         </div>
+
                         </div>
                       );
                     })()}
