@@ -558,8 +558,9 @@ function ProjectDetail() {
 
       <ProgressUpdateDialog
         open={planningProgressOpen}
-        onOpenChange={(v) => { setPlanningProgressOpen(v); if (!v) setProgressInitial(undefined); }}
+        onOpenChange={(v) => { setPlanningProgressOpen(v); if (!v) { setProgressInitial(undefined); setProgressScope(undefined); } }}
         initialTaskName={progressInitial}
+        scopeMilestone={progressScope}
         items={computeDerivedSchedule(milestones, resourceRequests)}
         onSetProgress={(name, progress) =>
           setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, progress } : m)))
