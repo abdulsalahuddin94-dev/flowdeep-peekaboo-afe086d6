@@ -1507,6 +1507,10 @@ type Milestone = {
   isParallel?: boolean;          // task only — excluded from activity sum
   resourceRequestIds?: string[]; // task only — fulfilled requests set assignee
   weightScore?: number;          // task only — relative weight (1-10) for parent rollup
+  /** When true, the item cannot be marked 100% complete until approval is granted. */
+  requiresApproval?: boolean;
+  /** Workflow state: undefined (not requested) → "pending" → "approved" | "rejected". */
+  approvalStatus?: "approved" | "pending" | "rejected";
 };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
