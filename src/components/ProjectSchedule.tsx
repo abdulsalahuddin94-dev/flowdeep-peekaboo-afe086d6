@@ -221,6 +221,7 @@ type ColKey = typeof COLUMNS[number]["key"];
 type WidthKey = ColKey | "name";
 
 const ROW_H = 56;
+const HEADER_H = 32;
 const DEFAULT_NAME_W = 280;
 const MIN_COL_W = 56;
 const MAX_COL_W = 800;
@@ -960,7 +961,7 @@ export function ProjectSchedule({
           <div ref={leftScrollRef} onScroll={onLeftScroll} className="flex-1 overflow-auto">
             <div style={{ width: widths.name + COLUMNS.filter(c => colVisible(c.key)).reduce((s,c) => s + widths[c.key], 0) }}>
               {/* Header */}
-              <div className="sticky top-0 z-20 flex border-b border-border bg-secondary/60 backdrop-blur text-xs font-medium text-muted-foreground" style={{ height: ROW_H }}>
+              <div className="sticky top-0 z-20 flex border-b border-border bg-secondary/60 backdrop-blur text-xs font-medium text-muted-foreground" style={{ height: HEADER_H }}>
                 <ColHeader label="Task Name" width={widths.name} onResize={(e) => startColResize("name", e)} onAutoFit={() => autoFitCol("name")} first />
                 {COLUMNS.filter(c => colVisible(c.key)).map(c => (
                   <ColHeader key={c.key} label={c.label} width={widths[c.key]} onResize={(e) => startColResize(c.key, e)} onAutoFit={() => autoFitCol(c.key)} />
@@ -1226,7 +1227,7 @@ export function ProjectSchedule({
           <div ref={rightScrollRef} onScroll={onRightScroll} className="flex-1 overflow-auto">
             <div style={{ width: chartWidth, minWidth: "100%" }}>
               {/* Header */}
-              <div className="sticky top-0 z-20 bg-secondary/30 border-b border-border" style={{ height: ROW_H }}>
+              <div className="sticky top-0 z-20 bg-secondary/30 border-b border-border" style={{ height: HEADER_H }}>
                 <div className="flex h-full">
                   {headerCells.map((c, i) => (
                     <div
