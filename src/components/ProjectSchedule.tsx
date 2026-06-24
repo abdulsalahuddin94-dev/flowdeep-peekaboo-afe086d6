@@ -259,7 +259,7 @@ export function ProjectSchedule({
   onAddSubtask?: (parentName: string) => void;
   onEditItem?: (name: string) => void;
   onDeleteItem?: (name: string) => void;
-  onProgressClick?: (name: string) => void;
+  onProgressClick?: (name: string, kind: ItemKind) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [healthHighlight, setHealthHighlight] = useState(false);
