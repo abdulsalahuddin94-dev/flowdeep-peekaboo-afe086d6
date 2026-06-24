@@ -98,6 +98,8 @@ const INITIAL_GATE_DATA: GateStage[] = [
 function ProjectDetail() {
   const { project: loaderProject } = Route.useLoaderData();
   const { projects: liveProjects, updateProject } = useProjects();
+  const { calendars } = useCalendars();
+  const projectCalendar = calendars.find((c) => c.id === (liveProjects.find((p) => p.id === loaderProject.id)?.calendarId ?? loaderProject.calendarId));
   const { addNotification } = useNotifications();
   const { addRfp } = useRfps();
   const { addResourceRequest, resourceRequests } = useResourceRequests();
