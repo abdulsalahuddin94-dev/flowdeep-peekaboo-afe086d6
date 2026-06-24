@@ -1102,13 +1102,15 @@ function ProgressUpdateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Progress Update</DialogTitle>
+          <DialogTitle>
+            {scopeMilestone ? `Progress Update — ${scopeMilestone}` : "Progress Update"}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* Overall project planned vs actual */}
+        {/* Overall planned vs actual (scoped to milestone when applicable) */}
         <div className="rounded-lg border border-border bg-secondary/30 p-3">
           <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="label-eyebrow">Overall project</span>
+            <span className="label-eyebrow">{scopeMilestone ? "Milestone roll-up" : "Overall project"}</span>
             <span className={actualPct >= plannedPct ? "text-rag-green" : "text-rag-amber"}>
               {actualPct >= plannedPct ? "On / ahead of plan" : `${plannedPct - actualPct}% behind plan`}
             </span>
