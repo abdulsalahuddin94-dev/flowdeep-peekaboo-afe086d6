@@ -1203,7 +1203,7 @@ function ProgressUpdateDialog({
         </div>
 
         {/* Milestones read-only */}
-        {milestoneItems.length > 0 && (
+        {!scopeMilestone && milestoneItems.length > 0 && (
           <div className="rounded-md border border-border">
             <div className="border-b border-border bg-secondary/30 px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">
               Milestones (auto-rolled)
