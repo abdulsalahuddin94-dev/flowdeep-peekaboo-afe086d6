@@ -111,6 +111,11 @@ function ProjectDetail() {
   ]);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [reqResourceOpen, setReqResourceOpen] = useState(false);
+  const [ctxDialog, setCtxDialog] = useState<
+    | { mode: "subtask"; parent: string }
+    | { mode: "edit"; name: string }
+    | null
+  >(null);
   const [milestones, setMilestones] = useState<Milestone[]>([
     // ── Phase 1: Discovery — completed, all green, all assigned ──────────────
     { name: "Discovery & Requirements", kind: "Task", startDate: "2025-04-15", endDate: "2025-05-16", owner: "Sara", rag: "green", dep: "—", roles: [{ role: "Business Analyst", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DSC", amount: "$80K" }, progress: 100, parent: "Discovery Sign-off", weightScore: 8 },
