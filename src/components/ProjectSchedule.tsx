@@ -225,12 +225,18 @@ export function ProjectSchedule({
   onItemPatch,
   onRequestSkill,
   onImport,
+  onAddSubtask,
+  onEditItem,
+  onDeleteItem,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
   onItemPatch?: (name: string, patch: Partial<ScheduleItem>) => void;
   onRequestSkill?: (itemName: string, role: RoleReq) => void;
   onImport?: (items: ScheduleItem[], mode: "replace" | "append") => void;
+  onAddSubtask?: (parentName: string) => void;
+  onEditItem?: (name: string) => void;
+  onDeleteItem?: (name: string) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
