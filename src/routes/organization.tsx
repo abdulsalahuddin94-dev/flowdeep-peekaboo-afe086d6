@@ -32,7 +32,7 @@ function OrganizationPage() {
         </TabsList>
 
         <TabsContent value="business-lines" className="mt-5">
-          <SectionHeader title="Business Lines" desc="First-level project classification used across Portfolio filters."
+          <SectionHeader title="Business Types" desc="High-level project categories (such as business lines) used across Portfolio filters."
             cta={<AddBusinessLineDialog />} />
           <div className="">
             <Table>
