@@ -759,7 +759,7 @@ export function ProjectSchedule({
     downloadBlob(`schedule-${dateStamp()}.json`, new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
     toast.success("Exported JSON");
   }
-  function exportMsProjectXML() {
+  function buildMsProjectXml() {
     // Minimal MS Project 2003 XML — round-trips with our importer.
     const uidByName = new Map<string, number>();
     items.forEach((it, i) => uidByName.set(it.name, i + 1));
