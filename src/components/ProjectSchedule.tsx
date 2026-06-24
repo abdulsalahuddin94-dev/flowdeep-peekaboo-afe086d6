@@ -796,7 +796,9 @@ export function ProjectSchedule({
                 const isCrit = criticalSet.has(item.name);
                 const isMs = item.kind === "Milestone";
                 return (
-                  <div key={item.name} className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
+                  <ContextMenu key={item.name}>
+                    <ContextMenuTrigger asChild>
+                  <div className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
                     <div className="flex items-center gap-1 px-2 overflow-hidden" style={{ width: widths.name, paddingLeft: 8 + depth * 14 }}>
                       {hasChildren ? (
                         <button
