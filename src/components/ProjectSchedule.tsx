@@ -1125,9 +1125,8 @@ export function ProjectSchedule({
                               Appr
                             </span>
                           )}
-                         </div>
-
                         </div>
+
                       );
                     })()}
                     {colVisible("dep") && (
