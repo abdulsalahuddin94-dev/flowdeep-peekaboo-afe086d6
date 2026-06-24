@@ -1351,16 +1351,31 @@ export function ProjectSchedule({
                     );
                   }
 
+                  const plannedPct = computePlannedProgress(ov?.startDate ?? item.startDate, ov?.endDate ?? item.endDate);
                   return (
                     <div
                       key={item.name}
-                      title={`${item.name} · ${fmt(s)} → ${fmt(e)} · ${progress}%`}
+                      title={`${item.name} · ${fmt(s)} → ${fmt(e)} · actual ${progress}% / planned ${plannedPct}%`}
                       className={`absolute rounded-md border ${rc.border} overflow-hidden ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
                       style={{ left: x, top: barTop, width: w, height: barH }}
                       onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
                     >
                       <div className={`absolute inset-0 ${rc.soft}`} />
+                      {/* Planned overlay — diagonal stripes from 0 to planned% */}
+                      <div
+                        className="absolute inset-y-0 left-0 opacity-50 pointer-events-none"
+                        style={{
+                          width: `${plannedPct}%`,
+                          backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 4px, transparent 4px 8px)",
+                        }}
+                      />
+                      {/* Actual fill */}
                       <div className={`absolute inset-y-0 left-0 ${rc.solid}`} style={{ width: `${progress}%` }} />
+                      {/* Planned tick */}
+                      <div
+                        className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-foreground/80 pointer-events-none"
+                        style={{ left: `calc(${plannedPct}% - 1px)` }}
+                      />
                       <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none">
                         <span className="truncate text-[10px] font-medium text-foreground/90">{item.name}</span>
                       </div>
