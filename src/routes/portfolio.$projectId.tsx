@@ -158,6 +158,7 @@ function ProjectDetail() {
     { week: 16, by: project.pm, when: "17 days ago", rag: "green", text: "Discovery completed and signed off. Build phase 1 kicked off on plan." },
   ]);
   const [planningProgressOpen, setPlanningProgressOpen] = useState(false);
+  const [progressInitial, setProgressInitial] = useState<string | undefined>(undefined);
   const [stageGateOpen, setStageGateOpen] = useState(false);
   const [gateData, setGateData] = useState<GateStage[]>(INITIAL_GATE_DATA);
   const currentStage = PLANNING_STAGES.find((s) => s.state === "active") ?? PLANNING_STAGES[0];
@@ -264,6 +265,7 @@ function ProjectDetail() {
         <TabsContent value="Project Schedule" className="mt-5">
           <ProjectSchedule
             items={useMemo(() => computeDerivedSchedule(milestones, resourceRequests), [milestones, resourceRequests])}
+            onProgressClick={(name) => { setProgressInitial(name); setPlanningProgressOpen(true); }}
             onItemPatch={(name, patch) =>
               setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } as Milestone : m)))
             }
@@ -546,7 +548,8 @@ function ProjectDetail() {
 
       <ProgressUpdateDialog
         open={planningProgressOpen}
-        onOpenChange={setPlanningProgressOpen}
+        onOpenChange={(v) => { setPlanningProgressOpen(v); if (!v) setProgressInitial(undefined); }}
+        initialTaskName={progressInitial}
         items={computeDerivedSchedule(milestones, resourceRequests)}
         onSetProgress={(name, progress) =>
           setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, progress } : m)))
@@ -1009,7 +1012,7 @@ const SEED_PACKAGES: TenderPackage[] = [
 
 // ── Progress Update dialog (shown when the Progress KPI is clicked) ─────────
 function ProgressUpdateDialog({
-  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove,
+  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove, initialTaskName,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1017,6 +1020,7 @@ function ProgressUpdateDialog({
   onSetProgress: (name: string, progress: number) => void;
   onRequestApproval: (name: string) => void;
   onApprove: (name: string) => void;
+  initialTaskName?: string;
 }) {
   const leaves = useMemo(
     () => items.filter((m) => m.kind === "Task" && !items.some((c) => c.parent === m.name)),
@@ -1043,10 +1047,11 @@ function ProgressUpdateDialog({
   const [draftPct, setDraftPct] = useState<number>(0);
   useEffect(() => {
     if (!open) return;
-    const first = leaves[0];
+    const pre = initialTaskName ? leaves.find((l) => l.name === initialTaskName) : undefined;
+    const first = pre ?? leaves[0];
     setSelected(first?.name ?? "");
     setDraftPct(first?.progress ?? 0);
-  }, [open, leaves]);
+  }, [open, leaves, initialTaskName]);
 
   const current = leaves.find((t) => t.name === selected);
   const currentPlanned = current ? computePlannedProgress(current.startDate, current.endDate) : 0;
