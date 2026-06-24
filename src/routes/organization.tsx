@@ -270,3 +270,144 @@ function AddTagDialog() {
     </Dialog>
   );
 }
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function CalendarsTab() {
+  const { calendars } = useCalendars();
+  const [editing, setEditing] = useState<WorkCalendar | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  return (
+    <>
+      <SectionHeader
+        title="Calendars"
+        desc="Define working days, daily hours and official holidays per country/region. Link a calendar when creating a project."
+        cta={<Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setCreateOpen(true)}><Plus className="mr-1 h-4 w-4" />New Calendar</Button>}
+      />
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {calendars.map((c) => (
+          <div key={c.id} className="glass-card p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-accent" />
+                <div className="font-medium text-foreground">{c.name}</div>
+              </div>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-accent" onClick={() => setEditing(c)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1">
+              {DAY_LABELS.map((d, i) => (
+                <span key={d} className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${c.workingDays.includes(i) ? "bg-accent/15 text-accent" : "bg-secondary/40 text-muted-foreground line-through"}`}>{d}</span>
+              ))}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">{c.hoursPerDay}h/day · {c.holidays.length} holiday{c.holidays.length === 1 ? "" : "s"}</div>
+          </div>
+        ))}
+      </div>
+      <CalendarDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {editing && <CalendarDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)} calendar={editing} />}
+    </>
+  );
+}
+
+function CalendarDialog({ open, onOpenChange, calendar }: { open: boolean; onOpenChange: (v: boolean) => void; calendar?: WorkCalendar }) {
+  const { addCalendar, updateCalendar } = useCalendars();
+  const isEdit = !!calendar;
+  const [name, setName] = useState(calendar?.name ?? "");
+  const [workingDays, setWorkingDays] = useState<number[]>(calendar?.workingDays ?? [1, 2, 3, 4, 5]);
+  const [hoursPerDay, setHoursPerDay] = useState<number>(calendar?.hoursPerDay ?? 8);
+  const [holidays, setHolidays] = useState<{ date: string; label: string }[]>(calendar?.holidays ?? []);
+  const [newDate, setNewDate] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  function toggleDay(d: number) {
+    setWorkingDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
+  }
+  function addHoliday() {
+    if (!newDate) { toast.error("Pick a date"); return; }
+    setHolidays((prev) => [...prev, { date: newDate, label: newLabel.trim() || "Holiday" }].sort((a, b) => a.date.localeCompare(b.date)));
+    setNewDate(""); setNewLabel("");
+  }
+  function removeHoliday(date: string) {
+    setHolidays((prev) => prev.filter((h) => h.date !== date));
+  }
+  function save() {
+    if (!name.trim()) { toast.error("Calendar name is required"); return; }
+    if (workingDays.length === 0) { toast.error("Select at least one working day"); return; }
+    if (isEdit && calendar) {
+      updateCalendar(calendar.id, { name: name.trim(), workingDays, hoursPerDay, holidays });
+      toast.success("Calendar updated");
+    } else {
+      addCalendar({ id: `cal-${Date.now()}`, name: name.trim(), workingDays, hoursPerDay, holidays });
+      toast.success(`Calendar "${name.trim()}" created`);
+    }
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Calendar" : "New Calendar"}</DialogTitle>
+          <DialogDescription>Working schedule and official holidays. Projects can be bound to this calendar for scheduling.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <div>
+              <Label>Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Egypt — Standard" />
+            </div>
+            <div>
+              <Label>Hours / day</Label>
+              <Input type="number" min={1} max={24} step={0.5} value={hoursPerDay} onChange={(e) => setHoursPerDay(parseFloat(e.target.value) || 0)} className="w-24" />
+            </div>
+          </div>
+          <div>
+            <Label>Working days</Label>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {DAY_LABELS.map((d, i) => {
+                const on = workingDays.includes(i);
+                return (
+                  <button key={d} type="button" onClick={() => toggleDay(i)}
+                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${on ? "border-accent bg-accent/15 text-accent" : "border-border bg-secondary/40 text-muted-foreground"}`}>
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <Label>Official holidays</Label>
+            <div className="mt-1.5 flex gap-2">
+              <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-44" />
+              <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Label (e.g. Labour Day)" />
+              <Button type="button" variant="outline" onClick={addHoliday}><Plus className="h-4 w-4" /></Button>
+            </div>
+            <ScrollArea className="mt-2 h-44 rounded-md border border-border">
+              <div className="divide-y divide-border/60">
+                {holidays.length === 0 && <div className="px-3 py-6 text-center text-xs text-muted-foreground">No holidays yet</div>}
+                {holidays.map((h) => (
+                  <div key={h.date} className="flex items-center justify-between px-3 py-2">
+                    <div className="min-w-0">
+                      <div className="text-sm text-foreground">{h.label}</div>
+                      <div className="text-xs text-muted-foreground">{h.date}</div>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-rag-red" onClick={() => removeHoliday(h.date)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground" onClick={save}>{isEdit ? "Save changes" : "Create Calendar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
