@@ -20,6 +20,17 @@ export interface Project {
   tags: string[];
   client?: string;
   ragNote?: string;
+  calendarId?: string;
+}
+
+// Working calendar: which weekdays count as work days (0=Sun..6=Sat),
+// hours per work day, and a list of named non-working holidays (YYYY-MM-DD).
+export interface WorkCalendar {
+  id: string;
+  name: string;
+  workingDays: number[];        // e.g. [0,1,2,3,4] (Sun–Thu) for Egypt
+  hoursPerDay: number;
+  holidays: { date: string; label: string }[];
 }
 
 const pms = [
