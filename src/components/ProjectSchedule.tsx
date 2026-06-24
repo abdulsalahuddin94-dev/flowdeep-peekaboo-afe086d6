@@ -696,13 +696,16 @@ export function ProjectSchedule({
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
-  function exportCSV() {
-    const esc = (v: unknown) => {
-      const s = v == null ? "" : String(v);
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const headers = ["Name","Type","Parent","Start","End","Duration (days)","Owner","Assignee","Status","Progress %","Expected %","Variance %","Health","Weight","Depends on","Roles","Payment"];
-    const lines = [headers.join(",")];
+  function downloadBlob(filename: string, blob: Blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+  const exportHeaders = ["Name","Type","Parent","Start","End","Duration (days)","Owner","Assignee","Status","Progress %","Expected %","Variance %","Health","Weight","Depends on","Roles","Payment"];
+  function buildRows(): (string | number)[][] {
+    const rows: (string | number)[][] = [];
     for (const it of items) {
       const s = parseISO(it.startDate), e = parseISO(it.endDate);
       const dur = s && e ? diffDays(e, s) + 1 : "";
@@ -711,19 +714,49 @@ export function ProjectSchedule({
       const pay = !it.payment || it.payment.kind === "None" ? "" :
         it.payment.kind === "Client Revenue" ? `Revenue ${it.payment.amount}` :
         `${it.payment.packageId ?? "Pkg"} ${it.payment.amount}`;
-      lines.push([
-        it.name, it.kind, it.parent ?? "", it.startDate, it.endDate, dur,
+      rows.push([
+        it.name, it.kind, it.parent ?? "", it.startDate, it.endDate, dur as any,
         it.owner, it.assignee ?? "", it.rag, it.progress ?? 0,
-        h ? h.expected.toFixed(1) : "", h ? h.variance.toFixed(1) : "", h?.status ?? "",
+        h ? Number(h.expected.toFixed(1)) : "", h ? Number(h.variance.toFixed(1)) : "", h?.status ?? "",
         it.weightScore ?? "", it.dep, roles, pay,
-      ].map(esc).join(","));
+      ]);
     }
-    download(`schedule-${new Date().toISOString().slice(0,10)}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+    return rows;
+  }
+  const dateStamp = () => new Date().toISOString().slice(0, 10);
+  function exportCSV() {
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [exportHeaders.map(esc).join(",")];
+    for (const r of buildRows()) lines.push(r.map(esc).join(","));
+    downloadBlob(`schedule-${dateStamp()}.csv`, new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" }));
     toast.success("Exported CSV");
+  }
+  function exportTabTxt() {
+    const esc = (v: unknown) => String(v ?? "").replace(/[\t\r\n]/g, " ");
+    const lines = [exportHeaders.map(esc).join("\t")];
+    for (const r of buildRows()) lines.push(r.map(esc).join("\t"));
+    downloadBlob(`schedule-${dateStamp()}.txt`, new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }));
+    toast.success("Exported tab-separated text");
+  }
+  function exportExcel(kind: "xlsx" | "xls" | "xlsb") {
+    const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...buildRows()]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+    const out = XLSX.write(wb, { type: "array", bookType: kind }) as ArrayBuffer;
+    const mime = kind === "xlsx"
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : kind === "xlsb"
+        ? "application/vnd.ms-excel.sheet.binary.macroEnabled.12"
+        : "application/vnd.ms-excel";
+    downloadBlob(`schedule-${dateStamp()}.${kind}`, new Blob([out], { type: mime }));
+    toast.success(`Exported .${kind}`);
   }
   function exportJSON() {
     const payload = items.map((it) => ({ ...it, health: healthMap.get(it.name) }));
-    download(`schedule-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(payload, null, 2), "application/json");
+    downloadBlob(`schedule-${dateStamp()}.json`, new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
     toast.success("Exported JSON");
   }
   function exportMsProjectXML() {
