@@ -1073,28 +1073,55 @@ export function ProjectSchedule({
                         )}
                       </div>
                     )}
-                    {colVisible("progress") && (
-                      <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
-                          <div className="h-full bg-accent" style={{ width: `${item.progress ?? 0}%` }} />
+                    {colVisible("progress") && (() => {
+                      const planned = computePlannedProgress(item.startDate, item.endDate);
+                      const actual = item.progress ?? 0;
+                      const isMs = item.kind === "Milestone";
+                      const approvalPending = item.requiresApproval && item.approvalStatus === "pending";
+                      const blocksComplete = item.requiresApproval && item.approvalStatus !== "approved";
+                      return (
+                        <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
+                          <div
+                            className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60"
+                            title={`Actual ${actual}% · Planned ${planned}%`}
+                          >
+                            {/* Actual fill */}
+                            <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${actual}%` }} />
+                            {/* Planned marker — vertical tick */}
+                            <div
+                              className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-foreground/70"
+                              style={{ left: `calc(${planned}% - 1px)` }}
+                            />
+                          </div>
+                          {editable && !isMs ? (
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={actual}
+                              onChange={(e) => {
+                                const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                                if (n >= 100 && blocksComplete) {
+                                  toast.error("This task requires approval before it can be marked 100% complete.");
+                                  return;
+                                }
+                                patch(item.name, { progress: n });
+                              }}
+                              className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-muted-foreground outline-none focus:ring-1 focus:ring-accent"
+                            />
+                          ) : (
+                            <span className="num-mono text-[10px] text-muted-foreground" title={isMs ? "Auto-rolled from subtasks" : undefined}>
+                              {actual}%
+                            </span>
+                          )}
+                          {approvalPending && (
+                            <span className="rounded border border-rag-amber/40 bg-rag-amber/10 px-1 py-[1px] text-[9px] uppercase tracking-wide text-rag-amber">
+                              Approval
+                            </span>
+                          )}
                         </div>
-                        {editable ? (
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={item.progress ?? 0}
-                            onChange={(e) => {
-                              const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
-                              patch(item.name, { progress: n });
-                            }}
-                            className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-muted-foreground outline-none focus:ring-1 focus:ring-accent"
-                          />
-                        ) : (
-                          <span className="num-mono text-[10px] text-muted-foreground">{item.progress ?? 0}%</span>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })()}
                     {colVisible("dep") && (
                       <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground overflow-hidden" style={{ width: widths.dep }}>
                         <EditableText
