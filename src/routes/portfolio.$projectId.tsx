@@ -21,7 +21,7 @@ import { projects, vendors as vendorList, resources as resourcePool } from "@/li
 import { useProjects, useNotifications, useRfps, useResourceRequests, type RfpEntry, type ResourceRequest } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { ProjectGantt } from "@/components/ProjectGantt";
-import { ProjectSchedule } from "@/components/ProjectSchedule";
+import { ProjectSchedule, computePlannedProgress } from "@/components/ProjectSchedule";
 void ProjectGantt;
 
 export const Route = createFileRoute("/portfolio/$projectId")({
@@ -141,13 +141,13 @@ function ProjectDetail() {
     // ── Phase 4: Testing — blocked (red), waiting/unrequested mix ───────────
     { name: "Testing & QA", kind: "Task", startDate: "2025-08-25", endDate: "2025-09-19", owner: "Priya", rag: "red", dep: "Build Complete", roles: [{ role: "QA Engineer", skill: "Senior", fte: 2 }], payment: { kind: "Package Cost", packageId: "PKG-QA", amount: "$95K" }, progress: 10, parent: "UAT Sign-off", weightScore: 8 },
     { name: "SIT execution", kind: "Task", startDate: "2025-08-25", endDate: "2025-09-05", owner: "Priya", rag: "red", dep: "Build Complete", roles: [{ role: "QA Engineer", skill: "Senior", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 15, parent: "Testing & QA", assignee: "Waiting", weightScore: 4 },
-    { name: "UAT execution", kind: "Task", startDate: "2025-09-08", endDate: "2025-09-19", owner: project.pm, rag: "red", dep: "SIT execution", roles: [{ role: "QA Lead", skill: "Lead", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Testing & QA", weightScore: 4 },
+    { name: "UAT execution", kind: "Task", startDate: "2025-09-08", endDate: "2025-09-19", owner: project.pm, rag: "red", dep: "SIT execution", roles: [{ role: "QA Lead", skill: "Lead", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Testing & QA", weightScore: 4, requiresApproval: true },
     { name: "Performance & load test", kind: "Task", startDate: "2025-09-01", endDate: "2025-09-12", owner: "Mei", rag: "amber", dep: "Build Complete", roles: [{ role: "Performance Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 5, parent: "Testing & QA", assignee: "Waiting", weightScore: 2 },
     { name: "UAT Sign-off", kind: "Milestone", startDate: "2025-09-19", endDate: "2025-09-19", owner: project.pm, rag: "red", dep: "Testing & QA", roles: [], payment: { kind: "Client Revenue", amount: "$200K" }, progress: 0, milestoneType: "finish" },
 
     // ── Phase 5: Deploy — not started (grey), no skill requests yet ─────────
     { name: "Deployment & Hypercare", kind: "Task", startDate: "2025-09-22", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "UAT Sign-off", roles: [{ role: "DevOps Engineer", skill: "Senior", fte: 1 }], payment: { kind: "Package Cost", packageId: "PKG-DPL", amount: "$60K" }, progress: 0, parent: "Go-Live", weightScore: 10 },
-    { name: "Production cutover", kind: "Task", startDate: "2025-09-22", endDate: "2025-09-26", owner: project.pm, rag: "grey", dep: "UAT Sign-off", roles: [{ role: "DevOps Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare", weightScore: 5 },
+    { name: "Production cutover", kind: "Task", startDate: "2025-09-22", endDate: "2025-09-26", owner: project.pm, rag: "grey", dep: "UAT Sign-off", roles: [{ role: "DevOps Engineer", skill: "Senior", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare", weightScore: 5, requiresApproval: true },
     { name: "Hypercare support", kind: "Task", startDate: "2025-09-29", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "Production cutover", roles: [{ role: "Support Lead", skill: "Mid", fte: 2 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare", weightScore: 3 },
     { name: "Knowledge transfer", kind: "Task", startDate: "2025-10-06", endDate: "2025-10-17", owner: project.pm, rag: "grey", dep: "Production cutover", roles: [{ role: "Trainer", skill: "Mid", fte: 1 }], payment: { kind: "None", amount: "" }, progress: 0, parent: "Deployment & Hypercare", weightScore: 2 },
     { name: "Go-Live", kind: "Milestone", startDate: project.endDate, endDate: project.endDate, owner: project.pm, rag: "blue", dep: "Deployment & Hypercare", roles: [], payment: { kind: "Client Revenue", amount: "$500K" }, progress: 0, milestoneType: "finish" },
@@ -183,16 +183,36 @@ function ProjectDetail() {
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-6">
-        <button
-          type="button"
-          onClick={() => setPlanningProgressOpen(true)}
-          className="glass-card group relative p-3 text-left transition-colors hover:border-accent/40"
-        >
-          <ArrowUpRight className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-accent" />
-          <div className="label-eyebrow">Progress</div>
-          <div className="mt-1 text-lg font-medium num-mono text-foreground">{project.progress}%</div>
-          <div className="mt-1 text-[10px] text-muted-foreground">Planning {planningDone}/{PLANNING_CHECKLIST.length} · click for details</div>
-        </button>
+        {(() => {
+          const derived = computeDerivedSchedule(milestones, resourceRequests);
+          const leaves = derived.filter((m) => m.kind === "Task" && !derived.some((c) => c.parent === m.name));
+          let totalW = 0, weightedActual = 0, weightedPlanned = 0;
+          for (const t of leaves) {
+            const w = Math.max(0, t.weightScore ?? 1);
+            totalW += w;
+            weightedActual += w * (t.progress ?? 0);
+            weightedPlanned += w * computePlannedProgress(t.startDate, t.endDate);
+          }
+          const actualPct = totalW ? Math.round(weightedActual / totalW) : 0;
+          const plannedPct = totalW ? Math.round(weightedPlanned / totalW) : 0;
+          return (
+            <button
+              type="button"
+              onClick={() => setPlanningProgressOpen(true)}
+              className="glass-card group relative p-3 text-left transition-colors hover:border-accent/40"
+            >
+              <ArrowUpRight className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-accent" />
+              <div className="label-eyebrow">Progress</div>
+              <div className="mt-1 text-lg font-medium num-mono text-foreground">{actualPct}%</div>
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span>Planned <span className="num-mono text-foreground/80">{plannedPct}%</span></span>
+                <span className={actualPct >= plannedPct ? "text-rag-green" : "text-rag-amber"}>
+                  {actualPct >= plannedPct ? "On / ahead" : `${plannedPct - actualPct}% behind`}
+                </span>
+              </div>
+            </button>
+          );
+        })()}
         <button
           type="button"
           onClick={() => setStageGateOpen(true)}
@@ -524,7 +544,20 @@ function ProjectDetail() {
         </TabsContent>
       </Tabs>
 
-      <PlanningProgressDialog open={planningProgressOpen} onOpenChange={setPlanningProgressOpen} />
+      <ProgressUpdateDialog
+        open={planningProgressOpen}
+        onOpenChange={setPlanningProgressOpen}
+        items={computeDerivedSchedule(milestones, resourceRequests)}
+        onSetProgress={(name, progress) =>
+          setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, progress } : m)))
+        }
+        onRequestApproval={(name) =>
+          setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, approvalStatus: "pending" } : m)))
+        }
+        onApprove={(name) =>
+          setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, approvalStatus: "approved" } : m)))
+        }
+      />
       <StageGatesDialog open={stageGateOpen} onOpenChange={setStageGateOpen} gateData={gateData} setGateData={setGateData} />
     </div>
   );
@@ -974,37 +1007,210 @@ const SEED_PACKAGES: TenderPackage[] = [
   { id: "PKG-004", scope: "Managed support (1 year)", est: "$285K", status: "Draft" },
 ];
 
-// ── Planning Progress dialog (shown when Progress KPI is clicked) ────────────
-function PlanningProgressDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const doneCount = PLANNING_CHECKLIST.filter((c) => c.done).length;
-  const pct = Math.round((doneCount / PLANNING_CHECKLIST.length) * 100);
+// ── Progress Update dialog (shown when the Progress KPI is clicked) ─────────
+function ProgressUpdateDialog({
+  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  items: Milestone[];
+  onSetProgress: (name: string, progress: number) => void;
+  onRequestApproval: (name: string) => void;
+  onApprove: (name: string) => void;
+}) {
+  const leaves = useMemo(
+    () => items.filter((m) => m.kind === "Task" && !items.some((c) => c.parent === m.name)),
+    [items],
+  );
+  const milestoneItems = useMemo(() => items.filter((m) => m.kind === "Milestone"), [items]);
+
+  // Project-wide weighted actual vs planned (based on leaf-task weightScore).
+  const { actualPct, plannedPct } = useMemo(() => {
+    let totalW = 0, wa = 0, wp = 0;
+    for (const t of leaves) {
+      const w = Math.max(0, t.weightScore ?? 1);
+      totalW += w;
+      wa += w * (t.progress ?? 0);
+      wp += w * computePlannedProgress(t.startDate, t.endDate);
+    }
+    return {
+      actualPct: totalW ? Math.round(wa / totalW) : 0,
+      plannedPct: totalW ? Math.round(wp / totalW) : 0,
+    };
+  }, [leaves]);
+
+  const [selected, setSelected] = useState<string>("");
+  const [draftPct, setDraftPct] = useState<number>(0);
+  useEffect(() => {
+    if (!open) return;
+    const first = leaves[0];
+    setSelected(first?.name ?? "");
+    setDraftPct(first?.progress ?? 0);
+  }, [open, leaves]);
+
+  const current = leaves.find((t) => t.name === selected);
+  const currentPlanned = current ? computePlannedProgress(current.startDate, current.endDate) : 0;
+  const needsApproval = !!current?.requiresApproval && draftPct >= 100 && current?.approvalStatus !== "approved";
+  const isPending = current?.approvalStatus === "pending";
+
+  function save() {
+    if (!current) return;
+    if (needsApproval) {
+      toast.error("This task requires approval before it can be marked 100% complete.");
+      return;
+    }
+    onSetProgress(current.name, draftPct);
+    toast.success(`Progress updated — ${current.name} → ${draftPct}%`);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader><DialogTitle>Planning Progress</DialogTitle></DialogHeader>
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-foreground">
-            {doneCount} / {PLANNING_CHECKLIST.length} complete
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Progress Update</DialogTitle>
+        </DialogHeader>
+
+        {/* Overall project planned vs actual */}
+        <div className="rounded-lg border border-border bg-secondary/30 p-3">
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="label-eyebrow">Overall project</span>
+            <span className={actualPct >= plannedPct ? "text-rag-green" : "text-rag-amber"}>
+              {actualPct >= plannedPct ? "On / ahead of plan" : `${plannedPct - actualPct}% behind plan`}
+            </span>
           </div>
-          <div className="text-sm text-accent">{pct}%</div>
+          <PlanVsActualBar actual={actualPct} planned={plannedPct} />
+          <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>Actual <span className="num-mono text-foreground">{actualPct}%</span></span>
+            <span>Planned <span className="num-mono text-foreground">{plannedPct}%</span></span>
+          </div>
         </div>
-        <div className="mt-2 grid gap-x-8 gap-y-3 md:grid-cols-2">
-          {PLANNING_CHECKLIST.map((c) => (
-            <div key={c.label} className="flex items-center gap-2.5">
-              {c.done ? (
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-accent text-[11px] text-accent-foreground">✓</div>
-              ) : (
-                <div className="h-5 w-5 shrink-0 rounded border border-border bg-secondary/40" />
+
+        {/* Picker + update form */}
+        <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+          <div className="grid gap-2">
+            <Label className="text-xs">Pick a task to update</Label>
+            <Select value={selected} onValueChange={(v) => {
+              setSelected(v);
+              const t = leaves.find((x) => x.name === v);
+              setDraftPct(t?.progress ?? 0);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Choose a task…" /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                {leaves.map((t) => (
+                  <SelectItem key={t.name} value={t.name}>
+                    {t.name}{t.parent ? ` — ${t.parent}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {current && (
+              <div className="mt-1 rounded-md border border-border bg-secondary/20 p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <div className="text-sm font-medium text-foreground">{current.name}</div>
+                  {current.requiresApproval && (
+                    <span className={`rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+                      current.approvalStatus === "approved" ? "border-rag-green/40 bg-rag-green/10 text-rag-green"
+                      : current.approvalStatus === "pending" ? "border-rag-amber/40 bg-rag-amber/10 text-rag-amber"
+                      : "border-border bg-secondary text-muted-foreground"
+                    }`}>
+                      {current.approvalStatus === "approved" ? "Approved"
+                        : current.approvalStatus === "pending" ? "Approval pending"
+                        : "Needs approval at 100%"}
+                    </span>
+                  )}
+                </div>
+                <div className="mb-2 text-[11px] text-muted-foreground">
+                  {current.startDate} → {current.endDate} · Assignee {current.assignee || "—"}
+                </div>
+                <PlanVsActualBar actual={current.progress ?? 0} planned={currentPlanned} />
+                <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Actual <span className="num-mono text-foreground">{current.progress ?? 0}%</span></span>
+                  <span>Planned <span className="num-mono text-foreground">{currentPlanned}%</span></span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label className="text-xs">New progress (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={draftPct}
+              onChange={(e) => setDraftPct(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+            />
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={save}
+                disabled={!current || isPending || needsApproval}
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                Save update
+              </Button>
+              {needsApproval && current && !isPending && (
+                <Button variant="outline" onClick={() => { onRequestApproval(current.name); toast.success("Approval requested"); }}>
+                  Request approval
+                </Button>
               )}
-              <span className={`text-sm ${c.done ? "text-foreground" : "text-muted-foreground"}`}>{c.label}</span>
+              {isPending && current && (
+                <Button variant="outline" onClick={() => { onApprove(current.name); toast.success("Approval granted"); }}>
+                  Mark as approved
+                </Button>
+              )}
             </div>
-          ))}
+            <p className="text-[10px] text-muted-foreground">
+              Milestones can't be updated directly — their progress is rolled up from their child tasks
+              using each task's weight score.
+            </p>
+          </div>
         </div>
+
+        {/* Milestones read-only */}
+        {milestoneItems.length > 0 && (
+          <div className="rounded-md border border-border">
+            <div className="border-b border-border bg-secondary/30 px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Milestones (auto-rolled)
+            </div>
+            <div className="max-h-48 overflow-auto">
+              {milestoneItems.map((m) => {
+                const p = computePlannedProgress(m.startDate, m.endDate);
+                return (
+                  <div key={m.name} className="flex items-center gap-3 border-b border-border/60 px-3 py-2 last:border-b-0">
+                    <div className="flex-1 truncate text-sm text-foreground">{m.name}</div>
+                    <div className="w-40"><PlanVsActualBar actual={m.progress ?? 0} planned={p} /></div>
+                    <div className="num-mono w-24 text-right text-[11px] text-muted-foreground">
+                      {m.progress ?? 0}% / {p}%
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PlanVsActualBar({ actual, planned }: { actual: number; planned: number }) {
+  const a = Math.max(0, Math.min(100, actual));
+  const p = Math.max(0, Math.min(100, planned));
+  return (
+    <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary/60">
+      <div
+        className="absolute inset-y-0 left-0 opacity-50"
+        style={{
+          width: `${p}%`,
+          backgroundImage: "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.35) 0 3px, transparent 3px 6px)",
+        }}
+      />
+      <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${a}%` }} />
+      <div className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-foreground/80" style={{ left: `calc(${p}% - 1px)` }} />
+    </div>
   );
 }
 
@@ -1301,6 +1507,10 @@ type Milestone = {
   isParallel?: boolean;          // task only — excluded from activity sum
   resourceRequestIds?: string[]; // task only — fulfilled requests set assignee
   weightScore?: number;          // task only — relative weight (1-10) for parent rollup
+  /** When true, the item cannot be marked 100% complete until approval is granted. */
+  requiresApproval?: boolean;
+  /** Workflow state: undefined (not requested) → "pending" → "approved" | "rejected". */
+  approvalStatus?: "approved" | "pending" | "rejected";
 };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };

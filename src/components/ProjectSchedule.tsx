@@ -140,6 +140,7 @@ export type MilestoneType = "start" | "finish";
 export type Rag = "green" | "amber" | "red" | "blue" | "grey";
 export type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 export type PaymentLink = { kind: "None" | "Client Revenue" | "Package Cost"; amount: string; packageId?: string };
+export type ApprovalStatus = "approved" | "pending" | "rejected";
 export type ScheduleItem = {
   name: string;
   kind: ItemKind;
@@ -157,7 +158,25 @@ export type ScheduleItem = {
   weightScore?: number;
   /** Milestone only — "start" or "finish" affects icon only. */
   milestoneType?: MilestoneType;
+  /** When true, the item cannot be marked 100% complete until an approval is granted. */
+  requiresApproval?: boolean;
+  /** Current state of the approval workflow. Undefined = not requested. */
+  approvalStatus?: ApprovalStatus;
 };
+
+/**
+ * Planned progress = % of the item's duration that has elapsed as of today
+ * (clamped 0..100). This is the schedule-based "where it should be" number,
+ * independent of the manually-reported actual `progress`.
+ */
+export function computePlannedProgress(startDate: string, endDate: string, now: Date = new Date()): number {
+  const s = parseISO(startDate), e = parseISO(endDate);
+  if (!s || !e) return 0;
+  const today = new Date(now); today.setHours(0, 0, 0, 0);
+  const total = Math.max(1, diffDays(e, s) + 1);
+  const elapsed = Math.max(0, Math.min(total, diffDays(today, s) + 1));
+  return Math.round((elapsed / total) * 100);
+}
 
 type Scale = "day" | "week" | "month";
 
@@ -1054,28 +1073,55 @@ export function ProjectSchedule({
                         )}
                       </div>
                     )}
-                    {colVisible("progress") && (
-                      <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
-                          <div className="h-full bg-accent" style={{ width: `${item.progress ?? 0}%` }} />
+                    {colVisible("progress") && (() => {
+                      const planned = computePlannedProgress(item.startDate, item.endDate);
+                      const actual = item.progress ?? 0;
+                      const isMs = item.kind === "Milestone";
+                      const approvalPending = item.requiresApproval && item.approvalStatus === "pending";
+                      const blocksComplete = item.requiresApproval && item.approvalStatus !== "approved";
+                      return (
+                        <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
+                          <div
+                            className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60"
+                            title={`Actual ${actual}% · Planned ${planned}%`}
+                          >
+                            {/* Actual fill */}
+                            <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${actual}%` }} />
+                            {/* Planned marker — vertical tick */}
+                            <div
+                              className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-foreground/70"
+                              style={{ left: `calc(${planned}% - 1px)` }}
+                            />
+                          </div>
+                          {editable && !isMs ? (
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={actual}
+                              onChange={(e) => {
+                                const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                                if (n >= 100 && blocksComplete) {
+                                  toast.error("This task requires approval before it can be marked 100% complete.");
+                                  return;
+                                }
+                                patch(item.name, { progress: n });
+                              }}
+                              className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-muted-foreground outline-none focus:ring-1 focus:ring-accent"
+                            />
+                          ) : (
+                            <span className="num-mono text-[10px] text-muted-foreground" title={isMs ? "Auto-rolled from subtasks" : undefined}>
+                              {actual}%
+                            </span>
+                          )}
+                          {approvalPending && (
+                            <span className="rounded border border-rag-amber/40 bg-rag-amber/10 px-1 py-[1px] text-[9px] uppercase tracking-wide text-rag-amber">
+                              Approval
+                            </span>
+                          )}
                         </div>
-                        {editable ? (
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={item.progress ?? 0}
-                            onChange={(e) => {
-                              const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
-                              patch(item.name, { progress: n });
-                            }}
-                            className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-muted-foreground outline-none focus:ring-1 focus:ring-accent"
-                          />
-                        ) : (
-                          <span className="num-mono text-[10px] text-muted-foreground">{item.progress ?? 0}%</span>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })()}
                     {colVisible("dep") && (
                       <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground overflow-hidden" style={{ width: widths.dep }}>
                         <EditableText
@@ -1305,16 +1351,31 @@ export function ProjectSchedule({
                     );
                   }
 
+                  const plannedPct = computePlannedProgress(ov?.startDate ?? item.startDate, ov?.endDate ?? item.endDate);
                   return (
                     <div
                       key={item.name}
-                      title={`${item.name} · ${fmt(s)} → ${fmt(e)} · ${progress}%`}
+                      title={`${item.name} · ${fmt(s)} → ${fmt(e)} · actual ${progress}% / planned ${plannedPct}%`}
                       className={`absolute rounded-md border ${rc.border} overflow-hidden ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
                       style={{ left: x, top: barTop, width: w, height: barH }}
                       onPointerDown={(ev) => beginBarDrag(item.name, "move", ev)}
                     >
                       <div className={`absolute inset-0 ${rc.soft}`} />
+                      {/* Planned overlay — diagonal stripes from 0 to planned% */}
+                      <div
+                        className="absolute inset-y-0 left-0 opacity-50 pointer-events-none"
+                        style={{
+                          width: `${plannedPct}%`,
+                          backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 4px, transparent 4px 8px)",
+                        }}
+                      />
+                      {/* Actual fill */}
                       <div className={`absolute inset-y-0 left-0 ${rc.solid}`} style={{ width: `${progress}%` }} />
+                      {/* Planned tick */}
+                      <div
+                        className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-foreground/80 pointer-events-none"
+                        style={{ left: `calc(${plannedPct}% - 1px)` }}
+                      />
                       <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none">
                         <span className="truncate text-[10px] font-medium text-foreground/90">{item.name}</span>
                       </div>
@@ -1343,7 +1404,9 @@ export function ProjectSchedule({
       <div className="flex items-center justify-between gap-4 border-t border-border bg-secondary/20 px-3 py-2 text-[10px] text-muted-foreground">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1"><Diamond className="h-3 w-3 text-accent" /> Milestone</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-accent" /> Task (fill = % complete)</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-accent" /> Actual %</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.35) 0 3px, transparent 3px 6px)" }} /> Planned %</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-3 w-0.5 bg-foreground/70" /> Planned position</span>
           <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-foreground/80" /> Summary (rolled up from subtasks)</span>
           {healthHighlight && (
             <>
