@@ -1101,7 +1101,7 @@ export function ProjectSchedule({
                           <div className="flex flex-1 flex-col gap-1 py-1 min-w-0">
                             {/* Actual */}
                             <div className="flex items-center gap-2">
-                              <span className="w-3 text-[9px] uppercase tracking-wide text-muted-foreground">A</span>
+                              <span className="w-3 text-[9px] uppercase tracking-wide text-accent/80">A</span>
                               <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
                                 <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${actual}%` }} />
                               </div>
@@ -1109,18 +1109,14 @@ export function ProjectSchedule({
                             </div>
                             {/* Planned */}
                             <div className="flex items-center gap-2">
-                              <span className="w-3 text-[9px] uppercase tracking-wide text-muted-foreground">P</span>
+                              <span className="w-3 text-[9px] uppercase tracking-wide text-rag-blue/80">P</span>
                               <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/40">
                                 <div
-                                  className="absolute inset-y-0 left-0"
-                                  style={{
-                                    width: `${planned}%`,
-                                    backgroundImage:
-                                      "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.45) 0 4px, hsl(var(--foreground) / 0.15) 4px 8px)",
-                                  }}
+                                  className="absolute inset-y-0 left-0 bg-rag-blue"
+                                  style={{ width: `${planned}%` }}
                                 />
                               </div>
-                              <span className="num-mono w-8 shrink-0 text-right text-[10px] text-muted-foreground">{planned}%</span>
+                              <span className="num-mono w-8 shrink-0 text-right text-[10px] text-rag-blue">{planned}%</span>
                             </div>
                           </div>
                           {approvalPending && (
