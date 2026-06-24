@@ -25,7 +25,7 @@ import {
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash2, Upload, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, Download, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash2, Upload, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -239,7 +239,7 @@ export function ProjectSchedule({
   onDeleteItem?: (name: string) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
-  const [critical, setCritical] = useState(false);
+  const [healthHighlight, setHealthHighlight] = useState(false);
   const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(
     () => new Set<ColKey>(["type", "start", "end", "assignee", "status", "progress", "dep"]),
   );
@@ -325,35 +325,39 @@ export function ProjectSchedule({
   const totalDays = Math.max(1, diffDays(maxDate, minDate) + 1);
   const chartWidth = totalDays * dayWidth;
 
-  // Critical path: items reachable backward via `dep` from the latest-ending item.
-  const criticalSet = useMemo(() => {
-    const set = new Set<string>();
-    if (!critical || !items.length) return set;
-    const byName = new Map(items.map(i => [i.name.toLowerCase(), i]));
-    const findDep = (depStr: string): ScheduleItem | undefined => {
-      const q = depStr.trim().toLowerCase();
-      if (!q || q === "—") return undefined;
-      if (byName.has(q)) return byName.get(q);
-      // fuzzy substring match either way
-      return items.find(i =>
-        i.name.toLowerCase().includes(q) || q.includes(i.name.toLowerCase()),
-      );
-    };
-    // Pick latest-ending item
-    let last = items[0];
+  // Schedule health: compare actual % to time-expected % per item.
+  // deviation = expected − actual.  0 < dev ≤ 7 → "at-risk", dev > 7 → "off-track".
+  type HealthStatus = "on-track" | "at-risk" | "off-track";
+  const healthMap = useMemo(() => {
+    const m = new Map<string, { status: HealthStatus; variance: number; expected: number }>();
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     for (const it of items) {
-      const a = parseISO(it.endDate), b = parseISO(last.endDate);
-      if (a && b && a > b) last = it;
+      const s = parseISO(it.startDate), e = parseISO(it.endDate);
+      if (!s || !e) { m.set(it.name, { status: "on-track", variance: 0, expected: 0 }); continue; }
+      const total = Math.max(1, diffDays(e, s) + 1);
+      const elapsed = Math.max(0, Math.min(total, diffDays(today, s) + 1));
+      const expected = (elapsed / total) * 100;
+      const actual = Math.max(0, Math.min(100, it.progress ?? 0));
+      const variance = expected - actual; // positive = behind
+      let status: HealthStatus = "on-track";
+      if (variance > 7) status = "off-track";
+      else if (variance > 0) status = "at-risk";
+      m.set(it.name, { status, variance, expected });
     }
-    let cur: ScheduleItem | undefined = last;
-    const guard = new Set<string>();
-    while (cur && !guard.has(cur.name)) {
-      guard.add(cur.name);
-      set.add(cur.name);
-      cur = findDep(cur.dep);
-    }
-    return set;
-  }, [critical, items]);
+    return m;
+  }, [items]);
+  const atRiskSet = useMemo(() => {
+    const s = new Set<string>();
+    if (!healthHighlight) return s;
+    for (const [name, h] of healthMap) if (h.status !== "on-track") s.add(name);
+    return s;
+  }, [healthHighlight, healthMap]);
+  const offTrackSet = useMemo(() => {
+    const s = new Set<string>();
+    if (!healthHighlight) return s;
+    for (const [name, h] of healthMap) if (h.status === "off-track") s.add(name);
+    return s;
+  }, [healthHighlight, healthMap]);
 
   // Header buckets per scale
   const headerCells = useMemo(() => {
@@ -682,6 +686,84 @@ export function ProjectSchedule({
   const ragOptions: Rag[] = ["blue", "amber", "green", "red", "grey"];
   function patch(name: string, p: Partial<ScheduleItem>) { onItemPatch?.(name, p); }
 
+  // ── Export helpers ───────────────────────────────────────────────────────
+  function download(filename: string, content: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+  function exportCSV() {
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = ["Name","Type","Parent","Start","End","Duration (days)","Owner","Assignee","Status","Progress %","Expected %","Variance %","Health","Weight","Depends on","Roles","Payment"];
+    const lines = [headers.join(",")];
+    for (const it of items) {
+      const s = parseISO(it.startDate), e = parseISO(it.endDate);
+      const dur = s && e ? diffDays(e, s) + 1 : "";
+      const h = healthMap.get(it.name);
+      const roles = it.roles.map((r) => `${r.role} (${r.skill}, ${r.fte})`).join("; ");
+      const pay = !it.payment || it.payment.kind === "None" ? "" :
+        it.payment.kind === "Client Revenue" ? `Revenue ${it.payment.amount}` :
+        `${it.payment.packageId ?? "Pkg"} ${it.payment.amount}`;
+      lines.push([
+        it.name, it.kind, it.parent ?? "", it.startDate, it.endDate, dur,
+        it.owner, it.assignee ?? "", it.rag, it.progress ?? 0,
+        h ? h.expected.toFixed(1) : "", h ? h.variance.toFixed(1) : "", h?.status ?? "",
+        it.weightScore ?? "", it.dep, roles, pay,
+      ].map(esc).join(","));
+    }
+    download(`schedule-${new Date().toISOString().slice(0,10)}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+    toast.success("Exported CSV");
+  }
+  function exportJSON() {
+    const payload = items.map((it) => ({ ...it, health: healthMap.get(it.name) }));
+    download(`schedule-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(payload, null, 2), "application/json");
+    toast.success("Exported JSON");
+  }
+  function exportMsProjectXML() {
+    // Minimal MS Project 2003 XML — round-trips with our importer.
+    const uidByName = new Map<string, number>();
+    items.forEach((it, i) => uidByName.set(it.name, i + 1));
+    const depthOf = (name: string): number => {
+      let d = 1, cur = items.find((x) => x.name === name);
+      const guard = new Set<string>();
+      while (cur?.parent && !guard.has(cur.name)) { guard.add(cur.name); d++; cur = items.find((x) => x.name === cur!.parent); }
+      return d;
+    };
+    const childCount = (name: string) => items.filter((x) => x.parent === name).length;
+    const esc = (s: string) => s.replace(/[<>&"']/g, (c) => ({ "<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&apos;" }[c]!));
+    const toDT = (iso: string) => iso ? `${iso}T08:00:00` : "";
+    const taskXml = items.map((it) => {
+      const uid = uidByName.get(it.name)!;
+      const isSummary = childCount(it.name) > 0 ? 1 : 0;
+      const isMs = it.kind === "Milestone" ? 1 : 0;
+      const preds = (it.dep || "").split(",").map((s) => s.trim()).filter(Boolean)
+        .map((d) => uidByName.get(d)).filter((x): x is number => !!x)
+        .map((puid) => `<PredecessorLink><PredecessorUID>${puid}</PredecessorUID><Type>1</Type></PredecessorLink>`).join("");
+      return `<Task>
+  <UID>${uid}</UID><ID>${uid}</ID><Name>${esc(it.name)}</Name>
+  <OutlineLevel>${depthOf(it.name)}</OutlineLevel>
+  <Summary>${isSummary}</Summary><Milestone>${isMs}</Milestone>
+  <Start>${toDT(it.startDate)}</Start><Finish>${toDT(it.endDate)}</Finish>
+  <PercentComplete>${Math.round(it.progress ?? 0)}</PercentComplete>
+  ${preds}
+</Task>`;
+    }).join("\n");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <Name>Schedule Export</Name>
+  <Tasks>${taskXml}</Tasks>
+</Project>`;
+    download(`schedule-${new Date().toISOString().slice(0,10)}.xml`, xml, "application/xml");
+    toast.success("Exported MS Project XML");
+  }
+
+
   return (
     <div className="glass-card overflow-hidden">
       {/* Top action bar */}
@@ -703,8 +785,8 @@ export function ProjectSchedule({
           </ToggleGroup>
 
           <div className="flex items-center gap-2">
-            <Switch id="critpath" checked={critical} onCheckedChange={setCritical} />
-            <Label htmlFor="critpath" className="text-xs text-muted-foreground">Critical path</Label>
+            <Switch id="health" checked={healthHighlight} onCheckedChange={setHealthHighlight} />
+            <Label htmlFor="health" className="text-xs text-muted-foreground">Schedule health</Label>
           </div>
 
           <DropdownMenu>
@@ -770,6 +852,24 @@ export function ProjectSchedule({
             </>
           )}
 
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1 text-xs">
+                <Download className="h-3.5 w-3.5" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel>Export schedule</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={exportCSV}>CSV (.csv) — Excel / Sheets</DropdownMenuItem>
+              <DropdownMenuItem onSelect={exportMsProjectXML}>MS Project XML (.xml)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={exportJSON}>JSON (.json)</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => { setTimeout(() => window.print(), 50); }}>Print / Save as PDF…</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+
           {AddItemSlot}
         </div>
       </div>
@@ -793,12 +893,14 @@ export function ProjectSchedule({
               </div>
               {visibleRows.map(({ item, depth, hasChildren }) => {
                 const isOpen = expanded.has(item.name);
-                const isCrit = criticalSet.has(item.name);
+                const isOff = offTrackSet.has(item.name);
+                const isRisk = atRiskSet.has(item.name) && !isOff;
+                const rowTint = isOff ? "bg-rag-red/5" : isRisk ? "bg-rag-amber/5" : "";
                 const isMs = item.kind === "Milestone";
                 return (
                   <ContextMenu key={item.name}>
                     <ContextMenuTrigger asChild>
-                  <div className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
+                  <div className={`flex border-b border-border/60 text-xs ${rowTint}`} style={{ height: ROW_H }}>
                     <div className="flex items-center gap-1 px-2 overflow-hidden" style={{ width: widths.name, paddingLeft: 8 + depth * 14 }}>
                       {hasChildren ? (
                         <button
@@ -824,7 +926,7 @@ export function ProjectSchedule({
                       <EditableText
                         value={item.name}
                         editable={editable}
-                        className={`truncate font-medium ${hasChildren ? "text-foreground" : "text-foreground/90"} ${isCrit ? "text-rag-red" : ""}`}
+                        className={`truncate font-medium ${hasChildren ? "text-foreground" : "text-foreground/90"} ${isOff ? "text-rag-red" : isRisk ? "text-rag-amber" : ""}`}
                         onCommit={(v) => v && v !== item.name && patch(item.name, { name: v })}
                       />
                     </div>
@@ -1045,7 +1147,7 @@ export function ProjectSchedule({
                 {visibleRows.map((r, i) => (
                   <div
                     key={r.item.name}
-                    className={`absolute left-0 right-0 border-b border-border/40 ${criticalSet.has(r.item.name) ? "bg-rag-red/5" : ""}`}
+                    className={`absolute left-0 right-0 border-b border-border/40 ${offTrackSet.has(r.item.name) ? "bg-rag-red/5" : atRiskSet.has(r.item.name) ? "bg-rag-amber/5" : ""}`}
                     style={{ top: i * ROW_H, height: ROW_H }}
                   />
                 ))}
@@ -1074,7 +1176,7 @@ export function ProjectSchedule({
                     const y1 = fromIdx * ROW_H + ROW_H / 2;
                     const x2 = xForDate(toStart);
                     const y2 = toIdx * ROW_H + ROW_H / 2;
-                    const isCrit = criticalSet.has(item.name) && criticalSet.has(from.name);
+                    const isCrit = offTrackSet.has(item.name) && offTrackSet.has(from.name);
                     const stroke = isCrit ? "#EF4444" : "#94A3B8";
                     const midX = Math.max(x1 + 8, x2 - 8);
                     const d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
@@ -1189,7 +1291,12 @@ export function ProjectSchedule({
           <span className="flex items-center gap-1"><Diamond className="h-3 w-3 text-accent" /> Milestone</span>
           <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-accent" /> Task (fill = % complete)</span>
           <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-foreground/80" /> Summary (rolled up from subtasks)</span>
-          {critical && <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-rag-red" /> Critical path</span>}
+          {healthHighlight && (
+            <>
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-rag-amber" /> At risk (≤ 7% behind)</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-rag-red" /> Off track (&gt; 7% behind)</span>
+            </>
+          )}
         </div>
         <div>Range: {fmt(minDate)} – {fmt(maxDate)}</div>
       </div>
