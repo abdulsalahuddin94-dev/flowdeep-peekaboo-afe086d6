@@ -1291,6 +1291,37 @@ export function ProjectSchedule({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{pendingDelete}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this item{(() => {
+                if (!pendingDelete) return "";
+                const kids = (childrenOf.get(pendingDelete)?.length ?? 0);
+                return kids > 0 ? ` and its ${kids} nested item${kids === 1 ? "" : "s"}` : "";
+              })()}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rag-red text-white hover:bg-rag-red/90"
+              onClick={() => {
+                if (pendingDelete) {
+                  onDeleteItem?.(pendingDelete);
+                  toast.success(`Deleted "${pendingDelete}"`);
+                }
+                setPendingDelete(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
