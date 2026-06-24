@@ -1051,7 +1051,7 @@ export function ProjectSchedule({
                 {visibleRows.map((r, i) => (
                   <div
                     key={r.item.name}
-                    className={`absolute left-0 right-0 border-b border-border/40 ${criticalSet.has(r.item.name) ? "bg-rag-red/5" : ""}`}
+                    className={`absolute left-0 right-0 border-b border-border/40 ${offTrackSet.has(r.item.name) ? "bg-rag-red/5" : atRiskSet.has(r.item.name) ? "bg-rag-amber/5" : ""}`}
                     style={{ top: i * ROW_H, height: ROW_H }}
                   />
                 ))}
