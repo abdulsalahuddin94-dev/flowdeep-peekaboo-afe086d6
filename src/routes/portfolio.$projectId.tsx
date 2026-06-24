@@ -159,6 +159,7 @@ function ProjectDetail() {
   ]);
   const [planningProgressOpen, setPlanningProgressOpen] = useState(false);
   const [progressInitial, setProgressInitial] = useState<string | undefined>(undefined);
+  const [progressScope, setProgressScope] = useState<string | undefined>(undefined);
   const [stageGateOpen, setStageGateOpen] = useState(false);
   const [gateData, setGateData] = useState<GateStage[]>(INITIAL_GATE_DATA);
   const currentStage = PLANNING_STAGES.find((s) => s.state === "active") ?? PLANNING_STAGES[0];
