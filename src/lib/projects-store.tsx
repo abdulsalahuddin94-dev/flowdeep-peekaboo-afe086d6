@@ -71,6 +71,10 @@ type AppContextValue = {
   // Tags
   tags: (OrgTag & { usage: number })[];
   addTag: (tag: OrgTag, projectIds: string[]) => void;
+  // Calendars
+  calendars: WorkCalendar[];
+  addCalendar: (c: WorkCalendar) => void;
+  updateCalendar: (id: string, patch: Partial<WorkCalendar>) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
