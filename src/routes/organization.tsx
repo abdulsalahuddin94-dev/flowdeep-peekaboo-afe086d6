@@ -322,8 +322,10 @@ function CalendarDialog({ open, onOpenChange, calendar }: { open: boolean; onOpe
   const [workingDays, setWorkingDays] = useState<number[]>(calendar?.workingDays ?? [1, 2, 3, 4, 5]);
   const [hoursPerDay, setHoursPerDay] = useState<number>(calendar?.hoursPerDay ?? 8);
   const [holidays, setHolidays] = useState<{ date: string; label: string }[]>(calendar?.holidays ?? []);
-  const [newDate, setNewDate] = useState("");
+  const [newDate, setNewDate] = useState<Date | undefined>(undefined);
   const [newLabel, setNewLabel] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const holidayDates = holidays.map((h) => parseISO(h.date));
 
   function toggleDay(d: number) {
     setWorkingDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
