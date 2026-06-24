@@ -267,7 +267,9 @@ function ProjectDetail() {
           <ProjectSchedule
             items={useMemo(() => computeDerivedSchedule(milestones, resourceRequests), [milestones, resourceRequests])}
             onProgressClick={(name, kind) => {
-              if (kind === "Milestone") {
+              const derived = computeDerivedSchedule(milestones, resourceRequests);
+              const hasChildren = derived.some((d) => d.parent === name);
+              if (kind === "Milestone" || (kind === "Task" && hasChildren)) {
                 setProgressScope(name);
                 setProgressInitial(undefined);
               } else {
