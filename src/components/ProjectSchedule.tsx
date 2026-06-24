@@ -22,7 +22,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Plus, Upload, UserPlus } from "lucide-react";
+import {
+  ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { ChevronDown, ChevronLeft, ChevronRight, Columns3, Diamond, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash2, Upload, UserPlus } from "lucide-react";
 import { RagBadge } from "@/components/RagBadge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -222,12 +225,18 @@ export function ProjectSchedule({
   onItemPatch,
   onRequestSkill,
   onImport,
+  onAddSubtask,
+  onEditItem,
+  onDeleteItem,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
   onItemPatch?: (name: string, patch: Partial<ScheduleItem>) => void;
   onRequestSkill?: (itemName: string, role: RoleReq) => void;
   onImport?: (items: ScheduleItem[], mode: "replace" | "append") => void;
+  onAddSubtask?: (parentName: string) => void;
+  onEditItem?: (name: string) => void;
+  onDeleteItem?: (name: string) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [critical, setCritical] = useState(false);
@@ -239,6 +248,7 @@ export function ProjectSchedule({
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingImport, setPendingImport] = useState<ScheduleItem[] | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   // Live preview overrides while dragging/resizing a bar
   const [dragPreview, setDragPreview] = useState<Record<string, { startDate: string; endDate: string }>>({});
   // Undo history: each entry is the list of patches needed to restore the prior state
@@ -786,7 +796,9 @@ export function ProjectSchedule({
                 const isCrit = criticalSet.has(item.name);
                 const isMs = item.kind === "Milestone";
                 return (
-                  <div key={item.name} className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
+                  <ContextMenu key={item.name}>
+                    <ContextMenuTrigger asChild>
+                  <div className={`flex border-b border-border/60 text-xs ${isCrit ? "bg-rag-red/5" : ""}`} style={{ height: ROW_H }}>
                     <div className="flex items-center gap-1 px-2 overflow-hidden" style={{ width: widths.name, paddingLeft: 8 + depth * 14 }}>
                       {hasChildren ? (
                         <button
@@ -945,6 +957,31 @@ export function ProjectSchedule({
                       </div>
                     )}
                   </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-48">
+                      {onAddSubtask && (
+                        <ContextMenuItem onSelect={() => onAddSubtask(item.name)}>
+                          <Plus className="mr-2 h-3.5 w-3.5" /> Add subtask
+                        </ContextMenuItem>
+                      )}
+                      {onEditItem && (
+                        <ContextMenuItem onSelect={() => onEditItem(item.name)}>
+                          <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                        </ContextMenuItem>
+                      )}
+                      {onDeleteItem && (
+                        <>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            onSelect={() => setPendingDelete(item.name)}
+                            className="text-rag-red focus:text-rag-red"
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                          </ContextMenuItem>
+                        </>
+                      )}
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })}
             </div>
@@ -1250,6 +1287,37 @@ export function ProjectSchedule({
               }}
             >
               Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{pendingDelete}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this item{(() => {
+                if (!pendingDelete) return "";
+                const kids = (childrenOf.get(pendingDelete)?.length ?? 0);
+                return kids > 0 ? ` and its ${kids} nested item${kids === 1 ? "" : "s"}` : "";
+              })()}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rag-red text-white hover:bg-rag-red/90"
+              onClick={() => {
+                if (pendingDelete) {
+                  onDeleteItem?.(pendingDelete);
+                  toast.success(`Deleted "${pendingDelete}"`);
+                }
+                setPendingDelete(null);
+              }}
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
