@@ -1080,77 +1080,62 @@ export function ProjectSchedule({
                       const actual = item.progress ?? 0;
                       const isMs = item.kind === "Milestone";
                       const approvalPending = item.requiresApproval && item.approvalStatus === "pending";
-                      const blocksComplete = item.requiresApproval && item.approvalStatus !== "approved";
+                      const canClick = !!onProgressClick;
                       return (
-                        <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
-                          <div className="flex flex-1 flex-col gap-1.5 py-1">
-                            {/* Actual bar — clickable to set progress */}
-                            <div
-                              role={editable && !isMs ? "slider" : undefined}
-                              aria-label="Actual progress"
-                              aria-valuenow={actual}
-                              title={`Actual ${actual}%${editable && !isMs ? " — click to set" : ""}`}
-                              onClick={(e) => {
-                                if (!editable || isMs) return;
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                const pct = Math.round(((e.clientX - rect.left) / rect.width) * 100);
-                                const n = Math.max(0, Math.min(100, pct));
-                                if (n >= 100 && blocksComplete) {
-                                  toast.error("This task requires approval before it can be marked 100% complete.");
-                                  return;
-                                }
-                                patch(item.name, { progress: n });
-                              }}
-                              className={`relative h-2 w-full overflow-hidden rounded-full bg-secondary/60 ${editable && !isMs ? "cursor-pointer hover:ring-1 hover:ring-accent/50" : ""}`}
-                            >
-                              <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${actual}%` }} />
+                        <div
+                          role={canClick ? "button" : undefined}
+                          tabIndex={canClick ? 0 : undefined}
+                          aria-label={`Update progress for ${item.name}`}
+                          title={canClick ? "Click to update progress" : `Actual ${actual}% / Planned ${planned}%`}
+                          onClick={() => canClick && onProgressClick?.(item.name)}
+                          onKeyDown={(e) => {
+                            if (!canClick) return;
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              onProgressClick?.(item.name);
+                            }
+                          }}
+                          className={`flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden ${canClick ? "cursor-pointer hover:bg-secondary/30" : ""}`}
+                          style={{ width: widths.progress }}
+                        >
+                          <div className="flex flex-1 flex-col gap-1 py-1 min-w-0">
+                            {/* Actual */}
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 text-[9px] uppercase tracking-wide text-muted-foreground">A</span>
+                              <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
+                                <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${actual}%` }} />
+                              </div>
+                              <span className="num-mono w-8 shrink-0 text-right text-[10px] text-accent">{actual}%</span>
                             </div>
-                            {/* Planned bar — read-only reference */}
-                            <div
-                              aria-label="Planned progress"
-                              title={`Planned ${planned}%`}
-                              className="relative h-2 w-full overflow-hidden rounded-full bg-secondary/40"
-                            >
-                              <div
-                                className="absolute inset-y-0 left-0 opacity-80"
-                                style={{
-                                  width: `${planned}%`,
-                                  backgroundImage: "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.45) 0 4px, hsl(var(--foreground) / 0.15) 4px 8px)",
-                                }}
-                              />
+                            {/* Planned */}
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 text-[9px] uppercase tracking-wide text-muted-foreground">P</span>
+                              <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/40">
+                                <div
+                                  className="absolute inset-y-0 left-0"
+                                  style={{
+                                    width: `${planned}%`,
+                                    backgroundImage:
+                                      "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.45) 0 4px, hsl(var(--foreground) / 0.15) 4px 8px)",
+                                  }}
+                                />
+                              </div>
+                              <span className="num-mono w-8 shrink-0 text-right text-[10px] text-muted-foreground">{planned}%</span>
                             </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-0.5 leading-tight">
-                            {editable && !isMs ? (
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                value={actual}
-                                onChange={(e) => {
-                                  const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
-                                  if (n >= 100 && blocksComplete) {
-                                    toast.error("This task requires approval before it can be marked 100% complete.");
-                                    return;
-                                  }
-                                  patch(item.name, { progress: n });
-                                }}
-                                className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-accent outline-none focus:ring-1 focus:ring-accent"
-                              />
-                            ) : (
-                              <span className="num-mono text-[10px] text-accent" title={isMs ? "Auto-rolled from subtasks" : undefined}>
-                                {actual}%
-                              </span>
-                            )}
-                            <span className="num-mono text-[9px] text-muted-foreground" title="Planned %">
-                              {planned}%
-                            </span>
                           </div>
                           {approvalPending && (
-                            <span className="rounded border border-rag-amber/40 bg-rag-amber/10 px-1 py-[1px] text-[9px] uppercase tracking-wide text-rag-amber">
-                              Approval
+                            <span className="shrink-0 rounded border border-rag-amber/40 bg-rag-amber/10 px-1 py-[1px] text-[9px] uppercase tracking-wide text-rag-amber">
+                              Appr
                             </span>
                           )}
+                          {isMs && (
+                            <span className="shrink-0 text-[9px] text-muted-foreground" title="Auto-rolled from subtasks">
+                              auto
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                         </div>
                       );
                     })()}
