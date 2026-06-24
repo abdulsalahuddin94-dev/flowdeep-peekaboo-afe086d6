@@ -537,6 +537,7 @@ function GovernanceTab() {
 const PM_LIST = ["Sara Al-Rashid", "John Smith", "Mei Chen", "Omar Haddad", "Priya Iyer", "Liam Walker", "Hana Tanaka", "Diego Ortiz"];
 
 function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
+  const { calendars } = useCalendars();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [businessLine, setBusinessLine] = useState("Software Solutions");
@@ -547,6 +548,7 @@ function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
   const [endDate, setEndDate] = useState("");
   const [budget, setBudget] = useState("");
   const [tagsInput, setTagsInput] = useState("");
+  const [calendarId, setCalendarId] = useState<string>(calendars[0]?.id ?? "");
 
   function reset() { setName(""); setBudget(""); setEndDate(""); setTagsInput(""); }
 
