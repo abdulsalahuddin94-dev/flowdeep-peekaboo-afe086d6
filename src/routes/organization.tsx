@@ -84,6 +84,10 @@ function OrganizationPage() {
         <TabsContent value="tags" className="mt-5">
           <TagsTab />
         </TabsContent>
+
+        <TabsContent value="calendars" className="mt-5">
+          <CalendarsTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
