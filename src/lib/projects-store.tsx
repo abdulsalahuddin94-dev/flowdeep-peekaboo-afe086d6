@@ -87,6 +87,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [rfps, setRfps] = useState<RfpEntry[]>(SEED_RFPS);
   const [resourceRequests, setResourceRequests] = useState<ResourceRequest[]>(SEED_RESOURCE_REQUESTS);
   const [tagList, setTagList] = useState<OrgTag[]>(initialTags.map(({ name, color }) => ({ name, color })));
+  const [calendars, setCalendars] = useState<WorkCalendar[]>(initialCalendars);
+
+  function addCalendar(c: WorkCalendar) { setCalendars((prev) => [...prev, c]); }
+  function updateCalendar(id: string, patch: Partial<WorkCalendar>) {
+    setCalendars((prev) => prev.map((c) => c.id === id ? { ...c, ...patch } : c));
+  }
 
   const tags = useMemo(
     () => tagList.map((t) => ({ ...t, usage: projects.filter((p) => p.tags.includes(t.name)).length })),
