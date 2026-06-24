@@ -137,9 +137,9 @@ function AddBusinessLineDialog() {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Business Line</Button></DialogTrigger>
+      <DialogTrigger asChild><Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Business Type</Button></DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>New Business Line</DialogTitle><DialogDescription>Used as filter chips in Portfolio and as color tag on cards.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>New Business Type</DialogTitle><DialogDescription>High-level category (such as business lines). Used as filter chips in Portfolio and as color tag on cards.</DialogDescription></DialogHeader>
         <div className="space-y-3">
           <div><Label>Name</Label><Input placeholder="e.g. Renewables" /></div>
           <div><Label>Description</Label><Textarea placeholder="Brief description" /></div>
