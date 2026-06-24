@@ -1009,7 +1009,7 @@ const SEED_PACKAGES: TenderPackage[] = [
 
 // ── Progress Update dialog (shown when the Progress KPI is clicked) ─────────
 function ProgressUpdateDialog({
-  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove,
+  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove, initialTaskName,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1017,6 +1017,7 @@ function ProgressUpdateDialog({
   onSetProgress: (name: string, progress: number) => void;
   onRequestApproval: (name: string) => void;
   onApprove: (name: string) => void;
+  initialTaskName?: string;
 }) {
   const leaves = useMemo(
     () => items.filter((m) => m.kind === "Task" && !items.some((c) => c.parent === m.name)),
@@ -1043,10 +1044,11 @@ function ProgressUpdateDialog({
   const [draftPct, setDraftPct] = useState<number>(0);
   useEffect(() => {
     if (!open) return;
-    const first = leaves[0];
+    const pre = initialTaskName ? leaves.find((l) => l.name === initialTaskName) : undefined;
+    const first = pre ?? leaves[0];
     setSelected(first?.name ?? "");
     setDraftPct(first?.progress ?? 0);
-  }, [open, leaves]);
+  }, [open, leaves, initialTaskName]);
 
   const current = leaves.find((t) => t.name === selected);
   const currentPlanned = current ? computePlannedProgress(current.startDate, current.endDate) : 0;
