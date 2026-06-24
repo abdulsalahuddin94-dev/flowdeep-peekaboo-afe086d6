@@ -144,6 +144,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       rfps, addRfp,
       resourceRequests, addResourceRequest, updateResourceRequest,
       tags, addTag,
+      calendars, addCalendar, updateCalendar,
     }}>
       {children}
     </AppContext.Provider>
