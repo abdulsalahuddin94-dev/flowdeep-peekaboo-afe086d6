@@ -686,6 +686,84 @@ export function ProjectSchedule({
   const ragOptions: Rag[] = ["blue", "amber", "green", "red", "grey"];
   function patch(name: string, p: Partial<ScheduleItem>) { onItemPatch?.(name, p); }
 
+  // ── Export helpers ───────────────────────────────────────────────────────
+  function download(filename: string, content: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+  function exportCSV() {
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = ["Name","Type","Parent","Start","End","Duration (days)","Owner","Assignee","Status","Progress %","Expected %","Variance %","Health","Weight","Depends on","Roles","Payment"];
+    const lines = [headers.join(",")];
+    for (const it of items) {
+      const s = parseISO(it.startDate), e = parseISO(it.endDate);
+      const dur = s && e ? diffDays(e, s) + 1 : "";
+      const h = healthMap.get(it.name);
+      const roles = it.roles.map((r) => `${r.role} (${r.skill}, ${r.fte})`).join("; ");
+      const pay = !it.payment || it.payment.kind === "None" ? "" :
+        it.payment.kind === "Client Revenue" ? `Revenue ${it.payment.amount}` :
+        `${it.payment.packageId ?? "Pkg"} ${it.payment.amount}`;
+      lines.push([
+        it.name, it.kind, it.parent ?? "", it.startDate, it.endDate, dur,
+        it.owner, it.assignee ?? "", it.rag, it.progress ?? 0,
+        h ? h.expected.toFixed(1) : "", h ? h.variance.toFixed(1) : "", h?.status ?? "",
+        it.weightScore ?? "", it.dep, roles, pay,
+      ].map(esc).join(","));
+    }
+    download(`schedule-${new Date().toISOString().slice(0,10)}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+    toast.success("Exported CSV");
+  }
+  function exportJSON() {
+    const payload = items.map((it) => ({ ...it, health: healthMap.get(it.name) }));
+    download(`schedule-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(payload, null, 2), "application/json");
+    toast.success("Exported JSON");
+  }
+  function exportMsProjectXML() {
+    // Minimal MS Project 2003 XML — round-trips with our importer.
+    const uidByName = new Map<string, number>();
+    items.forEach((it, i) => uidByName.set(it.name, i + 1));
+    const depthOf = (name: string): number => {
+      let d = 1, cur = items.find((x) => x.name === name);
+      const guard = new Set<string>();
+      while (cur?.parent && !guard.has(cur.name)) { guard.add(cur.name); d++; cur = items.find((x) => x.name === cur!.parent); }
+      return d;
+    };
+    const childCount = (name: string) => items.filter((x) => x.parent === name).length;
+    const esc = (s: string) => s.replace(/[<>&"']/g, (c) => ({ "<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&apos;" }[c]!));
+    const toDT = (iso: string) => iso ? `${iso}T08:00:00` : "";
+    const taskXml = items.map((it) => {
+      const uid = uidByName.get(it.name)!;
+      const isSummary = childCount(it.name) > 0 ? 1 : 0;
+      const isMs = it.kind === "Milestone" ? 1 : 0;
+      const preds = (it.dep || "").split(",").map((s) => s.trim()).filter(Boolean)
+        .map((d) => uidByName.get(d)).filter((x): x is number => !!x)
+        .map((puid) => `<PredecessorLink><PredecessorUID>${puid}</PredecessorUID><Type>1</Type></PredecessorLink>`).join("");
+      return `<Task>
+  <UID>${uid}</UID><ID>${uid}</ID><Name>${esc(it.name)}</Name>
+  <OutlineLevel>${depthOf(it.name)}</OutlineLevel>
+  <Summary>${isSummary}</Summary><Milestone>${isMs}</Milestone>
+  <Start>${toDT(it.startDate)}</Start><Finish>${toDT(it.endDate)}</Finish>
+  <PercentComplete>${Math.round(it.progress ?? 0)}</PercentComplete>
+  ${preds}
+</Task>`;
+    }).join("\n");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <Name>Schedule Export</Name>
+  <Tasks>${taskXml}</Tasks>
+</Project>`;
+    download(`schedule-${new Date().toISOString().slice(0,10)}.xml`, xml, "application/xml");
+    toast.success("Exported MS Project XML");
+  }
+
+
   return (
     <div className="glass-card overflow-hidden">
       {/* Top action bar */}
