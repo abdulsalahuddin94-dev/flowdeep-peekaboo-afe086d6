@@ -267,7 +267,9 @@ function ProjectDetail() {
           <ProjectSchedule
             items={useMemo(() => computeDerivedSchedule(milestones, resourceRequests), [milestones, resourceRequests])}
             onProgressClick={(name, kind) => {
-              if (kind === "Milestone") {
+              const derived = computeDerivedSchedule(milestones, resourceRequests);
+              const hasChildren = derived.some((d) => d.parent === name);
+              if (kind === "Milestone" || (kind === "Task" && hasChildren)) {
                 setProgressScope(name);
                 setProgressInitial(undefined);
               } else {
@@ -1056,6 +1058,8 @@ function ProgressUpdateDialog({
     return allLeaves.filter((l) => isDescendant(l.name));
   }, [allLeaves, items, scopeMilestone]);
   const milestoneItems = useMemo(() => items.filter((m) => m.kind === "Milestone"), [items]);
+  const scopeKind = useMemo(() => items.find((i) => i.name === scopeMilestone)?.kind, [items, scopeMilestone]);
+  const scopeLabel = scopeKind === "Task" ? "Task" : "Milestone";
 
   // Project-wide weighted actual vs planned (based on leaf-task weightScore).
   const { actualPct, plannedPct } = useMemo(() => {
@@ -1107,10 +1111,10 @@ function ProgressUpdateDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Overall planned vs actual (scoped to milestone when applicable) */}
+        {/* Overall planned vs actual (scoped when applicable) */}
         <div className="rounded-lg border border-border bg-secondary/30 p-3">
           <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="label-eyebrow">{scopeMilestone ? "Milestone roll-up" : "Overall project"}</span>
+            <span className="label-eyebrow">{scopeMilestone ? `${scopeLabel} roll-up` : "Overall project"}</span>
             <span className={actualPct >= plannedPct ? "text-rag-green" : "text-rag-amber"}>
               {actualPct >= plannedPct ? "On / ahead of plan" : `${plannedPct - actualPct}% behind plan`}
             </span>
