@@ -1785,7 +1785,7 @@ function AddMilestoneDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>Add {kind}</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={submit}>{isEditing ? `Save ${kind}` : `Add ${kind}`}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
