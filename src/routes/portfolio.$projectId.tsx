@@ -158,6 +158,7 @@ function ProjectDetail() {
     { week: 16, by: project.pm, when: "17 days ago", rag: "green", text: "Discovery completed and signed off. Build phase 1 kicked off on plan." },
   ]);
   const [planningProgressOpen, setPlanningProgressOpen] = useState(false);
+  const [progressInitial, setProgressInitial] = useState<string | undefined>(undefined);
   const [stageGateOpen, setStageGateOpen] = useState(false);
   const [gateData, setGateData] = useState<GateStage[]>(INITIAL_GATE_DATA);
   const currentStage = PLANNING_STAGES.find((s) => s.state === "active") ?? PLANNING_STAGES[0];
