@@ -325,35 +325,39 @@ export function ProjectSchedule({
   const totalDays = Math.max(1, diffDays(maxDate, minDate) + 1);
   const chartWidth = totalDays * dayWidth;
 
-  // Critical path: items reachable backward via `dep` from the latest-ending item.
-  const criticalSet = useMemo(() => {
-    const set = new Set<string>();
-    if (!critical || !items.length) return set;
-    const byName = new Map(items.map(i => [i.name.toLowerCase(), i]));
-    const findDep = (depStr: string): ScheduleItem | undefined => {
-      const q = depStr.trim().toLowerCase();
-      if (!q || q === "—") return undefined;
-      if (byName.has(q)) return byName.get(q);
-      // fuzzy substring match either way
-      return items.find(i =>
-        i.name.toLowerCase().includes(q) || q.includes(i.name.toLowerCase()),
-      );
-    };
-    // Pick latest-ending item
-    let last = items[0];
+  // Schedule health: compare actual % to time-expected % per item.
+  // deviation = expected − actual.  0 < dev ≤ 7 → "at-risk", dev > 7 → "off-track".
+  type HealthStatus = "on-track" | "at-risk" | "off-track";
+  const healthMap = useMemo(() => {
+    const m = new Map<string, { status: HealthStatus; variance: number; expected: number }>();
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     for (const it of items) {
-      const a = parseISO(it.endDate), b = parseISO(last.endDate);
-      if (a && b && a > b) last = it;
+      const s = parseISO(it.startDate), e = parseISO(it.endDate);
+      if (!s || !e) { m.set(it.name, { status: "on-track", variance: 0, expected: 0 }); continue; }
+      const total = Math.max(1, diffDays(e, s) + 1);
+      const elapsed = Math.max(0, Math.min(total, diffDays(today, s) + 1));
+      const expected = (elapsed / total) * 100;
+      const actual = Math.max(0, Math.min(100, it.progress ?? 0));
+      const variance = expected - actual; // positive = behind
+      let status: HealthStatus = "on-track";
+      if (variance > 7) status = "off-track";
+      else if (variance > 0) status = "at-risk";
+      m.set(it.name, { status, variance, expected });
     }
-    let cur: ScheduleItem | undefined = last;
-    const guard = new Set<string>();
-    while (cur && !guard.has(cur.name)) {
-      guard.add(cur.name);
-      set.add(cur.name);
-      cur = findDep(cur.dep);
-    }
-    return set;
-  }, [critical, items]);
+    return m;
+  }, [items]);
+  const atRiskSet = useMemo(() => {
+    const s = new Set<string>();
+    if (!healthHighlight) return s;
+    for (const [name, h] of healthMap) if (h.status !== "on-track") s.add(name);
+    return s;
+  }, [healthHighlight, healthMap]);
+  const offTrackSet = useMemo(() => {
+    const s = new Set<string>();
+    if (!healthHighlight) return s;
+    for (const [name, h] of healthMap) if (h.status === "off-track") s.add(name);
+    return s;
+  }, [healthHighlight, healthMap]);
 
   // Header buckets per scale
   const headerCells = useMemo(() => {
