@@ -1023,7 +1023,7 @@ const SEED_PACKAGES: TenderPackage[] = [
 
 // ── Progress Update dialog (shown when the Progress KPI is clicked) ─────────
 function ProgressUpdateDialog({
-  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove, initialTaskName,
+  open, onOpenChange, items, onSetProgress, onRequestApproval, onApprove, initialTaskName, scopeMilestone,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1032,11 +1032,29 @@ function ProgressUpdateDialog({
   onRequestApproval: (name: string) => void;
   onApprove: (name: string) => void;
   initialTaskName?: string;
+  scopeMilestone?: string;
 }) {
-  const leaves = useMemo(
+  // All leaf tasks (no children)
+  const allLeaves = useMemo(
     () => items.filter((m) => m.kind === "Task" && !items.some((c) => c.parent === m.name)),
     [items],
   );
+  // When scoped to a milestone, only include leaves whose ancestor chain reaches that milestone.
+  const leaves = useMemo(() => {
+    if (!scopeMilestone) return allLeaves;
+    const byName = new Map(items.map((i) => [i.name, i]));
+    const isDescendant = (name: string): boolean => {
+      let cur = byName.get(name);
+      const seen = new Set<string>();
+      while (cur?.parent && !seen.has(cur.parent)) {
+        if (cur.parent === scopeMilestone) return true;
+        seen.add(cur.parent);
+        cur = byName.get(cur.parent);
+      }
+      return false;
+    };
+    return allLeaves.filter((l) => isDescendant(l.name));
+  }, [allLeaves, items, scopeMilestone]);
   const milestoneItems = useMemo(() => items.filter((m) => m.kind === "Milestone"), [items]);
 
   // Project-wide weighted actual vs planned (based on leaf-task weightScore).
@@ -1063,6 +1081,7 @@ function ProgressUpdateDialog({
     setSelected(first?.name ?? "");
     setDraftPct(first?.progress ?? 0);
   }, [open, leaves, initialTaskName]);
+
 
   const current = leaves.find((t) => t.name === selected);
   const currentPlanned = current ? computePlannedProgress(current.startDate, current.endDate) : 0;
