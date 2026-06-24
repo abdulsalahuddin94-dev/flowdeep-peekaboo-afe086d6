@@ -1372,7 +1372,8 @@ function computeDerivedSchedule(items: Milestone[], reqs: ResourceRequest[]): Mi
 
 // ── Add Milestone / Task dialog ──────────────────────────────────────────────
 function AddMilestoneDialog({
-  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting: _onUpdateExisting,
+  defaultOwner, packages, items, projectName, addResourceRequest, onAdd, onUpdateExisting,
+  open: controlledOpen, onOpenChange, hideTrigger, initialParent, initialKind, editingItem,
 }: {
   defaultOwner: string;
   packages: TenderPackage[];
@@ -1381,8 +1382,21 @@ function AddMilestoneDialog({
   addResourceRequest: (r: Omit<ResourceRequest, "id" | "date" | "status">) => string;
   onAdd: (m: Milestone[]) => void;
   onUpdateExisting: (name: string, patch: Partial<Milestone>) => void;
+  open?: boolean;
+  onOpenChange?: (o: boolean) => void;
+  hideTrigger?: boolean;
+  initialParent?: string;
+  initialKind?: ItemKind;
+  editingItem?: Milestone | null;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? !!controlledOpen : internalOpen;
+  const setOpen = (o: boolean) => {
+    if (!isControlled) setInternalOpen(o);
+    onOpenChange?.(o);
+  };
+  const isEditing = !!editingItem;
   const [kind, setKind] = useState<ItemKind>("Task");
   const [name, setName] = useState("");
   const [owner, setOwner] = useState(defaultOwner);
@@ -1410,19 +1424,67 @@ function AddMilestoneDialog({
   const [payPackage, setPayPackage] = useState<string>("");
 
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
+  const ragToStatus: Record<Rag, string> = { blue: "Not Started", amber: "In Progress", green: "Completed", red: "Overdue", grey: "Not Started" };
   const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
 
   // Parent options: every milestone and every task can be a parent (unlimited nesting).
-  const parentOptions = items.filter((i) => i.kind === "Milestone" || i.kind === "Task");
+  // Exclude self and its descendants when editing.
+  const parentOptions = useMemo(() => {
+    const excluded = new Set<string>();
+    if (editingItem) {
+      const collect = (n: string) => {
+        excluded.add(n);
+        for (const it of items) if (it.parent === n) collect(it.name);
+      };
+      collect(editingItem.name);
+    }
+    return items.filter((i) => (i.kind === "Milestone" || i.kind === "Task") && !excluded.has(i.name));
+  }, [items, editingItem]);
 
   function reset() {
-    setKind("Task"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
+    setKind(initialKind ?? "Task"); setName(""); setOwner(defaultOwner); setStatus("Not Started"); setDep("");
     setEndDate(""); setLagDays(0); setMilestoneType("finish");
-    setParentName("__none__"); setStartDate(""); setEndMode("duration"); setTaskEndDate("");
+    setParentName(initialParent ?? "__none__"); setStartDate(""); setEndMode("duration"); setTaskEndDate("");
     setDurationValue(1); setDurationUnit("days"); setWeightScore(1);
     setSkillRole({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
   }
+
+  // Prefill when the dialog opens (edit mode or subtask presets)
+  useEffect(() => {
+    if (!open) return;
+    if (editingItem) {
+      setKind(editingItem.kind);
+      setName(editingItem.name);
+      setOwner(editingItem.owner || defaultOwner);
+      setStatus(ragToStatus[editingItem.rag] ?? "Not Started");
+      setDep(editingItem.dep || "");
+      setMilestoneType(editingItem.milestoneType ?? "finish");
+      setLagDays(editingItem.lagDays ?? 0);
+      setEndDate(editingItem.endDate || "");
+      setParentName(editingItem.parent ?? "__none__");
+      setStartDate(editingItem.startDate || "");
+      setTaskEndDate(editingItem.endDate || "");
+      if (editingItem.durationValue && editingItem.durationUnit) {
+        setEndMode("duration");
+        setDurationValue(editingItem.durationValue);
+        setDurationUnit(editingItem.durationUnit);
+      } else {
+        setEndMode("date");
+      }
+      setWeightScore(editingItem.weightScore ?? 1);
+      const r = editingItem.roles?.[0];
+      setSkillRole(r ? { role: r.role, skill: r.skill, fte: r.fte } : { role: "", skill: "Mid", fte: 1 });
+      const p = editingItem.payment;
+      setPayKind(p?.kind ?? "None");
+      setPayAmount(p?.amount ?? "");
+      setPayPackage(p?.packageId ?? "");
+    } else {
+      setKind(initialKind ?? "Task");
+      setParentName(initialParent ?? "__none__");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingItem?.name, initialParent, initialKind]);
 
   function buildPayment(): PaymentLink {
     if (payKind === "None") return { kind: "None", amount: "" };
