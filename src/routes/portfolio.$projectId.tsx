@@ -21,7 +21,7 @@ import { projects, vendors as vendorList, resources as resourcePool } from "@/li
 import { useProjects, useNotifications, useRfps, useResourceRequests, type RfpEntry, type ResourceRequest } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { ProjectGantt } from "@/components/ProjectGantt";
-import { ProjectSchedule } from "@/components/ProjectSchedule";
+import { ProjectSchedule, computePlannedProgress } from "@/components/ProjectSchedule";
 void ProjectGantt;
 
 export const Route = createFileRoute("/portfolio/$projectId")({
