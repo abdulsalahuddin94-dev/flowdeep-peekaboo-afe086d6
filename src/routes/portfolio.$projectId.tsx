@@ -285,6 +285,44 @@ function ProjectDetail() {
               const asMilestones = imported.map((it) => ({ ...it }) as Milestone);
               setMilestones((prev) => (mode === "replace" ? asMilestones : [...prev, ...asMilestones]));
             }}
+            onAddSubtask={(parentName) => setCtxDialog({ mode: "subtask", parent: parentName })}
+            onEditItem={(name) => setCtxDialog({ mode: "edit", name })}
+            onDeleteItem={(name) => {
+              setMilestones((prev) => {
+                // cascade-delete: remove the item and any descendant whose parent chain leads to it
+                const toRemove = new Set<string>([name]);
+                let changed = true;
+                while (changed) {
+                  changed = false;
+                  for (const it of prev) {
+                    if (it.parent && toRemove.has(it.parent) && !toRemove.has(it.name)) {
+                      toRemove.add(it.name);
+                      changed = true;
+                    }
+                  }
+                }
+                return prev.filter((m) => !toRemove.has(m.name));
+              });
+            }}
+          />
+
+          {/* Controlled dialog for right-click "Add subtask" / "Edit" */}
+          <AddMilestoneDialog
+            defaultOwner={project.pm}
+            packages={SEED_PACKAGES}
+            items={milestones}
+            projectName={project.name}
+            addResourceRequest={addResourceRequest}
+            onAdd={(newItems) => setMilestones((prev) => [...prev, ...newItems])}
+            onUpdateExisting={(name, patch) =>
+              setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } : m)))
+            }
+            hideTrigger
+            open={ctxDialog !== null}
+            onOpenChange={(o) => { if (!o) setCtxDialog(null); }}
+            initialParent={ctxDialog?.mode === "subtask" ? ctxDialog.parent : undefined}
+            initialKind={ctxDialog?.mode === "subtask" ? "Task" : undefined}
+            editingItem={ctxDialog?.mode === "edit" ? (milestones.find((m) => m.name === ctxDialog.name) ?? null) : null}
           />
 
         </TabsContent>
