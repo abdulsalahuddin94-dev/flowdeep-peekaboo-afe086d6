@@ -1111,10 +1111,10 @@ function ProgressUpdateDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Overall planned vs actual (scoped to milestone when applicable) */}
+        {/* Overall planned vs actual (scoped when applicable) */}
         <div className="rounded-lg border border-border bg-secondary/30 p-3">
           <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="label-eyebrow">{scopeMilestone ? "Milestone roll-up" : "Overall project"}</span>
+            <span className="label-eyebrow">{scopeMilestone ? `${scopeLabel} roll-up` : "Overall project"}</span>
             <span className={actualPct >= plannedPct ? "text-rag-green" : "text-rag-amber"}>
               {actualPct >= plannedPct ? "On / ahead of plan" : `${plannedPct - actualPct}% behind plan`}
             </span>
