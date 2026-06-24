@@ -544,7 +544,20 @@ function ProjectDetail() {
         </TabsContent>
       </Tabs>
 
-      <PlanningProgressDialog open={planningProgressOpen} onOpenChange={setPlanningProgressOpen} />
+      <ProgressUpdateDialog
+        open={planningProgressOpen}
+        onOpenChange={setPlanningProgressOpen}
+        items={computeDerivedSchedule(milestones, resourceRequests)}
+        onSetProgress={(name, progress) =>
+          setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, progress } : m)))
+        }
+        onRequestApproval={(name) =>
+          setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, approvalStatus: "pending" } : m)))
+        }
+        onApprove={(name) =>
+          setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, approvalStatus: "approved" } : m)))
+        }
+      />
       <StageGatesDialog open={stageGateOpen} onOpenChange={setStageGateOpen} gateData={gateData} setGateData={setGateData} />
     </div>
   );
