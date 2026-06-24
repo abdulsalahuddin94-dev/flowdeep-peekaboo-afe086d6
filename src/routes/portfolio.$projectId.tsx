@@ -265,6 +265,7 @@ function ProjectDetail() {
         <TabsContent value="Project Schedule" className="mt-5">
           <ProjectSchedule
             items={useMemo(() => computeDerivedSchedule(milestones, resourceRequests), [milestones, resourceRequests])}
+            onProgressClick={(name) => { setProgressInitial(name); setPlanningProgressOpen(true); }}
             onItemPatch={(name, patch) =>
               setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, ...patch } as Milestone : m)))
             }
