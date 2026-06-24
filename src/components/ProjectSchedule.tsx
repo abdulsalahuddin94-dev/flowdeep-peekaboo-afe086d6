@@ -901,13 +901,24 @@ export function ProjectSchedule({
                 <Download className="h-3.5 w-3.5" /> Export
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel>Export schedule</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Project files</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => exportMsProjectFile("mpp")}>MS Project (.mpp)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => exportMsProjectFile("mpt")}>MS Project Template (.mpt)</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={exportCSV}>CSV (.csv) — Excel / Sheets</DropdownMenuItem>
-              <DropdownMenuItem onSelect={exportMsProjectXML}>MS Project XML (.xml)</DropdownMenuItem>
+              <DropdownMenuLabel>Spreadsheets</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => exportExcel("xlsx")}>Excel Workbook (.xlsx)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => exportExcel("xls")}>Excel 97–2003 (.xls)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => exportExcel("xlsb")}>Excel Binary (.xlsb)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={exportCSV}>CSV (.csv)</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Data interchange</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={exportMsProjectXML}>XML (.xml)</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Text</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={exportTabTxt}>Tab-separated (.txt)</DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={exportJSON}>JSON (.json)</DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => { setTimeout(() => window.print(), 50); }}>Print / Save as PDF…</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
