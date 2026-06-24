@@ -1136,9 +1136,6 @@ export function ProjectSchedule({
                         </div>
                       );
                     })()}
-                        </div>
-                      );
-                    })()}
                     {colVisible("dep") && (
                       <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground overflow-hidden" style={{ width: widths.dep }}>
                         <EditableText
