@@ -573,6 +573,7 @@ function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
       stage,
       tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
       ragNote: "New",
+      calendarId: calendarId || undefined,
     };
     onAdd(newProject);
     toast.success(`Project "${newProject.name}" created`);
