@@ -248,6 +248,7 @@ export function ProjectSchedule({
   onAddSubtask,
   onEditItem,
   onDeleteItem,
+  onProgressClick,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
@@ -257,6 +258,7 @@ export function ProjectSchedule({
   onAddSubtask?: (parentName: string) => void;
   onEditItem?: (name: string) => void;
   onDeleteItem?: (name: string) => void;
+  onProgressClick?: (name: string) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [healthHighlight, setHealthHighlight] = useState(false);
