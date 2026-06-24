@@ -26,13 +26,13 @@ function OrganizationPage() {
       <PageHeader title="Organization" subtitle="Define internal structure — required before projects can be created" />
       <Tabs defaultValue="business-lines">
         <TabsList>
-          <TabsTrigger value="business-lines">Business Lines</TabsTrigger>
+          <TabsTrigger value="business-lines">Business Types</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="tags">Tags & Classifications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business-lines" className="mt-5">
-          <SectionHeader title="Business Lines" desc="First-level project classification used across Portfolio filters."
+          <SectionHeader title="Business Types" desc="High-level project categories (such as business lines) used across Portfolio filters."
             cta={<AddBusinessLineDialog />} />
           <div className="">
             <Table>
@@ -137,9 +137,9 @@ function AddBusinessLineDialog() {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Business Line</Button></DialogTrigger>
+      <DialogTrigger asChild><Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Business Type</Button></DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>New Business Line</DialogTitle><DialogDescription>Used as filter chips in Portfolio and as color tag on cards.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>New Business Type</DialogTitle><DialogDescription>High-level category (such as business lines). Used as filter chips in Portfolio and as color tag on cards.</DialogDescription></DialogHeader>
         <div className="space-y-3">
           <div><Label>Name</Label><Input placeholder="e.g. Renewables" /></div>
           <div><Label>Description</Label><Textarea placeholder="Brief description" /></div>
@@ -147,7 +147,7 @@ function AddBusinessLineDialog() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="bg-accent text-accent-foreground" onClick={() => { toast.success("Business Line created"); setOpen(false); }}>Save</Button>
+          <Button className="bg-accent text-accent-foreground" onClick={() => { toast.success("Business Type created"); setOpen(false); }}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
