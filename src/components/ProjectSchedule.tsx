@@ -1080,7 +1080,7 @@ export function ProjectSchedule({
                     const y1 = fromIdx * ROW_H + ROW_H / 2;
                     const x2 = xForDate(toStart);
                     const y2 = toIdx * ROW_H + ROW_H / 2;
-                    const isCrit = criticalSet.has(item.name) && criticalSet.has(from.name);
+                    const isCrit = offTrackSet.has(item.name) && offTrackSet.has(from.name);
                     const stroke = isCrit ? "#EF4444" : "#94A3B8";
                     const midX = Math.max(x1 + 8, x2 - 8);
                     const d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
