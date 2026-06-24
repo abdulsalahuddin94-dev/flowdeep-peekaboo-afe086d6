@@ -1205,19 +1205,25 @@ function PlanVsActualBar({ actual, planned }: { actual: number; planned: number 
   const a = Math.max(0, Math.min(100, actual));
   const p = Math.max(0, Math.min(100, planned));
   return (
-    <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary/60">
-      <div
-        className="absolute inset-y-0 left-0 opacity-50"
-        style={{
-          width: `${p}%`,
-          backgroundImage: "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.35) 0 3px, transparent 3px 6px)",
-        }}
-      />
-      <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${a}%` }} />
-      <div className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-foreground/80" style={{ left: `calc(${p}% - 1px)` }} />
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <span className="w-3 text-[9px] uppercase tracking-wide text-accent">A</span>
+        <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60">
+          <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${a}%` }} />
+        </div>
+        <span className="num-mono w-8 shrink-0 text-right text-[10px] text-accent">{a}%</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-3 text-[9px] uppercase tracking-wide text-rag-blue">P</span>
+        <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/40">
+          <div className="absolute inset-y-0 left-0 bg-rag-blue" style={{ width: `${p}%` }} />
+        </div>
+        <span className="num-mono w-8 shrink-0 text-right text-[10px] text-rag-blue">{p}%</span>
+      </div>
     </div>
   );
 }
+
 
 // ── Business Trips tab ───────────────────────────────────────────────────────
 function BusinessTripsTab({ pm }: { pm: string }) {
