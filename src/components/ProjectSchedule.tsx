@@ -220,7 +220,7 @@ const COLUMNS = [
 type ColKey = typeof COLUMNS[number]["key"];
 type WidthKey = ColKey | "name";
 
-const ROW_H = 36;
+const ROW_H = 56;
 const DEFAULT_NAME_W = 280;
 const MIN_COL_W = 56;
 const MAX_COL_W = 800;
@@ -1081,39 +1081,69 @@ export function ProjectSchedule({
                       const blocksComplete = item.requiresApproval && item.approvalStatus !== "approved";
                       return (
                         <div className="flex items-center gap-2 border-l border-border/60 px-3 overflow-hidden" style={{ width: widths.progress }}>
-                          <div
-                            className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary/60"
-                            title={`Actual ${actual}% · Planned ${planned}%`}
-                          >
-                            {/* Actual fill */}
-                            <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${actual}%` }} />
-                            {/* Planned marker — vertical tick */}
+                          <div className="flex flex-1 flex-col gap-1.5 py-1">
+                            {/* Actual bar — clickable to set progress */}
                             <div
-                              className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-foreground/70"
-                              style={{ left: `calc(${planned}% - 1px)` }}
-                            />
-                          </div>
-                          {editable && !isMs ? (
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={actual}
-                              onChange={(e) => {
-                                const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                              role={editable && !isMs ? "slider" : undefined}
+                              aria-label="Actual progress"
+                              aria-valuenow={actual}
+                              title={`Actual ${actual}%${editable && !isMs ? " — click to set" : ""}`}
+                              onClick={(e) => {
+                                if (!editable || isMs) return;
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const pct = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                                const n = Math.max(0, Math.min(100, pct));
                                 if (n >= 100 && blocksComplete) {
                                   toast.error("This task requires approval before it can be marked 100% complete.");
                                   return;
                                 }
                                 patch(item.name, { progress: n });
                               }}
-                              className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-muted-foreground outline-none focus:ring-1 focus:ring-accent"
-                            />
-                          ) : (
-                            <span className="num-mono text-[10px] text-muted-foreground" title={isMs ? "Auto-rolled from subtasks" : undefined}>
-                              {actual}%
+                              className={`relative h-2 w-full overflow-hidden rounded-full bg-secondary/60 ${editable && !isMs ? "cursor-pointer hover:ring-1 hover:ring-accent/50" : ""}`}
+                            >
+                              <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${actual}%` }} />
+                            </div>
+                            {/* Planned bar — read-only reference */}
+                            <div
+                              aria-label="Planned progress"
+                              title={`Planned ${planned}%`}
+                              className="relative h-2 w-full overflow-hidden rounded-full bg-secondary/40"
+                            >
+                              <div
+                                className="absolute inset-y-0 left-0 opacity-80"
+                                style={{
+                                  width: `${planned}%`,
+                                  backgroundImage: "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.45) 0 4px, hsl(var(--foreground) / 0.15) 4px 8px)",
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-0.5 leading-tight">
+                            {editable && !isMs ? (
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={actual}
+                                onChange={(e) => {
+                                  const n = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                                  if (n >= 100 && blocksComplete) {
+                                    toast.error("This task requires approval before it can be marked 100% complete.");
+                                    return;
+                                  }
+                                  patch(item.name, { progress: n });
+                                }}
+                                className="num-mono w-10 rounded bg-transparent text-right text-[10px] text-accent outline-none focus:ring-1 focus:ring-accent"
+                              />
+                            ) : (
+                              <span className="num-mono text-[10px] text-accent" title={isMs ? "Auto-rolled from subtasks" : undefined}>
+                                {actual}%
+                              </span>
+                            )}
+                            <span className="num-mono text-[9px] text-muted-foreground" title="Planned %">
+                              {planned}%
                             </span>
-                          )}
+                          </div>
                           {approvalPending && (
                             <span className="rounded border border-rag-amber/40 bg-rag-amber/10 px-1 py-[1px] text-[9px] uppercase tracking-wide text-rag-amber">
                               Approval
@@ -1332,7 +1362,7 @@ export function ProjectSchedule({
 
                   const days = Math.max(1, diffDays(e, s) + 1);
                   const w = days * dayWidth;
-                  const barH = hasChildren ? 12 : 18;
+                  const barH = hasChildren ? 16 : 26;
                   const barTop = top + (ROW_H - barH) / 2;
 
                   if (hasChildren) {
