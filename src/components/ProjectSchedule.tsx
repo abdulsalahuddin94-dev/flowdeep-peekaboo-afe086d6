@@ -239,7 +239,7 @@ export function ProjectSchedule({
   onDeleteItem?: (name: string) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
-  const [critical, setCritical] = useState(false);
+  const [healthHighlight, setHealthHighlight] = useState(false);
   const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(
     () => new Set<ColKey>(["type", "start", "end", "assignee", "status", "progress", "dep"]),
   );
