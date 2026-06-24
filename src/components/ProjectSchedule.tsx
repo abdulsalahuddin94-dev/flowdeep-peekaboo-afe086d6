@@ -1404,7 +1404,9 @@ export function ProjectSchedule({
       <div className="flex items-center justify-between gap-4 border-t border-border bg-secondary/20 px-3 py-2 text-[10px] text-muted-foreground">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1"><Diamond className="h-3 w-3 text-accent" /> Milestone</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-accent" /> Task (fill = % complete)</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-accent" /> Actual %</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.35) 0 3px, transparent 3px 6px)" }} /> Planned %</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-3 w-0.5 bg-foreground/70" /> Planned position</span>
           <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-foreground/80" /> Summary (rolled up from subtasks)</span>
           {healthHighlight && (
             <>
