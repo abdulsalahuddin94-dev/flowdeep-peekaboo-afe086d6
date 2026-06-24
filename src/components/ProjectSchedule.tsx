@@ -221,6 +221,7 @@ type ColKey = typeof COLUMNS[number]["key"];
 type WidthKey = ColKey | "name";
 
 const ROW_H = 56;
+const HEADER_H = 32;
 const DEFAULT_NAME_W = 280;
 const MIN_COL_W = 56;
 const MAX_COL_W = 800;
