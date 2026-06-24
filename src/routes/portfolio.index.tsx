@@ -660,6 +660,16 @@ function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
             <Input type="number" min="0" step="0.1" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="e.g. 2.5" />
           </div>
           <div className="col-span-2">
+            <Label>Working Calendar</Label>
+            <Select value={calendarId} onValueChange={setCalendarId}>
+              <SelectTrigger><SelectValue placeholder="Select a calendar…" /></SelectTrigger>
+              <SelectContent>
+                {calendars.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[11px] text-muted-foreground">Working days and holidays applied to this project's schedule. Manage calendars in Organization → Calendars.</p>
+          </div>
+          <div className="col-span-2">
             <Label>Tags (comma-separated, optional)</Label>
             <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Strategic, Innovation…" />
           </div>
