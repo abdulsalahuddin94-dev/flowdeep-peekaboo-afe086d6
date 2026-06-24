@@ -183,16 +183,36 @@ function ProjectDetail() {
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-6">
-        <button
-          type="button"
-          onClick={() => setPlanningProgressOpen(true)}
-          className="glass-card group relative p-3 text-left transition-colors hover:border-accent/40"
-        >
-          <ArrowUpRight className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-accent" />
-          <div className="label-eyebrow">Progress</div>
-          <div className="mt-1 text-lg font-medium num-mono text-foreground">{project.progress}%</div>
-          <div className="mt-1 text-[10px] text-muted-foreground">Planning {planningDone}/{PLANNING_CHECKLIST.length} · click for details</div>
-        </button>
+        {(() => {
+          const derived = computeDerivedSchedule(milestones, resourceRequests);
+          const leaves = derived.filter((m) => m.kind === "Task" && !derived.some((c) => c.parent === m.name));
+          let totalW = 0, weightedActual = 0, weightedPlanned = 0;
+          for (const t of leaves) {
+            const w = Math.max(0, t.weightScore ?? 1);
+            totalW += w;
+            weightedActual += w * (t.progress ?? 0);
+            weightedPlanned += w * computePlannedProgress(t.startDate, t.endDate);
+          }
+          const actualPct = totalW ? Math.round(weightedActual / totalW) : 0;
+          const plannedPct = totalW ? Math.round(weightedPlanned / totalW) : 0;
+          return (
+            <button
+              type="button"
+              onClick={() => setPlanningProgressOpen(true)}
+              className="glass-card group relative p-3 text-left transition-colors hover:border-accent/40"
+            >
+              <ArrowUpRight className="pointer-events-none absolute top-2 right-2 h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-accent" />
+              <div className="label-eyebrow">Progress</div>
+              <div className="mt-1 text-lg font-medium num-mono text-foreground">{actualPct}%</div>
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span>Planned <span className="num-mono text-foreground/80">{plannedPct}%</span></span>
+                <span className={actualPct >= plannedPct ? "text-rag-green" : "text-rag-amber"}>
+                  {actualPct >= plannedPct ? "On / ahead" : `${plannedPct - actualPct}% behind`}
+                </span>
+              </div>
+            </button>
+          );
+        })()}
         <button
           type="button"
           onClick={() => setStageGateOpen(true)}
