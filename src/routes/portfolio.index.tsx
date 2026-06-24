@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, LayoutGrid, List, GanttChartSquare, Search, Filter, X } from "lucide-react";
 import { projects, pipelineItems, type Project, type Rag } from "@/lib/mock-data";
-import { useProjects } from "@/lib/projects-store";
+import { useProjects, useCalendars } from "@/lib/projects-store";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -537,6 +537,7 @@ function GovernanceTab() {
 const PM_LIST = ["Sara Al-Rashid", "John Smith", "Mei Chen", "Omar Haddad", "Priya Iyer", "Liam Walker", "Hana Tanaka", "Diego Ortiz"];
 
 function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
+  const { calendars } = useCalendars();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [businessLine, setBusinessLine] = useState("Software Solutions");
@@ -547,6 +548,7 @@ function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
   const [endDate, setEndDate] = useState("");
   const [budget, setBudget] = useState("");
   const [tagsInput, setTagsInput] = useState("");
+  const [calendarId, setCalendarId] = useState<string>(calendars[0]?.id ?? "");
 
   function reset() { setName(""); setBudget(""); setEndDate(""); setTagsInput(""); }
 
@@ -571,6 +573,7 @@ function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
       stage,
       tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
       ragNote: "New",
+      calendarId: calendarId || undefined,
     };
     onAdd(newProject);
     toast.success(`Project "${newProject.name}" created`);
@@ -655,6 +658,16 @@ function NewProjectDialog({ onAdd }: { onAdd: (p: Project) => void }) {
           <div>
             <Label>Budget total ($M)</Label>
             <Input type="number" min="0" step="0.1" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="e.g. 2.5" />
+          </div>
+          <div className="col-span-2">
+            <Label>Working Calendar</Label>
+            <Select value={calendarId} onValueChange={setCalendarId}>
+              <SelectTrigger><SelectValue placeholder="Select a calendar…" /></SelectTrigger>
+              <SelectContent>
+                {calendars.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[11px] text-muted-foreground">Working days and holidays applied to this project's schedule. Manage calendars in Organization → Calendars.</p>
           </div>
           <div className="col-span-2">
             <Label>Tags (comma-separated, optional)</Label>

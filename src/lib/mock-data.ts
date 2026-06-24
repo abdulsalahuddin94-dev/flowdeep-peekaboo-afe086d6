@@ -20,6 +20,17 @@ export interface Project {
   tags: string[];
   client?: string;
   ragNote?: string;
+  calendarId?: string;
+}
+
+// Working calendar: which weekdays count as work days (0=Sun..6=Sat),
+// hours per work day, and a list of named non-working holidays (YYYY-MM-DD).
+export interface WorkCalendar {
+  id: string;
+  name: string;
+  workingDays: number[];        // e.g. [0,1,2,3,4] (Sun–Thu) for Egypt
+  hoursPerDay: number;
+  holidays: { date: string; label: string }[];
 }
 
 const pms = [
@@ -106,6 +117,42 @@ export const departments = [
   { name: "R&D", parent: "Engineering", head: "Priya Iyer", members: 12 },
   { name: "Finance", parent: "—", head: "Liam Walker", members: 9 },
   { name: "Procurement", parent: "Operations", head: "Hana Tanaka", members: 7 },
+];
+
+export const workCalendars: WorkCalendar[] = [
+  {
+    id: "cal-eg",
+    name: "Egypt — Standard",
+    workingDays: [0, 1, 2, 3, 4], // Sun–Thu
+    hoursPerDay: 8,
+    holidays: [
+      { date: "2026-01-07", label: "Coptic Christmas" },
+      { date: "2026-04-25", label: "Sinai Liberation Day" },
+      { date: "2026-05-01", label: "Labour Day" },
+      { date: "2026-07-23", label: "Revolution Day" },
+      { date: "2026-10-06", label: "Armed Forces Day" },
+    ],
+  },
+  {
+    id: "cal-sa",
+    name: "Saudi Arabia — Standard",
+    workingDays: [0, 1, 2, 3, 4], // Sun–Thu (Fri/Sat off)
+    hoursPerDay: 8,
+    holidays: [
+      { date: "2026-02-22", label: "Founding Day" },
+      { date: "2026-09-23", label: "National Day" },
+    ],
+  },
+  {
+    id: "cal-intl",
+    name: "International — Mon–Fri",
+    workingDays: [1, 2, 3, 4, 5],
+    hoursPerDay: 8,
+    holidays: [
+      { date: "2026-01-01", label: "New Year's Day" },
+      { date: "2026-12-25", label: "Christmas Day" },
+    ],
+  },
 ];
 
 export const orgTags = [

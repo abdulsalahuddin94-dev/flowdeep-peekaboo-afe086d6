@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, FileText, MessageSquare, Paperclip, Download, UserPlus, ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Plus, AlertTriangle, Upload, FileUp, Pencil, ArrowUpRight } from "lucide-react";
 import type { Rag } from "@/lib/mock-data";
 import { projects, vendors as vendorList, resources as resourcePool } from "@/lib/mock-data";
-import { useProjects, useNotifications, useRfps, useResourceRequests, type RfpEntry, type ResourceRequest } from "@/lib/projects-store";
+import { useProjects, useNotifications, useRfps, useResourceRequests, useCalendars, type RfpEntry, type ResourceRequest } from "@/lib/projects-store";
 import { toast } from "sonner";
 import { ProjectGantt } from "@/components/ProjectGantt";
 import { ProjectSchedule, computePlannedProgress } from "@/components/ProjectSchedule";
@@ -98,6 +98,8 @@ const INITIAL_GATE_DATA: GateStage[] = [
 function ProjectDetail() {
   const { project: loaderProject } = Route.useLoaderData();
   const { projects: liveProjects, updateProject } = useProjects();
+  const { calendars } = useCalendars();
+  const projectCalendar = calendars.find((c) => c.id === (liveProjects.find((p) => p.id === loaderProject.id)?.calendarId ?? loaderProject.calendarId));
   const { addNotification } = useNotifications();
   const { addRfp } = useRfps();
   const { addResourceRequest, resourceRequests } = useResourceRequests();
@@ -173,7 +175,7 @@ function ProjectDetail() {
       </div>
       <PageHeader
         title={project.name}
-        subtitle={`${project.businessLine} · ${project.department} · PM ${project.pm} · Client ${project.client}`}
+        subtitle={`${project.businessLine} · ${project.department} · PM ${project.pm} · Client ${project.client}${projectCalendar ? ` · 📅 ${projectCalendar.name}` : ""}`}
         actions={
           <div className="flex items-center gap-2">
             <RagBadge rag={project.rag} />

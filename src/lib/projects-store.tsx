@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { projects as initialProjects, rfps as initialRfps, orgTags as initialTags, type Project } from "./mock-data";
+import { projects as initialProjects, rfps as initialRfps, orgTags as initialTags, workCalendars as initialCalendars, type Project, type WorkCalendar } from "./mock-data";
 
 export type OrgTag = { name: string; color: string };
 
@@ -71,6 +71,10 @@ type AppContextValue = {
   // Tags
   tags: (OrgTag & { usage: number })[];
   addTag: (tag: OrgTag, projectIds: string[]) => void;
+  // Calendars
+  calendars: WorkCalendar[];
+  addCalendar: (c: WorkCalendar) => void;
+  updateCalendar: (id: string, patch: Partial<WorkCalendar>) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -83,6 +87,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [rfps, setRfps] = useState<RfpEntry[]>(SEED_RFPS);
   const [resourceRequests, setResourceRequests] = useState<ResourceRequest[]>(SEED_RESOURCE_REQUESTS);
   const [tagList, setTagList] = useState<OrgTag[]>(initialTags.map(({ name, color }) => ({ name, color })));
+  const [calendars, setCalendars] = useState<WorkCalendar[]>(initialCalendars);
+
+  function addCalendar(c: WorkCalendar) { setCalendars((prev) => [...prev, c]); }
+  function updateCalendar(id: string, patch: Partial<WorkCalendar>) {
+    setCalendars((prev) => prev.map((c) => c.id === id ? { ...c, ...patch } : c));
+  }
 
   const tags = useMemo(
     () => tagList.map((t) => ({ ...t, usage: projects.filter((p) => p.tags.includes(t.name)).length })),
@@ -134,6 +144,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       rfps, addRfp,
       resourceRequests, addResourceRequest, updateResourceRequest,
       tags, addTag,
+      calendars, addCalendar, updateCalendar,
     }}>
       {children}
     </AppContext.Provider>
@@ -168,4 +179,9 @@ export function useResourceRequests() {
 export function useTags() {
   const { tags, addTag } = useAppContext();
   return { tags, addTag };
+}
+
+export function useCalendars() {
+  const { calendars, addCalendar, updateCalendar } = useAppContext();
+  return { calendars, addCalendar, updateCalendar };
 }
