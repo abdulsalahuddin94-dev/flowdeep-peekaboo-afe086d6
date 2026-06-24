@@ -140,6 +140,7 @@ export type MilestoneType = "start" | "finish";
 export type Rag = "green" | "amber" | "red" | "blue" | "grey";
 export type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 export type PaymentLink = { kind: "None" | "Client Revenue" | "Package Cost"; amount: string; packageId?: string };
+export type ApprovalStatus = "approved" | "pending" | "rejected";
 export type ScheduleItem = {
   name: string;
   kind: ItemKind;
@@ -157,7 +158,25 @@ export type ScheduleItem = {
   weightScore?: number;
   /** Milestone only — "start" or "finish" affects icon only. */
   milestoneType?: MilestoneType;
+  /** When true, the item cannot be marked 100% complete until an approval is granted. */
+  requiresApproval?: boolean;
+  /** Current state of the approval workflow. Undefined = not requested. */
+  approvalStatus?: ApprovalStatus;
 };
+
+/**
+ * Planned progress = % of the item's duration that has elapsed as of today
+ * (clamped 0..100). This is the schedule-based "where it should be" number,
+ * independent of the manually-reported actual `progress`.
+ */
+export function computePlannedProgress(startDate: string, endDate: string, now: Date = new Date()): number {
+  const s = parseISO(startDate), e = parseISO(endDate);
+  if (!s || !e) return 0;
+  const today = new Date(now); today.setHours(0, 0, 0, 0);
+  const total = Math.max(1, diffDays(e, s) + 1);
+  const elapsed = Math.max(0, Math.min(total, diffDays(today, s) + 1));
+  return Math.round((elapsed / total) * 100);
+}
 
 type Scale = "day" | "week" | "month";
 
