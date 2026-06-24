@@ -1565,19 +1565,28 @@ function AddMilestoneDialog({
     }
 
 
-    onAdd(newItems);
-    toast.success(`${kind} added`);
+    if (isEditing && editingItem) {
+      const patch = newItems[0];
+      // Drop fields that don't apply to the original kind switch (keep computed)
+      onUpdateExisting(editingItem.name, patch);
+      toast.success(`${kind} updated`);
+    } else {
+      onAdd(newItems);
+      toast.success(`${kind} added`);
+    }
     setOpen(false);
     reset();
   }
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Item</Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-1 h-4 w-4" />Add Item</Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Add {kind}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEditing ? `Edit ${kind}` : `Add ${kind}`}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
           <div>
             <Label>Type</Label>
