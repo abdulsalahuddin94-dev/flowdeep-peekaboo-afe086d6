@@ -175,7 +175,7 @@ function ProjectDetail() {
       </div>
       <PageHeader
         title={project.name}
-        subtitle={`${project.businessLine} · ${project.department} · PM ${project.pm} · Client ${project.client}`}
+        subtitle={`${project.businessLine} · ${project.department} · PM ${project.pm} · Client ${project.client}${projectCalendar ? ` · 📅 ${projectCalendar.name}` : ""}`}
         actions={
           <div className="flex items-center gap-2">
             <RagBadge rag={project.rag} />
