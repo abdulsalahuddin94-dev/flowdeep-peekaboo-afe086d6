@@ -1058,6 +1058,8 @@ function ProgressUpdateDialog({
     return allLeaves.filter((l) => isDescendant(l.name));
   }, [allLeaves, items, scopeMilestone]);
   const milestoneItems = useMemo(() => items.filter((m) => m.kind === "Milestone"), [items]);
+  const scopeKind = useMemo(() => items.find((i) => i.name === scopeMilestone)?.kind, [items, scopeMilestone]);
+  const scopeLabel = scopeKind === "Task" ? "Task" : "Milestone";
 
   // Project-wide weighted actual vs planned (based on leaf-task weightScore).
   const { actualPct, plannedPct } = useMemo(() => {
