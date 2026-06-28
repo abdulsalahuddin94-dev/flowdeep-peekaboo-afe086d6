@@ -5,8 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { projects, portfolioSummary } from "@/lib/mock-data";
 import { Download, FileSpreadsheet } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/financials")({
   component: FinancialsPage,
@@ -14,6 +16,10 @@ export const Route = createFileRoute("/financials")({
 });
 
 function FinancialsPage() {
+  const [selectedYear, setSelectedYear] = useState("2026");
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 3 }, (_, i) => (currentYear - 2 + i).toString());
+
   return (
     <div>
       <PageHeader
@@ -48,18 +54,34 @@ function FinancialsPage() {
         </TabsList>
 
         <TabsContent value="projects" className="mt-5">
+          <div className="mb-4 flex items-center gap-3">
+            <label className="text-sm font-medium">Filter by Year:</label>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Table>
             <TableHeader><TableRow>
-              <TableHead>Project</TableHead><TableHead>Business Line</TableHead><TableHead>Budget</TableHead>
-              <TableHead>Spent</TableHead><TableHead>Burn</TableHead><TableHead>Variance</TableHead><TableHead>Forecast</TableHead>
+              <TableHead>Project</TableHead><TableHead>Business Line</TableHead><TableHead>Revenue</TableHead><TableHead>Budget</TableHead>
+              <TableHead>Spent</TableHead><TableHead>Burn</TableHead><TableHead>Variance</TableHead><TableHead>Margin</TableHead>
             </TableRow></TableHeader>
             <TableBody>{projects.slice(0, 12).map((p) => {
               const pct = (p.budgetUsed / p.budgetTotal) * 100;
               const variance = pct - p.progress;
+              const revenue = p.budgetTotal * 1.15;
+              const margin = ((revenue - p.budgetUsed) / revenue) * 100;
               return (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium text-foreground">{p.name}</TableCell>
                   <TableCell className="text-muted-foreground">{p.businessLine}</TableCell>
+                  <TableCell className="num-mono">${revenue.toFixed(2)}M</TableCell>
                   <TableCell className="num-mono">${p.budgetTotal.toFixed(2)}M</TableCell>
                   <TableCell className="num-mono">${p.budgetUsed.toFixed(2)}M</TableCell>
                   <TableCell className="w-40">
@@ -69,7 +91,7 @@ function FinancialsPage() {
                     </div>
                   </TableCell>
                   <TableCell className={`num-mono text-xs ${variance > 5 ? "text-rag-red" : variance > 0 ? "text-rag-amber" : "text-rag-green"}`}>{variance > 0 ? "+" : ""}{Math.round(variance)}%</TableCell>
-                  <TableCell className="num-mono text-xs">${(p.budgetTotal * 1.04).toFixed(2)}M</TableCell>
+                  <TableCell className={`num-mono text-xs ${margin > 20 ? "text-rag-green" : margin > 10 ? "text-rag-amber" : "text-rag-red"}`}>{Math.round(margin)}%</TableCell>
                 </TableRow>
               );
             })}</TableBody>
