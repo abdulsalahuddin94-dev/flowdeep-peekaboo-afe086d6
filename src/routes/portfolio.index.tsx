@@ -30,7 +30,7 @@ type View = typeof VIEWS[number];
 
 const ALL_RAGS = [
   { v: "green", l: "On Track" }, { v: "amber", l: "At Risk" },
-  { v: "red", l: "Critical" },   { v: "blue", l: "Not Started" }, { v: "grey", l: "On Hold" },
+  { v: "red", l: "Off-Track" },   { v: "blue", l: "Not Started" }, { v: "grey", l: "On Hold" },
 ] as const;
 const ALL_STAGES = ["Initiation", "Planning", "Execution", "Monitoring", "Closure"] as const;
 const ALL_TAGS    = Array.from(new Set(projects.flatMap((p) => p.tags)));
@@ -106,7 +106,7 @@ function AllProjectsTab({ restrict, projectList }: { restrict?: boolean; project
           { l: "Active", v: projectList.length },
           { l: "On Track", v: projectList.filter((p) => p.rag === "green").length, c: "rag-green" },
           { l: "Budget Used", v: `$${projectList.reduce((s, p) => s + p.budgetUsed, 0).toFixed(1)}M / $${projectList.reduce((s, p) => s + p.budgetTotal, 0).toFixed(0)}M` },
-          { l: "Critical", v: projectList.filter((p) => p.rag === "red").length, c: "rag-red", pulse: true },
+          { l: "Off-Track", v: projectList.filter((p) => p.rag === "red").length, c: "rag-red", pulse: true },
         ].map((m) => (
           <div key={m.l} className="glass-card p-4">
             <div className="label-eyebrow">{m.l}</div>

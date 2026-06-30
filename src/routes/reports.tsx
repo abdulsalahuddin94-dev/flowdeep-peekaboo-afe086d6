@@ -22,7 +22,7 @@ const REPORT_CONTENT: Record<string, { summary: string; rows: { label: string; v
     rows: [
       { label: "On Track", value: "14 projects", rag: "green" },
       { label: "At Risk", value: "5 projects", rag: "amber" },
-      { label: "Critical", value: "3 projects", rag: "red" },
+      { label: "Off-Track", value: "3 projects", rag: "red" },
       { label: "Total Budget", value: "$248.5M" },
       { label: "Budget Utilisation", value: "61.4%" },
       { label: "Avg. Progress", value: "58%" },

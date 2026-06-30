@@ -729,7 +729,7 @@ function OverviewTab({ project }: { project: typeof projects[number] }) {
   const ragMap = {
     green: { label: "On Track", text: "text-rag-green", bg: "bg-rag-green/15", ring: "ring-rag-green/40" },
     amber: { label: "At Risk", text: "text-rag-amber", bg: "bg-rag-amber/15", ring: "ring-rag-amber/40" },
-    red: { label: "Critical", text: "text-rag-red", bg: "bg-rag-red/15", ring: "ring-rag-red/40" },
+    red: { label: "Off-Track", text: "text-rag-red", bg: "bg-rag-red/15", ring: "ring-rag-red/40" },
     blue: { label: "Not Started", text: "text-rag-blue", bg: "bg-rag-blue/15", ring: "ring-rag-blue/40" },
     grey: { label: "On Hold", text: "text-muted-foreground", bg: "bg-muted/20", ring: "ring-muted/40" },
   } as const;
@@ -2430,7 +2430,7 @@ function StatusReportsTab({
                 <SelectContent>
                   <SelectItem value="green">On Track</SelectItem>
                   <SelectItem value="amber">At Risk</SelectItem>
-                  <SelectItem value="red">Critical</SelectItem>
+                  <SelectItem value="red">Off-Track</SelectItem>
                 </SelectContent>
               </Select>
             </div>
