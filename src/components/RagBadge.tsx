@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const map: Record<Rag, { label: string; dot: string; text: string; bg: string; border: string }> = {
   green: { label: "On Track", dot: "bg-rag-green", text: "text-rag-green", bg: "bg-rag-green/10", border: "border-rag-green/30" },
   amber: { label: "At Risk", dot: "bg-rag-amber", text: "text-rag-amber", bg: "bg-rag-amber/10", border: "border-rag-amber/30" },
-  red: { label: "Critical", dot: "bg-rag-red pulse-dot", text: "text-rag-red", bg: "bg-rag-red/10", border: "border-rag-red/30" },
+  red: { label: "Off-Track", dot: "bg-rag-red pulse-dot", text: "text-rag-red", bg: "bg-rag-red/10", border: "border-rag-red/30" },
   blue: { label: "Not Started", dot: "bg-rag-blue", text: "text-rag-blue", bg: "bg-rag-blue/10", border: "border-rag-blue/30" },
   grey: { label: "On Hold", dot: "bg-rag-grey", text: "text-rag-grey", bg: "bg-rag-grey/10", border: "border-rag-grey/30" },
 };
