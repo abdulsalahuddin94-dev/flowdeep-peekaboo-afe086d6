@@ -535,7 +535,7 @@ function ProjectDetail() {
             setReports={setReports}
             externalOpen={reportOpen}
             onExternalOpenChange={setReportOpen}
-            onRagChange={(rag) => { updateProject(project.id, { rag }); addNotification({ tone: rag === "red" ? "red" : rag === "amber" ? "amber" : "green", title: `${project.name} status updated to ${rag === "red" ? "Critical" : rag === "amber" ? "At Risk" : "On Track"}`, time: "Just now" }); }}
+            onRagChange={(rag) => { updateProject(project.id, { rag }); addNotification({ tone: rag === "red" ? "red" : rag === "amber" ? "amber" : "green", title: `${project.name} status updated to ${rag === "red" ? "Off-Track" : rag === "amber" ? "At Risk" : "On Track"}`, time: "Just now" }); }}
           />
         </TabsContent>
 
