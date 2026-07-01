@@ -154,7 +154,7 @@ function DirectorView() {
           <Stat label="Active" value={s.total} sub="FY2026" tone="accent" />
           <Stat label="On Track" value={s.counts.green} sub={`${Math.round((s.counts.green / s.total) * 100)}% of portfolio`} tone="green" />
           <Stat label="At Risk" value={s.counts.amber} sub="Watch closely" tone="amber" />
-          <Stat label="Critical" value={s.counts.red} sub="Action required" tone="red" />
+          <Stat label="Off-Track" value={s.counts.red} sub="Action required" tone="red" />
         </div>
         <div className="mt-5">
           <HealthBar counts={s.counts} total={s.total} />
@@ -603,7 +603,7 @@ function TeamMemberView() {
 
       <Tile className="col-span-12 lg:col-span-4" eyebrow="My Project">
         <div className="text-lg font-medium text-foreground">ERP Upgrade</div>
-        <div className="mt-1 text-xs text-rag-red">Critical · 61%</div>
+        <div className="mt-1 text-xs text-rag-red">Off-Track · 61%</div>
         <Progress value={61} className="mt-3 h-1.5" />
       </Tile>
 
@@ -627,7 +627,7 @@ function HealthBar({ counts, total }: { counts: Record<Rag, number>; total: numb
   const rows: { k: Rag; c: string; l: string }[] = [
     { k: "green", c: "var(--rag-green)", l: "On Track" },
     { k: "amber", c: "var(--rag-amber)", l: "At Risk" },
-    { k: "red",   c: "var(--rag-red)",   l: "Critical" },
+    { k: "red",   c: "var(--rag-red)",   l: "Off-Track" },
     { k: "blue",  c: "var(--rag-blue)",  l: "Not Started" },
     { k: "grey",  c: "var(--rag-grey)",  l: "On Hold" },
   ];
