@@ -3394,7 +3394,7 @@ function LessonsTab({ project }: { project: typeof projects[number] }) {
 }
 
 // ── Dependency Management Dialog ────────────────────────────────────────────────
-type Milestone = Parameters<typeof ProjectSchedule>[0]["items"][number];
+type DepItem = Parameters<typeof ProjectSchedule>[0]["items"][number];
 function DependencyDialog({
   open,
   onOpenChange,
@@ -3404,8 +3404,8 @@ function DependencyDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  currentItem?: Milestone;
-  allItems: Milestone[];
+  currentItem?: DepItem;
+  allItems: DepItem[];
   onSetDependencies: (name: string, dependencies: any[]) => void;
 }) {
   const [selectedPred, setSelectedPred] = useState<string>("");
