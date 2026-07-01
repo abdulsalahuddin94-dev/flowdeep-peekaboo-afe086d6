@@ -3446,7 +3446,7 @@ function DependencyDialog({
 
   function save() {
     if (currentItem) {
-      onSetDependencies(currentItem.name, deps.length > 0 ? deps : undefined);
+      onSetDependencies(currentItem.name, deps.length > 0 ? deps : []);
       toast.success("Dependencies saved");
       onOpenChange(false);
     }
