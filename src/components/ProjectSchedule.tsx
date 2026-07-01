@@ -1142,11 +1142,11 @@ export function ProjectSchedule({
                       <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground overflow-hidden" style={{ width: widths.dep }}>
                         <button
                           onClick={() => onDependencyClick?.(item.name)}
-                          className="text-xs text-accent hover:underline cursor-pointer truncate"
+                          className="text-xs text-accent hover:underline cursor-pointer truncate max-w-full"
                           title="Click to manage dependencies"
                         >
                           {item.dependencies && item.dependencies.length > 0
-                            ? `${item.dependencies.length} dep${item.dependencies.length > 1 ? 's' : ''}`
+                            ? item.dependencies.map((d) => d.predecessor).join(", ")
                             : item.dep || "—"}
                         </button>
                       </div>
