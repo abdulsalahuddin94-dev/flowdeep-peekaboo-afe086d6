@@ -142,6 +142,8 @@ export type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead
 export type PaymentLink = { kind: "None" | "Client Revenue" | "Package Cost"; amount: string; packageId?: string };
 export type ApprovalStatus = "approved" | "pending" | "rejected";
 export type Approver = { id: string; name: string; role: string; department: string; status?: "approved" | "pending" | "rejected" };
+export type RelationType = "FS" | "SF" | "SS" | "FF";
+export type Dependency = { predecessor: string; relation: RelationType; leadTime?: number; lagTime?: number };
 export type ScheduleItem = {
   name: string;
   kind: ItemKind;
@@ -165,6 +167,8 @@ export type ScheduleItem = {
   approvers?: Approver[];
   /** Current state of the approval workflow. Undefined = not requested. */
   approvalStatus?: ApprovalStatus;
+  /** Dependencies: list of predecessors with relation types and time buffers */
+  dependencies?: Dependency[];
 };
 
 /**
@@ -253,6 +257,7 @@ export function ProjectSchedule({
   onEditItem,
   onDeleteItem,
   onProgressClick,
+  onDependencyClick,
 }: {
   items: ScheduleItem[];
   AddItemSlot?: React.ReactNode;
@@ -263,6 +268,7 @@ export function ProjectSchedule({
   onEditItem?: (name: string) => void;
   onDeleteItem?: (name: string) => void;
   onProgressClick?: (name: string, kind: ItemKind) => void;
+  onDependencyClick?: (name: string) => void;
 }) {
   const [scale, setScale] = useState<Scale>("week");
   const [healthHighlight, setHealthHighlight] = useState(false);
@@ -1134,12 +1140,15 @@ export function ProjectSchedule({
                     })()}
                     {colVisible("dep") && (
                       <div className="flex items-center border-l border-border/60 px-3 text-muted-foreground overflow-hidden" style={{ width: widths.dep }}>
-                        <EditableText
-                          value={item.dep || ""}
-                          placeholder="—"
-                          editable={editable}
-                          onCommit={(v) => patch(item.name, { dep: v })}
-                        />
+                        <button
+                          onClick={() => onDependencyClick?.(item.name)}
+                          className="text-xs text-accent hover:underline cursor-pointer truncate"
+                          title="Click to manage dependencies"
+                        >
+                          {item.dependencies && item.dependencies.length > 0
+                            ? `${item.dependencies.length} dep${item.dependencies.length > 1 ? 's' : ''}`
+                            : item.dep || "—"}
+                        </button>
                       </div>
                     )}
                     {colVisible("roles") && (

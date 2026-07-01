@@ -163,6 +163,8 @@ function ProjectDetail() {
   const [progressInitial, setProgressInitial] = useState<string | undefined>(undefined);
   const [progressScope, setProgressScope] = useState<string | undefined>(undefined);
   const [stageGateOpen, setStageGateOpen] = useState(false);
+  const [dependencyOpen, setDependencyOpen] = useState(false);
+  const [selectedItemForDep, setSelectedItemForDep] = useState<string | undefined>(undefined);
   const [gateData, setGateData] = useState<GateStage[]>(INITIAL_GATE_DATA);
   const currentStage = PLANNING_STAGES.find((s) => s.state === "active") ?? PLANNING_STAGES[0];
   const planningDone = PLANNING_CHECKLIST.filter((c) => c.done).length;
@@ -303,6 +305,10 @@ function ProjectDetail() {
                 ),
               );
               toast.success("Skill request sent to Resources");
+            }}
+            onDependencyClick={(name) => {
+              setSelectedItemForDep(name);
+              setDependencyOpen(true);
             }}
             AddItemSlot={
               <AddMilestoneDialog
@@ -577,6 +583,15 @@ function ProjectDetail() {
         }
       />
       <StageGatesDialog open={stageGateOpen} onOpenChange={setStageGateOpen} gateData={gateData} setGateData={setGateData} />
+      <DependencyDialog
+        open={dependencyOpen}
+        onOpenChange={setDependencyOpen}
+        currentItem={selectedItemForDep ? milestones.find((m) => m.name === selectedItemForDep) : undefined}
+        allItems={milestones}
+        onSetDependencies={(name, dependencies) =>
+          setMilestones((prev) => prev.map((m) => (m.name === name ? { ...m, dependencies } : m)))
+        }
+      />
     </div>
   );
 }
@@ -2105,7 +2120,6 @@ function AddMilestoneDialog({
               </Select>
             </div>
           </div>
-          <div><Label>Depends on</Label><Input value={dep} onChange={(e) => setDep(e.target.value)} placeholder="—" /></div>
 
           {kind === "Task" && (
             <div className="rounded-md border border-border p-3 space-y-2">
@@ -3374,5 +3388,178 @@ function LessonsTab({ project }: { project: typeof projects[number] }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Dependency Management Dialog ────────────────────────────────────────────────
+type Milestone = Parameters<typeof ProjectSchedule>[0]["items"][number];
+function DependencyDialog({
+  open,
+  onOpenChange,
+  currentItem,
+  allItems,
+  onSetDependencies,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  currentItem?: Milestone;
+  allItems: Milestone[];
+  onSetDependencies: (name: string, dependencies: any[]) => void;
+}) {
+  const [selectedPred, setSelectedPred] = useState<string>("");
+  const [relation, setRelation] = useState<"FS" | "SF" | "SS" | "FF">("FS");
+  const [leadTime, setLeadTime] = useState(0);
+  const [lagTime, setLagTime] = useState(0);
+  const [deps, setDeps] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (open && currentItem) {
+      setDeps(currentItem.dependencies ?? []);
+      setSelectedPred("");
+      setRelation("FS");
+      setLeadTime(0);
+      setLagTime(0);
+    }
+  }, [open, currentItem]);
+
+  function addDependency() {
+    if (!selectedPred || !currentItem) return;
+    const newDep = {
+      predecessor: selectedPred,
+      relation,
+      leadTime: leadTime || undefined,
+      lagTime: lagTime || undefined,
+    };
+    const updated = [...deps, newDep];
+    setDeps(updated);
+    setSelectedPred("");
+    setRelation("FS");
+    setLeadTime(0);
+    setLagTime(0);
+  }
+
+  function removeDependency(idx: number) {
+    setDeps((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function save() {
+    if (currentItem) {
+      onSetDependencies(currentItem.name, deps.length > 0 ? deps : undefined);
+      toast.success("Dependencies saved");
+      onOpenChange(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Manage Dependencies — {currentItem?.name}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4">
+          {/* Existing dependencies */}
+          {deps.length > 0 && (
+            <div className="space-y-2 rounded-md border border-border bg-secondary/20 p-3">
+              <div className="text-sm font-medium">Current Dependencies</div>
+              {deps.map((d, i) => (
+                <div key={i} className="flex items-center justify-between rounded border border-border/60 bg-background/60 p-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{d.predecessor}</span>
+                    <span className="text-xs text-muted-foreground">
+                      [{d.relation}]
+                      {d.leadTime ? ` LS: ${d.leadTime}d` : ""}
+                      {d.lagTime ? ` LG: ${d.lagTime}d` : ""}
+                    </span>
+                  </div>
+                  <button onClick={() => removeDependency(i)} className="text-xs text-rag-red hover:underline">
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add new dependency */}
+          <div className="space-y-3 rounded-md border border-accent/20 bg-accent-dim/20 p-3">
+            <div className="text-sm font-medium">Add New Dependency</div>
+            <div className="grid gap-3">
+              <div>
+                <Label className="text-xs">Predecessor Task/Milestone</Label>
+                <Select value={selectedPred} onValueChange={setSelectedPred}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent className="max-h-48">
+                    {allItems
+                      .filter((m) => m.name !== currentItem?.name)
+                      .map((m) => (
+                        <SelectItem key={m.name} value={m.name}>
+                          {m.kind === "Milestone" ? "◆" : "▢"} {m.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Relation Type</Label>
+                  <Select value={relation} onValueChange={(v) => setRelation(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FS">Finish to Start (FS)</SelectItem>
+                      <SelectItem value="SF">Start to Finish (SF)</SelectItem>
+                      <SelectItem value="SS">Start to Start (SS)</SelectItem>
+                      <SelectItem value="FF">Finish to Finish (FF)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-[9px] text-muted-foreground">
+                    {relation === "FS" && "Predecessor must finish before this starts"}
+                    {relation === "SF" && "This must finish before predecessor starts"}
+                    {relation === "SS" && "Start together"}
+                    {relation === "FF" && "Finish together"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs">Lead Time (days)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={leadTime}
+                    onChange={(e) => setLeadTime(Number(e.target.value) || 0)}
+                    placeholder="0"
+                  />
+                  <p className="mt-1 text-[9px] text-muted-foreground">Overlap/advance</p>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs">Lag Time (days)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={lagTime}
+                  onChange={(e) => setLagTime(Number(e.target.value) || 0)}
+                  placeholder="0"
+                />
+                <p className="mt-1 text-[9px] text-muted-foreground">Delay between predecessor and this</p>
+              </div>
+
+              <Button
+                size="sm"
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+                onClick={addDependency}
+                disabled={!selectedPred}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add Dependency
+              </Button>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={save}>Save Dependencies</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
