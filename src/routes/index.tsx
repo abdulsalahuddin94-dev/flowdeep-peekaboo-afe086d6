@@ -186,7 +186,8 @@ function DirectorView() {
         <Link to="/pipeline" className="text-xs text-accent hover:underline">View all</Link>
       }>
         <ul className="space-y-2">
-          {pipelineItems.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").slice(0, 3).map((p) => (
+          {/* Pipeline approvals */}
+          {pipelineItems.filter((p) => p.stage === "Under Review" || p.stage === "Submitted").slice(0, 2).map((p) => (
             <li key={p.id} className="rounded-md border border-border bg-background/30 p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -198,6 +199,28 @@ function DirectorView() {
               <div className="mt-2 flex items-center gap-2">
                 <Button size="sm" className="h-7 bg-accent text-accent-foreground hover:bg-accent/90">Approve</Button>
                 <Button size="sm" variant="outline" className="h-7">Review</Button>
+              </div>
+            </li>
+          ))}
+
+          {/* Milestone approvals - show pending approvals for current user */}
+          {[
+            { name: "UAT Sign-off", project: "ERP Upgrade", approvers: 2, pending: true },
+            { name: "Production cutover", project: "Customer Portal v3", approvers: 1, pending: true },
+          ].slice(0, 1).map((m) => (
+            <li key={m.name} className="rounded-md border border-accent/20 bg-accent-dim/20 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">{m.name}</div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">{m.project} · Milestone approval</div>
+                </div>
+                <span className="shrink-0 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] text-accent font-medium">
+                  {m.approvers} approvers
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Button size="sm" className="h-7 bg-accent text-accent-foreground hover:bg-accent/90">Approve</Button>
+                <Button size="sm" variant="outline" className="h-7">Review project</Button>
               </div>
             </li>
           ))}

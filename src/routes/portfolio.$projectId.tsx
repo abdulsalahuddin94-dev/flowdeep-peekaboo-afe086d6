@@ -1725,6 +1725,18 @@ function AddMilestoneDialog({
   const [payAmount, setPayAmount] = useState("");
   const [payPackage, setPayPackage] = useState<string>("");
 
+  // Milestone approval workflow
+  const [requiresApproval, setRequiresApproval] = useState(false);
+  const [selectedApprovers, setSelectedApprovers] = useState<string[]>([]);
+  const availableApprovers = [
+    { id: "sara", name: "Sara Al-Rashid", role: "Director", dept: "Engineering" },
+    { id: "john", name: "John Smith", role: "Project Manager", dept: "IT" },
+    { id: "mei", name: "Mei Chen", role: "Project Manager", dept: "IT" },
+    { id: "omar", name: "Omar Haddad", role: "Operations Manager", dept: "Operations" },
+    { id: "priya", name: "Priya Iyer", role: "Team Lead", dept: "R&D" },
+    { id: "liam", name: "Liam Walker", role: "Finance Manager", dept: "Finance" },
+  ];
+
   const ragMap: Record<string, Rag> = { "Not Started": "blue", "In Progress": "amber", Completed: "green", Overdue: "red" };
   const ragToStatus: Record<Rag, string> = { blue: "Not Started", amber: "In Progress", green: "Completed", red: "Overdue", grey: "Not Started" };
   const roleSuggestions = ["Solution Architect", "Business Analyst", "Integration Dev", "QA Engineer", "Security Reviewer", "Change Manager", "Project Manager", "Data Engineer"];
@@ -1750,6 +1762,7 @@ function AddMilestoneDialog({
     setDurationValue(1); setDurationUnit("days"); setWeightScore(1);
     setSkillRole({ role: "", skill: "Mid", fte: 1 });
     setPayKind("None"); setPayAmount(""); setPayPackage("");
+    setRequiresApproval(false); setSelectedApprovers([]);
   }
 
   // Prefill when the dialog opens (edit mode or subtask presets)
@@ -1781,6 +1794,8 @@ function AddMilestoneDialog({
       setPayKind(p?.kind ?? "None");
       setPayAmount(p?.amount ?? "");
       setPayPackage(p?.packageId ?? "");
+      setRequiresApproval(editingItem.requiresApproval ?? false);
+      setSelectedApprovers(editingItem.approvers?.map((a) => a.id) ?? []);
     } else {
       setKind(initialKind ?? "Task");
       setParentName(initialParent ?? "__none__");
@@ -1801,12 +1816,26 @@ function AddMilestoneDialog({
 
     if (kind === "Milestone") {
       if (!endDate) { toast.error("End date is required"); return; }
+      const approvers = requiresApproval
+        ? selectedApprovers.map((id) => {
+            const approver = availableApprovers.find((a) => a.id === id);
+            return {
+              id,
+              name: approver?.name || "",
+              role: approver?.role || "",
+              department: approver?.dept || "",
+            };
+          })
+        : [];
       newItems.push({
         name: name.trim(), kind: "Milestone",
         startDate: endDate, endDate, owner: owner || defaultOwner, rag, dep,
         roles: [], payment: buildPayment(), progress: 0,
         lagDays: Number(lagDays) || 0,
         milestoneType,
+        requiresApproval,
+        approvers: requiresApproval ? approvers : undefined,
+        approvalStatus: requiresApproval ? "pending" : undefined,
       });
     }
 
@@ -1923,6 +1952,71 @@ function AddMilestoneDialog({
                   <Input type="number" min="0" value={lagDays} onChange={(e) => setLagDays(Number(e.target.value))} />
                   <p className="mt-1 text-[10px] text-muted-foreground">Buffer after the last child ends.</p>
                 </div>
+              </div>
+
+              <div className="rounded-md border border-accent/20 bg-accent-dim/30 p-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="requires-approval"
+                    checked={requiresApproval}
+                    onCheckedChange={(checked) => setRequiresApproval(!!checked)}
+                  />
+                  <label htmlFor="requires-approval" className="text-sm font-medium cursor-pointer">
+                    Requires approval to reach 100%
+                  </label>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  When enabled, milestone stays Pending until all selected approvers approve it.
+                </p>
+
+                {requiresApproval && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Select approvers</Label>
+                    {selectedApprovers.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1">
+                        {selectedApprovers.map((id) => {
+                          const approver = availableApprovers.find((a) => a.id === id);
+                          return (
+                            <span
+                              key={id}
+                              className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-dim/40 px-2 py-0.5 text-xs text-accent"
+                            >
+                              <span>{approver?.name}</span>
+                              <span className="text-[9px] opacity-70">({approver?.role})</span>
+                              <button
+                                onClick={() => setSelectedApprovers((prev) => prev.filter((a) => a !== id))}
+                                className="hover:text-foreground"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="space-y-2 rounded-md border border-border bg-background/40 p-3 max-h-48 overflow-y-auto">
+                      {availableApprovers.map((approver) => (
+                        <div key={approver.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`approver-${approver.id}`}
+                            checked={selectedApprovers.includes(approver.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedApprovers((prev) => [...prev, approver.id]);
+                              } else {
+                                setSelectedApprovers((prev) => prev.filter((a) => a !== approver.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`approver-${approver.id}`} className="cursor-pointer text-sm flex-1">
+                            <span className="font-medium">{approver.name}</span>
+                            <span className="text-muted-foreground ml-1">({approver.role} · {approver.dept})</span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

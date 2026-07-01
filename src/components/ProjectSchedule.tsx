@@ -141,6 +141,7 @@ export type Rag = "green" | "amber" | "red" | "blue" | "grey";
 export type RoleReq = { role: string; skill: "Junior" | "Mid" | "Senior" | "Lead"; fte: number };
 export type PaymentLink = { kind: "None" | "Client Revenue" | "Package Cost"; amount: string; packageId?: string };
 export type ApprovalStatus = "approved" | "pending" | "rejected";
+export type Approver = { id: string; name: string; role: string; department: string; status?: "approved" | "pending" | "rejected" };
 export type ScheduleItem = {
   name: string;
   kind: ItemKind;
@@ -160,6 +161,8 @@ export type ScheduleItem = {
   milestoneType?: MilestoneType;
   /** When true, the item cannot be marked 100% complete until an approval is granted. */
   requiresApproval?: boolean;
+  /** List of people required to approve this milestone to reach 100% */
+  approvers?: Approver[];
   /** Current state of the approval workflow. Undefined = not requested. */
   approvalStatus?: ApprovalStatus;
 };
