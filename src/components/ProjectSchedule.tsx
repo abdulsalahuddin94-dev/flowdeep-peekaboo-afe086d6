@@ -1146,7 +1146,9 @@ export function ProjectSchedule({
                           title="Click to manage dependencies"
                         >
                           {item.dependencies && item.dependencies.length > 0
-                            ? item.dependencies.map((d) => d.predecessor).join(", ")
+                            ? item.dependencies.length === 1
+                              ? `${item.dependencies[0].predecessor}`
+                              : `${item.dependencies.length} Dependencies`
                             : item.dep || "—"}
                         </button>
                       </div>
