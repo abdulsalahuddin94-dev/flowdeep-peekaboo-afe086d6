@@ -1575,6 +1575,8 @@ type Milestone = {
   requiresApproval?: boolean;
   /** Workflow state: undefined (not requested) → "pending" → "approved" | "rejected". */
   approvalStatus?: "approved" | "pending" | "rejected";
+  approvers?: { id: string; name: string; role: string; department: string }[];
+  dependencies?: any[];
 };
 
 type Trip = { id: string; purpose: string; dest: string; dates: string; travelers: string; cost: string; rag: Rag; status: string };
